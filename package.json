@@ -1,0 +1,63 @@
+{
+  "name": "jev-apply",
+  "version": "0.1.0",
+  "description": "Memory-backed job-application assistant: Jev selects, OpenAI writes only what is new, Playwright fills and verifies.",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "jev-apply": "scripts/apply.mjs",
+    "jev-learn": "scripts/learn.mjs",
+    "jev-remember": "scripts/remember.mjs",
+    "jev-scan": "scripts/scan.mjs",
+    "jev-pipeline": "scripts/pipeline.mjs",
+    "jev-canon-scan": "scripts/canon-scan.mjs",
+    "jev-canon-cluster": "scripts/canon-cluster.mjs",
+    "jev-canon-eval": "scripts/canon-eval.mjs",
+    "jev-answers": "scripts/answers.mjs",
+    "jev-smoke": "scripts/jev-smoke.mjs",
+    "jev-install": "scripts/install.mjs"
+  },
+  "scripts": {
+    "setup": "node scripts/install.mjs",
+    "smoke": "node scripts/jev-smoke.mjs",
+    "apply": "node scripts/apply.mjs",
+    "learn": "node scripts/learn.mjs",
+    "remember": "node scripts/remember.mjs",
+    "scan": "node scripts/scan.mjs",
+    "pipeline": "node scripts/pipeline.mjs",
+    "canon-scan": "node scripts/canon-scan.mjs",
+    "canon-cluster": "node scripts/canon-cluster.mjs",
+    "canon-eval": "node scripts/canon-eval.mjs",
+    "answers": "node scripts/answers.mjs"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0",
+    "openai": "^7.21.0",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.63.0",
+    "yaml": "^2.9.1"
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "LICENSE",
+    "scripts/",
+    "src/",
+    "canon/",
+    "references/",
+    "eval/fixtures/ashby-query.graphql"
+  ],
+  "keywords": [
+    "jev",
+    "typesafe",
+    "job-application",
+    "greenhouse",
+    "ashby",
+    "playwright",
+    "agent-skill"
+  ]
+}

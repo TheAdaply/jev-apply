@@ -1,0 +1,24 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# private user memory and notes (never publish) — anchored to the repo root so that
+# source directories such as src/memory/ are NOT swept up by these rules
+/memory/
+/private/
+
+# tooling
+node_modules/
+dist/
+.output/
+.wxt/
+__pycache__/
+*.pyc
+.DS_Store
+/.Codex/
+
+# internal research and planning notes (never published) — anchored like /memory/ and /private/
+# above, so a future src/…/research/ or docs/omp/ directory is not silently untracked
+/docs/research/
+/.omp/

@@ -1,0 +1,11 @@
+# Smoke list for scripts/bench.mjs — the two postings whose schemas are already recorded in
+# eval/fixtures/, so the harness can be proved end to end before bench/postings.yml exists.
+# One URL per line; `#` comments and blank lines are ignored.
+#
+#   JEV_APPLY_HOME=/tmp/jev-bench node scripts/bench.mjs --postings bench/smoke.txt --port 9224
+#
+# Real public application pages. The bench fills them with an invented candidate and never
+# clicks Submit (PLAN D8).
+
+https://jobs.ashbyhq.com/baseten/db6477fc-111a-4340-bf00-525fe023e6f3/application
+https://job-boards.greenhouse.io/togetherai/jobs/5179372007

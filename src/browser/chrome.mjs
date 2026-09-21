@@ -13,7 +13,14 @@ import { chromium } from "playwright";
 
 import { paths } from "../config.mjs";
 
-export const DEFAULT_PORT = 9223;
+/**
+ * The CDP port of the dedicated profile. `JEV_CHROME_PORT` moves it so a second store
+ * (`JEV_APPLY_HOME`) gets a second browser: `scripts/bench.mjs` runs on 9224 against
+ * `/tmp/jev-bench/profile` and must never attach to whatever is already answering on 9223 —
+ * that would be the user's own Chrome, and `connect({})` takes the port, not the profile, as
+ * the identity of a running browser.
+ */
+export const DEFAULT_PORT = Number(process.env.JEV_CHROME_PORT) || 9223;
 
 /** The user's real browser first; Chromium / Chrome for Testing only as a fallback. */
 export const CHROME_CANDIDATES = [

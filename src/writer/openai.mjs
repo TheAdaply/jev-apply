@@ -56,6 +56,41 @@ export function resetClient() {
   _client = null;
 }
 
+// ------------------------------------------------------------------- usage
+
+/**
+ * What this process has spent on the Responses API, split by model — `gpt-5.4` and
+ * `gpt-5.4-mini` differ by 3.3× on input, so one lump sum could not be priced. Counted per
+ * *billed* call: a response that arrives `incomplete` or fails a post-check was still paid for,
+ * so it is recorded before those checks run. A call that never reached OpenAI is not.
+ */
+const spent = new Map();
+
+function record(model, usage) {
+  const row = spent.get(model) ?? { calls: 0, input_tokens: 0, output_tokens: 0 };
+  row.calls += 1;
+  row.input_tokens += usage?.input_tokens ?? 0;
+  row.output_tokens += usage?.output_tokens ?? 0;
+  spent.set(model, row);
+}
+
+/** @returns {{calls:number, input_tokens:number, output_tokens:number, by_model:Record<string,object>}} */
+export function usageTotals() {
+  const total = { calls: 0, input_tokens: 0, output_tokens: 0, by_model: {} };
+  for (const [model, row] of spent) {
+    total.calls += row.calls;
+    total.input_tokens += row.input_tokens;
+    total.output_tokens += row.output_tokens;
+    total.by_model[model] = { ...row };
+  }
+  return total;
+}
+
+/** Test seam: zero the counters (a benchmark that runs several postings in one process). */
+export function resetUsage() {
+  spent.clear();
+}
+
 // ------------------------------------------------------------------ the call
 
 async function askJson({
@@ -86,6 +121,10 @@ async function askJson({
       cause: err,
     });
   }
+  // Billed the moment the response exists — before `error`/`incomplete`/post-check rejections,
+  // all of which still cost the tokens the model produced. Keyed by the model we asked for:
+  // that is what PRICING is keyed by, and `res.model` may be a dated snapshot of it.
+  record(model, res.usage);
   if (res.error) throw new WriterError(`OpenAI ${model}: ${res.error.message ?? res.error}`);
   if (res.status === "incomplete") {
     throw new WriterError(

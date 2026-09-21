@@ -19,6 +19,29 @@ export const JEV_MODEL = "jev-1.13.0";
 export const OPENAI_MODEL = "gpt-5.4";
 export const OPENAI_MODEL_FAST = "gpt-5.4-mini";
 
+/**
+ * USD per million tokens, for the `usage` block `apply.mjs` prints and the bench's `$` column.
+ * A rate this file cannot vouch for is `null`, and every consumer then prints `cost: unknown`
+ * rather than a guessed number.
+ *
+ * Jev: $0.042 / Mtok input, output free — https://docs.typesafe.ai/models.md, recorded in
+ * docs/research/03-typesafe-jev-api.md §Limits and re-confirmed in 08-skeptic-review.md row 4.
+ * That page warns its limits "can change without notice", so treat this as early-access pricing.
+ *
+ * OpenAI: Standard tier, short context (< 272k), from developers.openai.com/api/docs/pricing
+ * read 2026-09-23 — `gpt-5.4` $2.50 in / $15.00 out, `gpt-5.4-mini` $0.75 in / $4.50 out.
+ * Cached-input ($0.25 / $0.075) is deliberately *not* modelled: the writer's prompts carry a
+ * different story per call, so assuming a cache hit would under-report. Batch and Fast tiers
+ * are not used by this runner.
+ */
+export const PRICING = {
+  jev: { input_per_mtok: 0.042, output_per_mtok: 0 },
+  openai: {
+    "gpt-5.4": { input_per_mtok: 2.5, output_per_mtok: 15.0 },
+    "gpt-5.4-mini": { input_per_mtok: 0.75, output_per_mtok: 4.5 },
+  },
+};
+
 /** Repo root (public code, canon bank, recorded public corpus). Never user data. */
 export const REPO_ROOT = path.resolve(fileURLToPath(new URL("../", import.meta.url)));
 

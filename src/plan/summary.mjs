@@ -1,11 +1,19 @@
-// The ≤20-line report the user reads before clicking Submit (PLAN §2.6).
+// The ≤20-line report the user reads before clicking Submit (PLAN §2.6), plus the run's
+// usage/cost accounting — the numbers behind its last line and behind `apply.mjs`'s `usage` block.
 //
 // Rules from the plan: no probabilities anywhere, every ► item carries a handle `remember.mjs`
 // accepts (`d1`, `c1`), and the whole thing fits on one screen. Sections that have nothing to say
 // are omitted rather than printed empty, and a long section collapses to "… +N more" instead of
 // spilling past the line budget.
+//
+// The accounting half is pure: it is handed the two clients' counters (`usageTotals()` from
+// `src/jev/client.mjs` and `src/writer/openai.mjs`) and turns them into tokens, milliseconds and
+// dollars against `PRICING`. A model `PRICING` does not name makes the dollar figure `null`, which
+// every renderer prints as `cost: unknown` — never a guessed rate.
 
 import path from "node:path";
+
+import { PRICING } from "../config.mjs";
 
 const MAX_LINES = 20;
 const MAX_WIDTH = 150;
@@ -21,10 +29,11 @@ const short = (label, n = 42) => clip(String(label ?? "").replace(/\s*\?$/, ""),
 const isFilled = (d) => d.action === "fill" || d.action === "check";
 
 /**
- * @param {{formPlan:object, decisions:object[], slug:string, status:string}} args
+ * @param {{formPlan:object, decisions:object[], slug:string, status:string, usage?:object}} args
+ *   `usage` is a `usageReport()` block; given, it adds the ► COST line above the footer.
  * @returns {string} the summary, `\n`-joined, never more than 20 lines.
  */
-export function renderSummary({ formPlan, decisions, slug, status = "ready_to_submit" }) {
+export function renderSummary({ formPlan, decisions, slug, status = "ready_to_submit", usage = null }) {
   const job = formPlan?.job ?? {};
   const company = job.company ?? "";
   const header = `${clip(company, 40)} — ${clip(job.title ?? "", 60)} · ${clip(formPlan?.url ?? "", 90)}   ${status === "ready_to_submit" ? "ready to submit" : "needs your answers"}`;
@@ -54,8 +63,11 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
   if (notFilled.length) lines.push(row("NOT FILLED", join(notFilled)));
   if (asks.length) lines.push(row("NEEDS YOU", join(asks.map((d) => `${short(d.label, 44)} (${reason(d.why)})`), 2)));
 
-  lines.push(`If Submit errors: run \`apply.mjs --resume ${slug}\` — it lists every field with its intended value.`);
-  return fit(lines).join("\n");
+  // The two lines the user needs *after* a failure are the cost of the run and how to resume it,
+  // so both are footer: `fit` drops from the middle, never from here.
+  const footer = [`If Submit errors: run \`apply.mjs --resume ${slug}\` — it lists every field with its intended value.`];
+  if (usage) footer.unshift(row("COST", costLine(usage)));
+  return fit(lines, footer).join("\n");
 }
 
 function row(tag, text) {
@@ -82,12 +94,131 @@ function skipSummary(decisions) {
   return eeo.length ? [...rest, `EEO section, ${eeo.length} questions (${reason(eeo[0].why.replace(/^EEO: /, ""), 26)})`] : rest;
 }
 
-/** Keep the footer, drop the least important middle lines until the budget is met. */
-function fit(lines) {
-  if (lines.length <= MAX_LINES) return lines;
+/** Head and footer always survive; the least important middle lines go until the budget is met. */
+function fit(lines, footer) {
+  const all = [...lines, ...footer];
+  if (all.length <= MAX_LINES) return all;
   const head = lines.slice(0, 2);
-  const footer = lines[lines.length - 1];
-  const body = lines.slice(2, -1);
-  const keep = body.slice(0, MAX_LINES - 4);
-  return [...head, ...keep, row("", `+${body.length - keep.length} more items — see decisions.json`), footer];
+  const body = lines.slice(2);
+  const keep = body.slice(0, MAX_LINES - 3 - footer.length);
+  return [...head, ...keep, row("", `+${body.length - keep.length} more items — see decisions.json`), ...footer];
+}
+
+// ─── usage and cost ───────────────────────────────────────────────────────────────────────────
+
+/** Per-phase wall clock for one posting: schema fetch, planning (deterministic + Jev), browser. */
+export function newPhases() {
+  return { schema: 0, plan: 0, browser: 0 };
+}
+
+/** Run `fn`, adding its wall time to `phases[key]`. Accumulates, so a phase may be entered twice. */
+export async function timed(phases, key, fn) {
+  const started = Date.now();
+  try {
+    return await fn();
+  } finally {
+    phases[key] += Date.now() - started;
+  }
+}
+
+/**
+ * `now − base` over the writer's `usageTotals()` shape, so one posting can be billed for its own
+ * calls inside a process that made others. `base` omitted means "everything so far".
+ */
+export function deltaUsage(now, base = null) {
+  if (!base) return now;
+  const out = { calls: now.calls - base.calls, input_tokens: now.input_tokens - base.input_tokens, output_tokens: now.output_tokens - base.output_tokens, by_model: {} };
+  for (const [model, row] of Object.entries(now.by_model ?? {})) {
+    const was = base.by_model?.[model] ?? { calls: 0, input_tokens: 0, output_tokens: 0 };
+    const delta = { calls: row.calls - was.calls, input_tokens: row.input_tokens - was.input_tokens, output_tokens: row.output_tokens - was.output_tokens };
+    if (delta.calls || delta.input_tokens || delta.output_tokens) out.by_model[model] = delta;
+  }
+  return out;
+}
+
+/** `{requests, usage:{…}}` (a planner's per-posting tally) and `{requests, input_tokens, …}` (the client's) both read the same. */
+const jevCounts = (jev) => ({
+  requests: jev?.requests ?? 0,
+  input_tokens: jev?.usage?.input_tokens ?? jev?.input_tokens ?? 0,
+  output_tokens: jev?.usage?.output_tokens ?? jev?.output_tokens ?? 0,
+});
+
+const round6 = (n) => (n == null ? null : Math.round(n * 1e6) / 1e6);
+
+function rateCost(rate, { input_tokens, output_tokens }) {
+  if (!rate || rate.input_per_mtok == null || rate.output_per_mtok == null) return null;
+  return (input_tokens / 1e6) * rate.input_per_mtok + (output_tokens / 1e6) * rate.output_per_mtok;
+}
+
+/**
+ * Exact key, or the undated form of a dated snapshot (`gpt-5.4-2026-03-01` → `gpt-5.4`).
+ * Never a prefix match: `gpt-5.4-pro` starts with `gpt-5.4` and costs twelve times as much, so
+ * a prefix rule would silently bill a $30/$180 model at $2.50/$15. An unpriced model is `null`,
+ * which every renderer prints as `cost: unknown`.
+ */
+function openaiRate(model) {
+  const table = PRICING.openai ?? {};
+  const name = String(model ?? "");
+  return table[name] ?? table[name.replace(/-\d{4}-\d{2}-\d{2}$/, "")] ?? null;
+}
+
+/** One model with no published rate makes the whole figure unknown rather than an undercount. */
+function openaiCost(openai) {
+  const models = Object.entries(openai.by_model ?? {});
+  if (!models.length) return openai.calls ? null : 0;
+  let total = 0;
+  for (const [model, row] of models) {
+    const usd = rateCost(openaiRate(model), row);
+    if (usd == null) return null;
+    total += usd;
+  }
+  return total;
+}
+
+/**
+ * The `usage` block every `apply.mjs` status carries, and what the bench sums per posting.
+ *
+ * The phases are *not* a partition of `ms_total`: a conditional follow-up discovered on a
+ * half-filled form is re-planned from inside the fill loop (PLAN §2.2 step 9), so that Jev round
+ * trip is counted in both `ms_plan` and `ms_browser`. They are "time spent in this activity",
+ * not disjoint slices, and may sum past `ms_total`.
+ * @param {{started?:number, ms_total?:number, phases?:object, jev?:object, openai?:object}} args
+ * @returns {{ms_total:number, ms_schema:number, ms_plan:number, ms_browser:number,
+ *            jev:{requests,input_tokens,output_tokens,usd}, openai:{calls,input_tokens,output_tokens,usd},
+ *            usd_total:number|null}}
+ */
+export function usageReport({ started = null, ms_total = null, phases = {}, jev = null, openai = null } = {}) {
+  const j = jevCounts(jev);
+  const o = { calls: openai?.calls ?? 0, input_tokens: openai?.input_tokens ?? 0, output_tokens: openai?.output_tokens ?? 0, by_model: openai?.by_model ?? {} };
+  const jevUsd = round6(rateCost(PRICING.jev, j));
+  const openaiUsd = round6(openaiCost(o));
+  return {
+    ms_total: ms_total ?? (started ? Date.now() - started : 0),
+    ms_schema: phases.schema ?? 0,
+    ms_plan: phases.plan ?? 0,
+    ms_browser: phases.browser ?? 0,
+    jev: { ...j, usd: jevUsd },
+    openai: { calls: o.calls, input_tokens: o.input_tokens, output_tokens: o.output_tokens, usd: openaiUsd },
+    usd_total: jevUsd == null || openaiUsd == null ? null : round6(jevUsd + openaiUsd),
+  };
+}
+
+/** `$0.000190`, `$0` or `cost: unknown` — never a rounded-to-zero dollar figure. */
+export function money(usd) {
+  if (usd == null) return "cost: unknown";
+  if (usd === 0) return "$0";
+  if (usd >= 0.01) return `$${usd.toFixed(4)}`;
+  if (usd < 0.000001) return "$<0.000001";
+  return `$${usd.toFixed(6)}`;
+}
+
+/** `Jev 2 req / 4530 tok / $0.000190 · OpenAI 0 tok / $0 · wall 7.8s` (PLAN §2.6 line budget). */
+export function costLine(usage) {
+  const jevTok = usage.jev.input_tokens + usage.jev.output_tokens;
+  const openaiTok = usage.openai.input_tokens + usage.openai.output_tokens;
+  return [
+    `Jev ${usage.jev.requests} req / ${jevTok} tok / ${money(usage.jev.usd)}`,
+    `OpenAI ${openaiTok} tok / ${money(usage.openai.usd)}`,
+    `wall ${(usage.ms_total / 1000).toFixed(1)}s`,
+  ].join(" · ");
 }

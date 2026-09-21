@@ -157,6 +157,33 @@ export async function closeJevClient() {
   client = null;
 }
 
+// ─── usage ────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * What this process has spent on Jev, counted per *answered* HTTP request — a batch that threw
+ * is not billed to us by this counter, and its siblings that came back still are. `closeJevClient`
+ * deliberately does not reset it: the totals describe the process, not a connection.
+ */
+const spent = { requests: 0, input_tokens: 0, output_tokens: 0 };
+
+function record(res) {
+  spent.requests += 1;
+  spent.input_tokens += res?.usage?.input_tokens ?? 0;
+  spent.output_tokens += res?.usage?.output_tokens ?? 0;
+}
+
+/** @returns {{requests:number, input_tokens:number, output_tokens:number}} a copy, never the live object. */
+export function usageTotals() {
+  return { ...spent };
+}
+
+/** Test seam: zero the counters (a benchmark that runs several postings in one process). */
+export function resetUsage() {
+  spent.requests = 0;
+  spent.input_tokens = 0;
+  spent.output_tokens = 0;
+}
+
 function toJevError(err) {
   if (err instanceof AuthenticationError) return new JevAuthError(err.body?.detail ?? err.body, { cause: err });
   if (err instanceof BadRequestError || err instanceof UnprocessableEntityError) {
@@ -293,11 +320,19 @@ export async function systemOne({ state, questions, model = JEV_MODEL, signal })
   const api = getClient();
   const started = Date.now();
 
+  // `record` runs per settled batch rather than over `results`, so a split request that loses one
+  // batch still bills this process for the batches that did come back.
   const results = await Promise.all(
     batches.map((batch) =>
-      api.systemOne({ state, questions: batch, model }, { signal }).catch((err) => {
-        throw toJevError(err);
-      }),
+      api.systemOne({ state, questions: batch, model }, { signal }).then(
+        (res) => {
+          record(res);
+          return res;
+        },
+        (err) => {
+          throw toJevError(err);
+        },
+      ),
     ),
   );
 

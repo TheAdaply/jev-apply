@@ -22,7 +22,7 @@ import path from "node:path";
 import { atsFromUrl, snapshotRequired, waitForForm } from "../src/browser/adapters/index.mjs";
 import { connect, disconnect } from "../src/browser/chrome.mjs";
 import { appendTrace } from "../src/browser/trace.mjs";
-import { closeJevClient } from "../src/jev/client.mjs";
+import { closeJevClient, usageTotals as jevSpend } from "../src/jev/client.mjs";
 import { loadCanon, planWithJev } from "../src/jev/plan.mjs";
 import { loadBaselines, loadMemory } from "../src/memory/store.mjs";
 import { loadPipeline, nextQueued, setStatus } from "../src/pipeline/store.mjs";
@@ -45,7 +45,8 @@ import {
 } from "../src/plan/decisions.mjs";
 import { Blocked, attachPosting, activeAtsTab, newBudget, runBrowser } from "../src/plan/execute.mjs";
 import { resolveForm } from "../src/plan/resolve.mjs";
-import { renderSummary } from "../src/plan/summary.mjs";
+import { costLine, deltaUsage, newPhases, renderSummary, timed, usageReport } from "../src/plan/summary.mjs";
+import { usageTotals as writerSpend } from "../src/writer/openai.mjs";
 
 const USAGE = [
   "usage: apply.mjs --url <posting> | --tab | --queue <n> | --resume <slug> | --schema <file>",
@@ -104,9 +105,9 @@ function applyUrl(source) {
  * `reattach` reuses the frozen plan when it still describes this form, so `--answers` re-plans
  * only what the host just answered instead of paying for the whole form again.
  */
-async function planPosting({ source, stores, budget, reattach = false, quiet = false }) {
+async function planPosting({ source, stores, budget, phases = newPhases(), reattach = false, quiet = false }) {
   const { mem, baselines, pipeline, canon } = stores;
-  const formPlan = await loadFormPlan(source);
+  const formPlan = await timed(phases, "schema", () => loadFormPlan(source));
   const slug = applicationSlug(formPlan);
   const frozen = await loadFrozen(slug);
 
@@ -127,11 +128,13 @@ async function planPosting({ source, stores, budget, reattach = false, quiet = f
   let decisions = reuse ? mergeFrozen(resolved, frozen.decisions) : resolved;
   let jev = ZERO_JEV;
   if (!reuse) {
-    jev = await planWithJev({ formPlan, decisions, mem, context, slug, canon, baselines, pipeline });
+    jev = await timed(phases, "plan", () => planWithJev({ formPlan, decisions, mem, context, slug, canon, baselines, pipeline }));
     decisions = jev.decisions;
   }
   budget.spend(jev.requests);
-  return { formPlan, slug, context, decisions: withOptions(finalize(decisions), formPlan), jev, extra, stored: [], applied: [] };
+  // `openaiBase` is the writer's counter as this posting starts; `fill()` re-takes it so a queue
+  // run bills each posting for its own step-10 drafts and not for the posting filled before it.
+  return { formPlan, slug, context, decisions: withOptions(finalize(decisions), formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
 }
 
 /** Step 9's second half: the host's answers → memory + the `ask` rows, re-planning only those. */
@@ -140,16 +143,18 @@ async function applyToPlan(plan, answers, { stores, budget }) {
   const out = await applyAnswers(plan.decisions, answers, { formPlan: plan.formPlan, context: plan.context });
   let decisions = out.decisions;
   if (out.reopen.length) {
-    const second = await planWithJev({
-      formPlan: plan.formPlan,
-      decisions,
-      mem,
-      context: plan.context,
-      slug: plan.slug,
-      canon,
-      baselines,
-      pipeline,
-    });
+    const second = await timed(plan.phases, "plan", () =>
+      planWithJev({
+        formPlan: plan.formPlan,
+        decisions,
+        mem,
+        context: plan.context,
+        slug: plan.slug,
+        canon,
+        baselines,
+        pipeline,
+      }),
+    );
     decisions = second.decisions;
     plan.jev = sumJev(plan.jev, second);
     budget.spend(second.requests);
@@ -187,7 +192,7 @@ function replanFor({ plan, stores, budget }) {
     async questions(questions) {
       const synthetic = { ...plan.formPlan, questions };
       const { decisions: resolved } = resolveForm(synthetic, { mem, pipeline, baselines });
-      const out = await planWithJev({ formPlan: synthetic, decisions: resolved, mem, context: plan.context, slug: plan.slug, canon, baselines, pipeline });
+      const out = await timed(plan.phases, "plan", () => planWithJev({ formPlan: synthetic, decisions: resolved, mem, context: plan.context, slug: plan.slug, canon, baselines, pipeline }));
       budget.spend(out.requests);
       plan.jev = sumJev(plan.jev, out);
       return withOptions(finalize(out.decisions), synthetic);
@@ -202,15 +207,20 @@ function replanFor({ plan, stores, budget }) {
  * fresh run reloads it instead, so nothing from the previous run can be mistaken for a read-back.
  */
 async function fill({ conn, plan, stores, budget, attach }) {
+  // Step 10's drafts happen inside `runBrowser`; re-baselining here is what keeps a queue run's
+  // per-posting OpenAI figures honest (planning is parallel, filling is sequential).
+  plan.openaiBase = writerSpend();
   const replan = replanFor({ plan, stores, budget });
   const args = { context: conn.context, formPlan: plan.formPlan, decisions: plan.decisions, slug: plan.slug, budget, replan };
-  try {
-    return await runBrowser({ ...args, attach });
-  } catch (err) {
-    if (!(attach && err instanceof Blocked && err.reason === "no_page")) throw err;
-    log("no open tab for this posting — opening a fresh one and filling the whole plan");
-    return runBrowser({ ...args, attach: false });
-  }
+  return timed(plan.phases, "browser", async () => {
+    try {
+      return await runBrowser({ ...args, attach });
+    } catch (err) {
+      if (!(attach && err instanceof Blocked && err.reason === "no_page")) throw err;
+      log("no open tab for this posting — opening a fresh one and filling the whole plan");
+      return runBrowser({ ...args, attach: false });
+    }
+  });
 }
 
 // ─── the report ───────────────────────────────────────────────────────────────────────────────
@@ -228,7 +238,8 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
   const counts = tally(decisions);
   const asked = needsUser(decisions, slug);
   const status = asked.questions.length ? "needs_user" : "ready_to_submit";
-  const summary = renderSummary({ formPlan, decisions, slug, status });
+  const usage = usageFor({ plan, started });
+  const summary = renderSummary({ formPlan, decisions, slug, status, usage });
   const extra = dedupeQuestions([...(plan.extra ?? []), ...(browser?.added ?? [])]);
 
   if (!dryRun) {
@@ -243,6 +254,7 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
     await writeSummary(slug, summary);
   }
   await appendTrace(slug, { op: "plan", status, ...counts, requests: jev.requests, ms: Date.now() - started, ...(dryRun ? { dry_run: true } : {}) });
+  await appendTrace(slug, { op: "usage", ...usage });
 
   return {
     status,
@@ -258,6 +270,7 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
     skipped: counts.skipped,
     remembered: (plan.stored ?? []).map(({ section, row }) => `${section}:${row.id ?? row.qid}`),
     requests: jev.requests,
+    usage,
     ms: Date.now() - started,
     summary,
   };
@@ -265,8 +278,30 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
 
 const dedupeQuestions = (questions) => [...new Map(questions.map((q) => [q.qid, q])).values()];
 
+/**
+ * One posting's spend. Jev comes from the planner's own per-posting tally (exact even when a
+ * queue plans four postings at once); OpenAI from the writer's process counter minus this
+ * posting's baseline. `--dry-run`, `--resume` and a failure before the plan existed fall back to
+ * the process totals, which in those paths *are* the run.
+ */
+function usageFor({ plan = null, started, phases = null }) {
+  return usageReport({
+    started,
+    phases: plan?.phases ?? phases ?? {},
+    jev: plan?.jev ?? jevSpend(),
+    openai: deltaUsage(writerSpend(), plan?.openaiBase ?? null),
+  });
+}
+
+/** Queue mode: the phases are *work* time summed over postings, while `ms_total` stays wall clock. */
+function sumPhases(list) {
+  const out = newPhases();
+  for (const p of list) for (const key of Object.keys(out)) out[key] += p?.[key] ?? 0;
+  return out;
+}
+
 /** §2.6: `blocked` prints the same header as the summary, plus the reason and the screenshot. */
-function blockedReport(err, { plan = null, started = null } = {}) {
+function blockedReport(err, { plan = null, started = null, phases = null } = {}) {
   const job = plan?.formPlan?.job;
   const header = job ? `${job.company} — ${job.title} · ${plan.formPlan.url}   blocked` : "jev-apply   blocked";
   const reason = err?.reason ?? err?.message ?? String(err);
@@ -280,6 +315,7 @@ function blockedReport(err, { plan = null, started = null } = {}) {
     ...(plan?.formPlan?.url ? { url: plan.formPlan.url } : {}),
     ...(err?.shot ? { screenshot: err.shot } : {}),
     ...(started ? { ms: Date.now() - started } : {}),
+    usage: usageFor({ plan, started: started ?? PROCESS_STARTED, phases }),
     detail: err?.message ?? reason,
     summary: lines.join("\n"),
   };
@@ -289,6 +325,7 @@ function blockedReport(err, { plan = null, started = null } = {}) {
 
 async function singleRun(args, stores) {
   const started = Date.now();
+  const phases = newPhases();
   const budget = newBudget({ started });
   let conn = null;
   let plan = null;
@@ -310,7 +347,7 @@ async function singleRun(args, stores) {
     }
 
     const answers = args.answers ? await readAnswersFile(args.answers) : null;
-    plan = await planPosting({ source, stores, budget, reattach: Boolean(answers) });
+    plan = await planPosting({ source, stores, budget, phases, reattach: Boolean(answers) });
     if (answers) {
       const out = await applyToPlan(plan, answers, { stores, budget });
       log(`answers: applied ${out.applied.length}, ignored ${out.ignored.length}, remembered ${out.stored.length}`);
@@ -332,7 +369,7 @@ async function singleRun(args, stores) {
     // screenshot — a missing key, a 500 from the board and a dead tab all read the same way.
     log(err?.stack ?? String(err));
     if (plan) await appendTrace(plan.slug, { op: "blocked", reason: err.reason ?? err.message, detail: err.message, ...(err.shot ? { shot: err.shot } : {}) });
-    return blockedReport(err, { plan, started });
+    return blockedReport(err, { plan, started, phases });
   } finally {
     if (conn) await disconnect(conn.browser, { port: conn.port });
   }
@@ -345,7 +382,7 @@ async function queueRun(args, stores) {
   const started = Date.now();
   const entries = await nextQueued(args.queue);
   if (!entries.length) {
-    return { status: "blocked", reason: "queue_empty", detail: "nothing is queued — run `pipeline.mjs queue <id> …` first", queue: [], questions: [], ms: Date.now() - started };
+    return { status: "blocked", reason: "queue_empty", detail: "nothing is queued — run `pipeline.mjs queue <id> …` first", queue: [], questions: [], usage: usageFor({ started }), ms: Date.now() - started };
   }
   log(`queue: ${entries.length} posting(s) — ${entries.map((e) => e.id).join(", ")}`);
   const answers = args.answers ? await readAnswersFile(args.answers) : null;
@@ -414,7 +451,7 @@ async function queueRun(args, stores) {
     }
     const out = await settle({ plan: job.plan, started, browser: job.browser, dryRun: args.dryRun });
     postings.push({ slug: job.plan.slug, company: out.company, decisions: job.plan.decisions });
-    rows.push({ id: job.entry.id, slug: out.slug, company: out.company, title: out.title, url: out.url, status: out.status, filled: out.filled, set: out.set ?? 0, asks: out.asks.length, requests: out.requests, summary: out.summary });
+    rows.push({ id: job.entry.id, slug: out.slug, company: out.company, title: out.title, url: out.url, status: out.status, filled: out.filled, set: out.set ?? 0, asks: out.asks.length, requests: out.requests, usage: out.usage, summary: out.summary });
     if (out.status === "ready_to_submit") {
       await setStatus(job.entry.id, "ready", `jev-apply: filled ${out.filled}/${out.filled + out.asks.length + out.skipped}`).catch((err) => log(`pipeline ${job.entry.id}: ${err.message}`));
     }
@@ -422,12 +459,15 @@ async function queueRun(args, stores) {
 
   const questions = mergedNeedsUser(postings);
   const status = questions.length ? "needs_user" : rows.every((r) => r.status === "blocked") ? "blocked" : "ready_to_submit";
+  // Run-level, from the process counters: the sum of the rows would double-count nothing but is
+  // the wrong shape (each row's `ms_*` is that posting's, not the queue's wall clock).
   return {
     status,
     ...(status === "blocked" ? { reason: "every posting blocked" } : {}),
     queue: rows,
     questions,
     requests: jobs.reduce((n, j) => n + (j.plan?.jev.requests ?? 0), 0),
+    usage: usageFor({ started, phases: sumPhases(jobs.map((j) => j.plan?.phases)) }),
     ms: Date.now() - started,
   };
 }
@@ -453,9 +493,10 @@ async function mapLimit(items, limit, fn) {
 /** What the summary's last line promises: every field that is not on the form, with its value. */
 async function resumeRun(args, stores) {
   const started = Date.now();
+  const phases = newPhases();
   const frozen = await loadFrozen(args.resume);
   if (!frozen) {
-    return { status: "blocked", reason: `no application on file for "${args.resume}"`, detail: "run `apply.mjs --url <posting>` first", ms: Date.now() - started };
+    return { status: "blocked", reason: `no application on file for "${args.resume}"`, detail: "run `apply.mjs --url <posting>` first", usage: usageFor({ started, phases }), ms: Date.now() - started };
   }
   if (args.answers) return singleRun({ ...args, url: frozen.url, resume: undefined }, stores);
 
@@ -464,19 +505,21 @@ async function resumeRun(args, stores) {
   let conn = null;
   let liveRows = null;
   let tab = null;
-  try {
-    conn = await connect({});
-    const { page } = await attachPosting(conn.context, url);
-    if (page) {
-      tab = page.url();
-      await waitForForm(page, { ats, timeout: 20000 }).catch(() => {});
-      liveRows = await snapshotRequired(page, { ats }).catch(() => null);
+  await timed(phases, "browser", async () => {
+    try {
+      conn = await connect({});
+      const { page } = await attachPosting(conn.context, url);
+      if (page) {
+        tab = page.url();
+        await waitForForm(page, { ats, timeout: 20000 }).catch(() => {});
+        liveRows = await snapshotRequired(page, { ats }).catch(() => null);
+      }
+    } catch (err) {
+      log(`could not attach to the tab: ${err.message}`);
+    } finally {
+      if (conn) await disconnect(conn.browser, { port: conn.port });
     }
-  } catch (err) {
-    log(`could not attach to the tab: ${err.message}`);
-  } finally {
-    if (conn) await disconnect(conn.browser, { port: conn.port });
-  }
+  });
 
   const rows = unfilled(frozen.decisions, { live: liveRows });
   const asked = needsUser(frozen.decisions, args.resume);
@@ -497,6 +540,7 @@ async function resumeRun(args, stores) {
     unfilled: rows,
     required_empty: stillEmpty.map((r) => ({ qid: r.qid, label: r.label })),
     asks: asked.questions,
+    usage: usageFor({ started, phases }),
     ms: Date.now() - started,
   };
 }
@@ -548,6 +592,9 @@ const log = (line) => process.stderr.write(`${line}\n`);
 
 // ─── entry ────────────────────────────────────────────────────────────────────────────────────
 
+/** Wall-clock zero for a failure that happens before any run owns a clock. */
+const PROCESS_STARTED = Date.now();
+
 const args = (() => {
   try {
     return parseArgs(process.argv.slice(2));
@@ -565,6 +612,7 @@ try {
   else if (out.queue) log(`${out.status}: ${out.queue.length} posting(s), ${out.questions.length} question(s), ${out.requests} Jev request(s), ${out.ms} ms`);
   else if (out.unfilled) log(`${out.status}: ${out.unfilled.length} field(s) not on the form · tab ${out.tab ?? "not open"}`);
   else log(`${out.status}: filled ${out.filled}, asks ${out.asks.length}, checks ${out.checks.length}, drafted ${out.drafted.length}, skipped ${out.skipped}, ${out.requests} Jev request(s), ${out.ms} ms`);
+  if (out.usage) log(costLine(out.usage));
 } catch (err) {
   // Every failure is a status the host can act on (AGENTS: exit 0 for all three statuses).
   const out = blockedReport(err);

@@ -1,0 +1,305 @@
+# jev-apply — form-filling benchmark corpus (14 live postings)
+#
+# Purpose: measure `src/browser/adapters/*` on real controls, especially the ones the adapters have
+# never been run against (date pickers, number fields, checkbox groups, long option lists, location
+# autocompletes). `scripts/bench.mjs` consumes `postings[]`; `controls` is the *expected* inventory
+# the run is scored against.
+#
+# How the list was built (2026-09-23):
+#   1. Shortlisted from `corpus/{greenhouse,ashby}/<family>/*.json` on question `type` + `options`
+#      (selects with >= 5 options, multi-selects, date, number, phone, location, required textarea).
+#   2. Every candidate re-fetched live through the repo's own schema slice — `fetchGreenhouse` +
+#      `normalizeGreenhouse` / `fetchAshby` + `normalizeAshby` — so `controls` uses exactly the
+#      FormPlan `control` vocabulary the adapters dispatch on (docs/CONTRACTS.md §src/schema).
+#   3. Greenhouse rows additionally verified against the *served HTML* of the hosted board: a posting
+#      counts as open+hosted only when `job-boards.greenhouse.io/<token>/jobs/<id>` returns 200
+#      without redirecting and the body contains `id="application-form"`. This is also the
+#      hosted-vs-embedded test: datadog, dropbox, pinterest, instacart, databricks, airbnb, brex,
+#      coinbase, duolingo, elastic, coreweave, lyft, roblox, okta, samsara and wayve all 30x away to
+#      a company careers page and are therefore *embedded* — excluded, matching `detectAts`'s v1
+#      support (PLAN §2.2 step 1).
+#   4. Ashby has no server-rendered form (the application page ships 0 form controls in HTML), so
+#      Ashby control expectations come from the GraphQL field types plus the selector evidence
+#      recorded in `src/schema/ashby.mjs:9-24` (read over CDP on 2026-09-22).
+#   5. Excluded: AI-usage attestations, logins, and any posting whose board redirects.
+#
+# Bench rules: synthetic profile only (`JEV_APPLY_HOME=/tmp/jev-bench`), Chrome on CDP 9224, never
+# click Submit, close the tab after recording. These are real employers' live forms.
+#
+# NOT personal data: every field below is public job-board metadata.
+
+generated: 2026-09-23
+verified: 2026-09-23          # all 14 fetched and confirmed open + hosted on this date
+ats_supported: [greenhouse, ashby]
+
+# Ordered by expected difficulty ascending, except rows 1-2 which are pinned: they are the two
+# recorded fixtures (`eval/fixtures/greenhouse-togetherai-5179372007.json`,
+# `eval/fixtures/ashby-baseten-db6477fc.json`) and the only two forms with prior trace evidence.
+# Difficulty = required rows to set, weighted by how far each control is from the adapters' proven
+# path: text/file/tel = 0, react-select or radio = 1, checkbox group / long option list / location
+# autocomplete = 2, date or number (no adapter branch) = 3. Rows 3-14 ascend on that score, which
+# is a composite, so the plain required-row count is not monotonic: row 5 (9 required, two small
+# radio groups) sits below row 6 (7 required, an 8-option group), and row 10 (13 required, a date
+# picker) below row 11 (12 required, date *and* number *and* a 5-box group).
+postings:
+  - url: https://job-boards.greenhouse.io/togetherai/jobs/5179372007
+    company: together-ai
+    family: research_engineer
+    ats: greenhouse
+    title: Research Engineer, Post-Training Inference
+    questions: 22
+    required: 10
+    controls: [text, tel, tel_country, file, react_select, location, eeo]
+    notes: >-
+      Fixture row 1. 13 react-selects on the page, of which 9 are EEO/demographic and must stay
+      untouched. Prior run evidence (applications/.../trace.jsonl): the `location` row — API field
+      `location`, DOM id `candidate-location`, a Pelias autocomplete with no fixed option list —
+      failed twice with `no_options_rendered` and ended as an `ask`; the `resume` upload failed once
+      with `file_input_not_found`. Both are the regressions this bench must catch. `#country` is a
+      separate react-select that drives the intl-tel-input `#phone`.
+
+  - url: https://jobs.ashbyhq.com/baseten/db6477fc-111a-4340-bf00-525fe023e6f3/application
+    company: baseten
+    family: ml_engineer
+    ats: ashby
+    title: AI Inference Engineer
+    questions: 8
+    required: 8
+    controls: [text, tel, file, yesno_buttons]
+    notes: >-
+      Fixture row 2 and the smallest form in the set — 8 rows, all required, no section headings.
+      Two Ashby Booleans render as a `button[data-option]` Yes/No pair over a hidden checkbox. Prior
+      smoke run failed one of them with `not_boolean: Maybe`, i.e. the adapter is correct and the
+      *answer* was out of vocabulary; the bench should score that as an `ask`, not an adapter bug.
+
+  - url: https://jobs.ashbyhq.com/linear/eac7f181-d658-4943-9430-51bae2bcd110/application
+    company: linear
+    family: product_designer
+    ats: ashby
+    title: Mobile Product Designer
+    questions: 12
+    required: 7
+    controls: [text, textarea, essay, file]
+    notes: >-
+      Control floor: not a single choice control on the whole form, so any failure here is in text,
+      upload or the writer path, never in option matching. Three LongText rows — one `why_us`, one
+      `essay` ("What draws you to mobile design work?"), one optional. Sections Links / Location /
+      Tell us more exist but the Location section is a plain String field, not an Ashby Location
+      autocomplete — a useful negative control for location detection.
+
+  - url: https://job-boards.greenhouse.io/tenstorrent/jobs/4155609007
+    company: tenstorrent
+    family: gpu_performance
+    ats: greenhouse
+    title: Software Engineer, Acceleration Kernel Development
+    questions: 13
+    required: 7
+    controls: [text, tel, tel_country, file, react_select, location, eeo]
+    notes: >-
+      Greenhouse baseline: the minimum hosted-board shape (first/last/email/phone/resume + country +
+      candidate-location) with exactly one real react-select — a 2-option export-control
+      acknowledgement, classified `company_specific`, so it should gate to `ask` rather than fill.
+      Compare timings against row 1 to separate per-field cost from per-form cost.
+
+  - url: https://jobs.ashbyhq.com/cohere/cd7de8ed-1b3d-4977-a909-5c0d04ddfcb3/application
+    company: cohere
+    family: mobile
+    ats: ashby
+    title: Senior Mobile Engineer (iOS or Android)
+    questions: 10
+    required: 9
+    controls: [text, textarea, tel, file, radio, location]
+    notes: >-
+      First Ashby radio pair: two ValueSelects (2 and 3 options) rendered as
+      `input[type=radio]` groups whose `value` is always `"on"` — the adapter must pick by label
+      text (`label[for*="-radio-"]`), never by value or index. Plus `_systemfield_location`, the
+      Ashby autocomplete that the FormPlan models as `react_select` and the adapter answers with
+      `setCombobox`.
+
+  - url: https://jobs.ashbyhq.com/elevenlabs/71992118-5b37-4a4a-a862-99e82e02916f/application
+    company: elevenlabs
+    family: frontend
+    ats: ashby
+    title: Website Growth Engineer
+    questions: 12
+    required: 7
+    controls: [text, textarea, file, radio, hear_about, location]
+    notes: >-
+      8-option radio group, "How did you hear about ElevenLabs?" — the first option list long enough
+      that a wrong pick is plausible, and a `circumstance` row the memory is expected to answer.
+      Four textareas (one `why_us`, three optional) exercise the draft path. No phone field at all,
+      which is the negative control for the tel/`tel_country` pair.
+
+  - url: https://job-boards.greenhouse.io/cloudflare/jobs/8195695
+    company: cloudflare
+    family: security
+    ats: greenhouse
+    title: Senior Engineering Director, Security Products
+    questions: 17
+    required: 10
+    controls: [text, tel, tel_country, file, react_select, location, checkbox_single, multi_select, eeo]
+    notes: >-
+      The single-checkbox case: `question_69128550[]` is a `multi_value_multi_select` with exactly
+      one option ("Please review and acknowledge Cloudflare's Candidate Privacy Policy"), so the
+      FormPlan selector matches a one-box group and `setCheckbox` takes its *boolean* branch, not
+      its group branch — a distinct code path from row 9's 11-box group. Required, so a miss blocks
+      the verify step. Note "How did you hear about this job?" here is a free-text field, not a
+      select: a "how did you hear" question that must NOT be answered by option matching.
+
+  - url: https://jobs.ashbyhq.com/confluent/47920ccd-db54-4ed4-a865-70857e865fff/application
+    company: confluent
+    family: backend
+    ats: ashby
+    title: Distributed Systems Software Engineer - WarpStream
+    questions: 17
+    required: 10
+    controls: [text, tel, file, radio, yesno_buttons, number, hear_about, location]
+    notes: >-
+      First Number field — "Location - Zip Code", required, Ashby type `Number` which normalizes to
+      `type:number / control:text`, so it goes through `setText` and the bench measures whether a
+      numeric value survives readback. Also two Phone rows (one required, one optional) rather than
+      the usual one, a 5-option "How did you hear about Confluent?" radio group, and two Yes/No
+      button pairs, all on one form.
+
+  - url: https://job-boards.greenhouse.io/faire/jobs/8691459002
+    company: faire
+    family: data_scientist
+    ats: greenhouse
+    title: Staff Engineer - Experimentation Platform
+    questions: 16
+    required: 12
+    controls: [text, tel, tel_country, file, react_select, location, checkbox_group, multi_select, hear_about, eeo]
+    notes: >-
+      The real Greenhouse checkbox group: `question_37688233002[]` renders as 11
+      `input[type=checkbox][name="question_37688233002[]"]` boxes ("How did you hear about Faire?
+      Select all that apply") and is *required*, so the runner must check at least one by label.
+      Confirmed in the served HTML (11 boxes, no react-select for that name). Also a 14-option
+      province react-select — long enough that react-select's type-to-filter behaviour matters, short
+      enough to still be matchable.
+
+  - url: https://jobs.ashbyhq.com/deepl/236d8651-c4c9-4bb8-a9ea-57d535cb76fb/application
+    company: deepl
+    family: product_manager
+    ats: ashby
+    title: Head of Product Growth
+    questions: 17
+    required: 13
+    controls: [text, tel, file, radio, yesno_buttons, checkbox_group, multi_select, date, location, eeo]
+    notes: >-
+      First date picker. `d53167a0` is an Ashby `Date` field ("What is your earliest possible/desired
+      start date?"), required. `setField` in src/browser/adapters/ashby.mjs has no date branch — it
+      falls through to `setText` against `input.ashby-application-form-input-date`, which carries
+      neither id nor name, so the container `data-field-path` scope is the only handle. Expect this
+      row to fail until a date path exists; that failure is the measurement. Also a 2-option required
+      checkbox group (relocation/entity), a GDPR retention consent classified `policy_gate` (must
+      stay an `ask`), and a "Which pronouns…" *text* row classified `sensitive` that must stay empty.
+
+  - url: https://jobs.ashbyhq.com/fireworks/fc3845e6-e8ba-4756-a03e-654f14ce605b/application
+    company: fireworks
+    family: ml_engineer
+    ats: ashby
+    title: Applied Machine Learning Engineer
+    questions: 15
+    required: 12
+    controls: [text, textarea, tel, file, radio, yesno_buttons, checkbox_group, multi_select, date, number, location]
+    notes: >-
+      The most control-diverse form in the set and the only one carrying date *and* number *and* a
+      multi-option checkbox group: required `Date` start-date, optional `Number` compensation
+      expectation, required 5-option office-location checkbox group, three Yes/No button pairs, the
+      Location autocomplete, a `why_us` textarea, and `_systemfield_recording_consent` as a
+      `policy_gate`. 12 of 15 rows required — the strictest verify step here.
+
+  - url: https://job-boards.greenhouse.io/figma/jobs/5790627004
+    company: figma
+    family: devrel_techwriter
+    ats: greenhouse
+    title: Software Engineer - Developer Experience
+    questions: 23
+    required: 12
+    controls: [text, textarea, tel, tel_country, file, react_select, location, multi_select, eeo]
+    notes: >-
+      Known adapter mismatch, and the reason this posting is in the set. `question_15527168004[]` and
+      `question_15527169004[]` are 9-option `multi_value_multi_select` rows that
+      src/schema/greenhouse.mjs:114 hard-overrides to `control:"checkbox"` with selector
+      `input[type="checkbox"][name="question_…[]"]` — but the served HTML contains *zero* checkboxes
+      and instead exposes `react-select-question_15527168004[]-live-region`, i.e. Figma renders them
+      as multi-value react-selects. Expect `checkbox_not_found`. 13 react-selects total, 5 of them
+      real screening questions, plus a required `why_us` textarea.
+
+  - url: https://job-boards.greenhouse.io/affirm/jobs/7985476003
+    company: affirm
+    family: solutions_engineer
+    ats: greenhouse
+    title: Senior Sales Engineer
+    questions: 25
+    required: 12
+    controls: [text, textarea, tel, tel_country, file, react_select, long_option_list, hear_about, eeo]
+    notes: >-
+      The long-option-list stress case: a required 61-option react-select ("Which U.S. State or
+      Canadian Province do you reside in?") and a required 21-option "How did you first learn about
+      Affirm as an employer?", on a board with no location autocomplete at all. This is exactly where
+      react-select's substring filtering bites — src/browser/adapters/greenhouse.mjs types the first
+      24 normalized characters and then matches by label, so a value like "New York" must not land on
+      "New York (excluding New York City)". 25 rows, the second-longest form here.
+
+  - url: https://jobs.ashbyhq.com/1password/c6fc16b0-bb5b-48f1-994d-d69e07846bc8/application
+    company: 1password
+    family: product_manager
+    ats: ashby
+    title: Senior Product Manager, Machine Identity
+    questions: 28
+    required: 17
+    controls: [text, textarea, essay, tel, file, radio, yesno_buttons, checkbox_single, multi_select, location, long_option_list, hear_about, eeo]
+    notes: >-
+      Hardest row: 28 questions, 17 required, four sections (Links / Application Questions /
+      Accommodations / Screening Questions). Carries a 24-option ValueSelect ("What brought you to
+      this job posting") which per src/schema/ashby.mjs:21 should render as 24 radio inputs — whether
+      Ashby switches to a dropdown at that length is unverified and is one of the things this row
+      measures [INFERENCE]. Two one-option MultiValueSelects (a conditional-offer acknowledgement,
+      required, and a marketing opt-in, optional) hit the same single-checkbox branch as row 7. Three
+      required essays plus a `why_us`, so the writer path runs at full width. Two rows classified
+      `sensitive` by label ("Pronouns", an accommodations textarea) must stay untouched. The two
+      AI-topic essays are questions *about* AI tooling, not AI-usage attestations — the form carries
+      no attestation and no login.
+
+# Every listed control type is exercised by at least two postings.
+control_summary:
+  text: 14                # every form
+  file: 14                # résumé upload on every form
+  location: 11            # GH `#candidate-location` Pelias / Ashby `Location` autocomplete
+  tel: 12
+  textarea: 7
+  eeo: 8                  # sensitive rows that must stay empty
+  react_select: 6         # hosted-Greenhouse combobox (`.select__control` + portal options)
+  tel_country: 6          # GH `#country` react-select driving the intl-tel-input `#phone`
+  multi_select: 6         # pick-many question, either DOM rendering
+  radio: 6                # Ashby ValueSelect radio group
+  hear_about: 5           # referral-source question (radio, react-select or checkbox group)
+  yesno_buttons: 5        # Ashby Boolean `button[data-option]` pair
+  checkbox_group: 3       # >= 2 boxes sharing one field name
+  date: 2                 # Ashby Date picker — no adapter branch today
+  number: 2               # numeric row routed through setText
+  checkbox_single: 2      # 1-option multi-select → setCheckbox boolean branch
+  long_option_list: 2     # >= 20 options in one choice control (61/21 react-select, 24 radio)
+  essay: 2                # required free-text prompt → writer path
+
+# Control types deliberately NOT listed, with the evidence:
+#   native_select — zero `<select>` elements in the served HTML of all six hosted Greenhouse forms
+#     above (and of every other hosted board probed on 2026-09-23); Greenhouse renders every select,
+#     including EEO and the education block, as a react-select. Ashby renders ValueSelect as radios.
+#     `src/browser/adapters/ashby.mjs:304` already routes `native_select` to `setCombobox`, but no
+#     hosted Greenhouse or Ashby posting in the 344-posting corpus produces one. The only `<select>`
+#     elements found were on *embedded* boards' own career pages, which v1 does not support.
+#   dependent — `dependencyOn` fired on none of these 14 forms; the conditional follow-ups in the
+#     corpus (asana, databricks, harvey) all sit on excluded boards or AI-attestation forms.
+#   multi_select-rendered-as-react-select — real, but only on row 12 (figma), so it is recorded in
+#     that row's notes rather than promoted to a control type.
+
+coverage:
+  postings: 14
+  companies: 14
+  families: 12            # research_engineer ml_engineer(x2) product_designer gpu_performance mobile
+                          # frontend security backend data_scientist product_manager(x2)
+                          # devrel_techwriter solutions_engineer
+  greenhouse: 6
+  ashby: 8

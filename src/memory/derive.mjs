@@ -6,6 +6,7 @@ import { parseSince, stamp } from "./schema.mjs";
 import { getFact, listFacts, resolvePreference } from "./resolve.mjs";
 import { slugify } from "../config.mjs";
 import { LEVEL_YEARS } from "../jev/gates.mjs";
+import { classifyTitle } from "../canon/families.mjs";
 
 const YEAR_MS = 365.2425 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -89,6 +90,18 @@ export function roleFamilyFor(mem, job = {}) {
     }
   }
   return best?.family ?? null;
+}
+
+/**
+ * The family a *table* is keyed by. `p.looking_for.role_families` is the user's own vocabulary and
+ * only covers the roles they said they were looking for, so a designer or PM posting matches
+ * nothing there and every family-keyed rule used to end in "the posting title matches no saved
+ * role family" — an ask about the posting, not about the user. The canon taxonomy
+ * (`src/canon/families.mjs`, the same deterministic classifier that picks the screening layer)
+ * names that posting anyway, so it is the fallback. Still null → the caller asks.
+ */
+export function tableFamily(mem, job = {}) {
+  return roleFamilyFor(mem, job) ?? classifyTitle(job.title ?? "") ?? null;
 }
 
 // Location → salary-table market. Order matters: the two priced US metros beat the generic US row.
@@ -220,10 +233,10 @@ export function salaryFor(mem, job = {}, baselines = null) {
 
   const rows = Array.isArray(baselines) ? baselines : baselines?.rows ?? [];
   if (!rows.length) return { action: "ask", missing: "salary-baselines", why: "no salary table installed" };
-  const role_family = roleFamilyFor(mem, job);
+  const role_family = tableFamily(mem, job);
   const market = marketFor(job, baselines);
   const { level } = experienceLevel(mem, undefined, baselines);
-  if (!role_family) return { action: "ask", missing: "role_family", level, market, why: "the posting title matches no saved role family" };
+  if (!role_family) return { action: "ask", missing: "role_family", level, market, why: "the posting title names no role family" };
   if (!market) return { action: "ask", missing: "market", level, role_family, why: "the posting location is not a market in the salary table" };
   const row = rows.find((r) => r?.role_family === role_family && r?.level === level && r?.market === market);
   if (!row) return { action: "ask", missing: "baseline_row", role_family, level, market, why: `no ${role_family}/${level}/${market} row in the salary table` };

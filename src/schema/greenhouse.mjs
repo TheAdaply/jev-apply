@@ -107,9 +107,13 @@ function formRow(q, section) {
   const field = fields.find((f) => f.type === "input_file") || fields[0];
   const label = cleanLabel(q.label);
   const help = htmlToText(q.description);
-  // A multi-select in the application block is a `<fieldset class="checkbox" id="question_<id>[]">`
-  // of `input[type=checkbox][name="question_<id>[]"]` (verified on anthropic/jobs/4610158008) — the
-  // same API type is a react-select in the demographic block, so only this path is overridden.
+  // A `multi_value_multi_select` has two renderings and the API says nothing about which one a
+  // board uses: a `<fieldset class="checkbox" id="question_<id>[]">` of
+  // `input[type=checkbox][name="question_<id>[]"]` (cloudflare/8195695 with one box,
+  // faire/8691459002 with eleven), or a multi-value react-select whose input carries that same id
+  // (figma/5790627004 — zero checkboxes on the page). All three read live on 2026-09-23. The id
+  // is on the page in both, so it is the selector, and `detectControl` decides which widget it
+  // found; the `control` below stays the commoner rendering and is overridden where it is wrong.
   const { type, control: rendered } = controlFor(field.type, label);
   const control = field.type === "multi_value_multi_select" ? "checkbox" : CONTROL_OVERRIDES[field.name] || rendered;
   const limits = parseLimits(label, help);
@@ -123,8 +127,7 @@ function formRow(q, section) {
     section,
     type,
     control,
-    // A multi-select is a checkbox group whose DOM id carries the `[]` of the field name.
-    selector: control === "checkbox" ? `input[type="checkbox"][name="${field.name}"]` : idSelector(SELECTOR_ALIASES[field.name] || field.name),
+    selector: idSelector(SELECTOR_ALIASES[field.name] || field.name),
     ...(options.length && { options }),
     ...(limits && { limits }),
     class: classify(label, help, type, Boolean(q.required)),

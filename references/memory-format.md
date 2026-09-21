@@ -50,13 +50,15 @@ Never model-written. `since:` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is stored instea
 ```
 
 **One id namespace.** Every identity fact the resolver reads is `f.identity.*` — `full_name`,
-`preferred_name`, `email`, `phone`, `city`, `location`, `timezone`, `github_url`, `linkedin_url`,
-`site_url`, `x_twitter_url`, `publications_url` — the ids
+`preferred_name`, `email`, `phone`, `city`, `location`, `address`, `pronouns`, `timezone`,
+`github_url`, `linkedin_url`, `site_url`, `x_twitter_url`, `publications_url` — the ids
 `private/profile/memory-seed/facts.yaml` seeds and `src/plan/resolve.mjs` looks up by name.
 Two more pairs are asked for by name on real forms and have their own ids: the role with no end
 date is `f.employment.current` (the employer) plus `f.employment.current_title` (the title), and
 the most recent degree is `f.education.school`, `f.education.field` and `f.education.degree` —
-each a single-valued row, so a second claim is dropped rather than suffixed.
+each a single-valued row, so a second claim is dropped rather than suffixed. Citizenship is
+`f.citizenship`: it answers "what is your nationality?" and, for a remote posting that names no
+country at all, picks the jurisdiction the work-authorization rows answer for.
 `extractResume()` is told to mint exactly those, and `FACT_ID_ALIASES` in
 `src/writer/openai.mjs` folds the plausible near-misses into them (`f.name`, `f.email`,
 `f.contact.email`, `f.link.github`, `f.links.github`, `f.identity.name`, `f.employer.current`,
@@ -94,6 +96,16 @@ expiry: "2027-09", country: "US", exact: true, fact: "f.work_auth.US", source: "
 row answered that way is filled but flagged `check` — the two most legally consequential questions
 on a form are never answered silently for a country the user never named. No fact and no default →
 `null`, and the caller **asks** (PLAN §2.4: a personal fact is never guessed).
+
+**Which country a row is answered for** is decided in one fixed order: the question's own wording
+("authorized to work in the United States") first, because a form may ask about a country the
+posting is not in; then the posting, whose `job.country` (ISO-3166 alpha-2) and `job.remote` are
+read off the raw ATS schema by `src/schema/normalize.mjs` — Greenhouse's `location.name` plus
+`offices[]`, Ashby's `locationName`/`workplaceType`/`isRemote`; then, only for a remote posting
+that names no country at all, `f.citizenship`. A posting naming several countries answers for the
+one it names **first**, and a region ("EMEA", "APAC") is not a country. Nothing recognised → the
+row is an `ask`, and a jurisdiction taken from citizenship rather than from the posting is filled
+as `check`, never silently.
 
 ## `preferences.yaml` — how the user wants applications answered
 
@@ -180,6 +192,29 @@ a company-specific one side by side.
 
 `kind: never` rows are saved history the resolver never offers.
 
+**`rule_ref` values are a closed set.** They come from `CANON_RULES` in `src/jev/plan.mjs`, which
+is also the function that evaluates them at fill time, so a stored ref and an evaluable ref are
+the same string by construction — a ref nothing can evaluate turns "no saved answer" into "rule
+cannot be evaluated" and still ends in an `ask`, which is worse than having no row. The refs, and
+what each reads:
+
+| `rule_ref` | canonical questions | reads |
+|---|---|---|
+| `work_auth.authorized_now` · `work_auth.sponsorship_now` · `work_auth.sponsorship_future` | `q.auth.*` | `f.work_auth.<CC>` for the posting's country, else `f.work_auth.default` |
+| `p.notice_rule` | `q.core.start_date` · `q.core.notice_period` | `p.notice_rule` |
+| `p.salary` | `q.comp.expected_salary` | `p.salary` + `memory/salary-baselines.yaml` |
+| `p.relocation` · `p.in_office` | `q.core.relocation` · `q.core.in_office` | the matching preference + the posting's country |
+| `applied_before` | `q.legal.previously_applied` | `pipeline/pipeline.yaml` |
+| `identity.location` | `q.core.location_current` | `f.identity.location`, else `f.identity.city` |
+| `identity.address` | `q.core.address_working` | `f.identity.address`, else the location facts above |
+| `experience.years_total` | `q.core.years_experience` | the `since:` dates on `employment_type: full_time` facts, floored |
+
+The last three are `rule` rows rather than `constant` ones on purpose: where the user lives and how
+long they have worked change without anybody editing memory, and a stored number would state a
+stale year count on a real application. `q.core.how_heard` and `q.core.pronouns` are the opposite
+case — a standing choice the user makes once — and are written as `constant` rows from
+`p.how_heard` and `f.identity.pronouns`, only when that row exists.
+
 ## `stories.yaml` — raw material (résumé bullets, accepted drafts, interview answers)
 
 `learn.mjs --seed` imports `blobs.yaml` here wholesale; rows flagged `use: never` stay saved but are
@@ -245,13 +280,22 @@ block owns the market vocabulary. `market` is derived from the posting location 
 `marketFor(job, baselines)`; a location that matches no market in the table returns
 `action: "ask"` (the table's own `when_market_unknown: ask`), never a neighbouring market.
 
+`role_family` is the third key. It is the user's own vocabulary first (`p.looking_for.role_families`,
+which is also what scopes their preferences and answers) and, when the posting's title matches
+nothing there, the canon taxonomy's name for it (`classifyTitle` in `src/canon/families.mjs`, the
+same deterministic classifier that picks the screening layer) — so a designer or PM posting is
+priced from the table instead of asking about a role family the user never listed. A title that
+names no family at all, and a `{role_family, level, market}` triple with no row in the table, both
+return `action: "ask"`: an absent row is never interpolated from a neighbouring one.
+
 ## API
 
 ```js
 import { loadMemory, saveSection, mergeSection, upsertRow, loadBaselines } from "../src/memory/store.mjs";
 import { getFact, resolvePreference, answersFor, usableStories, documentFor,
          applicableCorrections } from "../src/memory/resolve.mjs";
-import { yearsSince, workAuth, noticeRule, salaryFor, appliedBefore, staleFacts } from "../src/memory/derive.mjs";
+import { yearsSince, fullTimeYears, workAuth, noticeRule, salaryFor, tableFamily, appliedBefore,
+         staleFacts } from "../src/memory/derive.mjs";
 
 const mem = await loadMemory();        // {facts, preferences, documents, answers, stories, drafts, corrections}
 getFact(mem, "f.identity.email");      // → the whole row ({id, value, source, …}), or undefined

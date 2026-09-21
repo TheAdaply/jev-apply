@@ -3,15 +3,17 @@
 // `scripts/answers.mjs` is the CLI; everything it decides lives here so the rules are one readable
 // list instead of control flow. Four kinds are produced, and nothing else:
 //
-//   constant   a stated fact, copied. Identity, links, nationality, and the two derivations the
+//   constant   a stated fact or a standing preference, copied. Identity, links, nationality,
+//              pronouns, how the user says they heard about a role, and the two derivations the
 //              runner already treats as mechanical rather than invented — splitting a stated full
 //              name (src/plan/resolve.mjs nameRow) and reading a country out of a stated location
-//              (src/plan/resolve.mjs countryFromText).
+//              (src/schema/normalize.mjs countryFromText).
 //   rule       nothing stored but a `rule_ref`; the value is computed at fill time from memory plus
-//              the posting. Only refs `src/jev/plan.mjs ruleAnswer()` can actually evaluate are
-//              written — a row whose ref that function returns null for is strictly worse than no
-//              row at all, because it turns "no saved answer" into "rule cannot be evaluated" while
-//              still ending in `ask` (see RULES below).
+//              the posting — work authorization, notice, salary, relocation, in-office, prior
+//              applications, where the user lives, and years of experience. Every ref comes from
+//              `CANON_RULES` in src/jev/plan.mjs, the function that has to evaluate it: a row whose
+//              ref resolves to null is strictly worse than no row at all, because it turns "no
+//              saved answer" into "rule cannot be evaluated" while still ending in `ask`.
 //   policy     the user's standing stance on a gate (EEO, arbitration, consent, AI-usage). Written
 //              only where a preference states one; otherwise the question stays an `ask`, which is
 //              the AGENTS.md invariant for attestations and demographics.
@@ -30,8 +32,10 @@ import { OPENAI_MODEL } from "../config.mjs";
 import { loadSection, saveSection } from "../memory/store.mjs";
 import { isUserSourced, rowKey, stamp, validateRow } from "../memory/schema.mjs";
 import { getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { roleFamilyFor, workAuthCountries } from "../memory/derive.mjs";
-import { countryFromText, factText } from "../plan/resolve.mjs";
+import { fullTimeYears, roleFamilyFor, workAuthCountries } from "../memory/derive.mjs";
+import { factText } from "../plan/resolve.mjs";
+import { countryFromText } from "../schema/normalize.mjs";
+import { CANON_RULES } from "../jev/plan.mjs";
 import { narrative } from "../writer/openai.mjs";
 import { FAMILIES } from "./families.mjs";
 import { candidatesFor, corpusForms, indexByQid, instancesOf, qidOf } from "./index.mjs";
@@ -46,14 +50,19 @@ export const UNIVERSAL_LAYERS = Object.freeze(["core", "auth", "legal", "comp", 
 // ─── constants ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Canonical question → the fact that answers it. `part` names a mechanical read of a stated value,
- * never an inference about the person:
+ * Canonical question → the memory row that answers it. `part` names a mechanical read of a stated
+ * value, never an inference about the person:
  *   first/last  the split `src/plan/resolve.mjs nameRow()` already performs on a stated full name.
  *   country     `countryFromText()`, the same table that picks the work-authorization jurisdiction.
  *   degree      the degree level the education fact's own words state (DEGREE_LEVELS below).
  *
- * A qid is listed even when this user has no such fact: the omission list is how `answers.mjs`
- * reports "add `f.identity.address` and this question stops being an ask".
+ * `pref` reads a preference instead of a fact, for the two core questions whose answer *is* a
+ * standing choice rather than something true of the person: how the user says they heard about a
+ * role, and their pronouns, which they state once and which no form may infer.
+ *
+ * A qid is listed even when this user has no such row: the omission list is how `answers.mjs`
+ * reports "add `f.identity.address` and this question stops being an ask". Questions whose answer
+ * changes with time or with the posting are in RULES below, not here.
  */
 export const CONSTANTS = Object.freeze([
   { qid: "q.core.full_name", facts: ["f.identity.full_name"] },
@@ -62,9 +71,9 @@ export const CONSTANTS = Object.freeze([
   { qid: "q.core.preferred_name", facts: ["f.identity.preferred_name"] },
   { qid: "q.core.email", facts: ["f.identity.email"] },
   { qid: "q.core.phone", facts: ["f.identity.phone"] },
-  { qid: "q.core.location_current", facts: ["f.identity.location"] },
   { qid: "q.core.country_current", facts: ["f.identity.location"], part: "country" },
-  { qid: "q.core.address_working", facts: ["f.identity.address"] },
+  { qid: "q.core.pronouns", facts: ["f.identity.pronouns"] },
+  { qid: "q.core.how_heard", pref: "p.how_heard" },
   { qid: "q.core.linkedin", facts: ["f.identity.linkedin_url"] },
   { qid: "q.core.github", facts: ["f.identity.github_url"] },
   { qid: "q.core.twitter", facts: ["f.identity.x_twitter_url"] },
@@ -116,6 +125,13 @@ function countryName(code) {
 
 /** The stated value for one CONSTANTS entry, or null when memory does not state it. */
 function constantValue(mem, spec) {
+  if (spec.pref) {
+    // A preference-backed constant is the user's own standing choice. An object-valued or empty
+    // preference states no text, and is therefore not an answer (AGENTS.md: unknown → ask).
+    const pref = resolvePreference(mem, spec.pref);
+    const stated = typeof pref?.value === "string" ? pref.value.trim() : "";
+    return stated ? { value: stated, from: spec.pref } : null;
+  }
   if (spec.part === "degree") {
     const stated = (mem?.facts ?? [])
       .filter((row) => String(row?.id ?? "").startsWith(spec.facts[0]))
@@ -147,38 +163,56 @@ function constantValue(mem, spec) {
 // ─── rules ────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Canonical question → the derivation that answers it at fill time.
+ * Canonical question → the derivation that answers it at fill time, and what memory must carry for
+ * that derivation to answer at all.
  *
- * `ref` is what lands in the row's `rule_ref`, and it is chosen so that `ruleAnswer()` in
- * src/jev/plan.mjs resolves it: that function dispatches on `/work_auth|authoriz/`, `/notice|start/`,
- * `/salary|compensation|pay/`, `/reloc/`, `/in[_ -]?office/` and `/applied/`, and treats a ref
- * containing `sponsor` as the sponsorship half of the two-valued work-authorization fact. `helper`
- * names the function the ref reaches — `src/memory/derive.mjs` for the first three, and the shared
- * derivations `src/plan/resolve.mjs` exports for the last three, so a rule row answers exactly what
- * the deterministic pass would have answered for the same posting.
+ * The `ref` half is **not** written here: it comes from `CANON_RULES` in `src/jev/plan.mjs`, which
+ * is the function that has to evaluate it. A `rule_ref` fill time cannot resolve turns "no saved
+ * answer" into "rule cannot be evaluated" while still ending in `ask`, which is strictly worse
+ * than no row at all — so the two strings are the same string by construction rather than by
+ * inspection. `helper` names the function the ref reaches: `src/memory/derive.mjs` for work
+ * authorization, notice, salary and experience, and the shared derivations `src/plan/resolve.mjs`
+ * exports for the rest, so a rule row answers exactly what the deterministic pass would have
+ * answered for the same posting.
  *
- * A row is only written when memory — or, for `applied_before`, the pipeline — carries what the
- * rule reads: a ref that resolves to null turns "no saved answer" into "rule cannot be evaluated"
- * while still ending in `ask`, which is strictly worse than no row at all.
+ * `needs` is what must exist for the row to be written at all: a preference id, a fact id (or a
+ * list of alternatives), `work_auth` for the two-valued authorization facts, `pipeline` for the
+ * application history, or `full_time_years` for a count that only full-time employment facts feed.
  */
-export const RULES = Object.freeze([
-  { qid: "q.auth.authorized_in_country", ref: "work_auth.authorized_now", helper: "workAuth", needs: "work_auth" },
-  { qid: "q.auth.sponsorship_now", ref: "work_auth.sponsorship_now", helper: "workAuth", needs: "work_auth" },
-  { qid: "q.auth.sponsorship_future", ref: "work_auth.sponsorship_future", helper: "workAuth", needs: "work_auth" },
-  { qid: "q.auth.require_visa_sponsorship_work_selected", ref: "work_auth.sponsorship_future", helper: "workAuth", needs: "work_auth" },
-  { qid: "q.core.start_date", ref: "p.notice_rule", helper: "noticeRule", needs: "p.notice_rule" },
-  { qid: "q.core.notice_period", ref: "p.notice_rule", helper: "noticeRule", needs: "p.notice_rule" },
-  { qid: "q.comp.expected_salary", ref: "p.salary", helper: "salaryFor", needs: "p.salary" },
-  { qid: "q.core.relocation", ref: "p.relocation", helper: "relocationFor", needs: "p.relocation" },
-  { qid: "q.core.in_office", ref: "p.in_office", helper: "inOfficeFor", needs: "p.in_office" },
-  { qid: "q.legal.previously_applied", ref: "applied_before", helper: "appliedBeforeFor", needs: "pipeline" },
+const RULE_BACKING = Object.freeze([
+  { qid: "q.auth.authorized_in_country", helper: "workAuth", needs: "work_auth" },
+  { qid: "q.auth.sponsorship_now", helper: "workAuth", needs: "work_auth" },
+  { qid: "q.auth.sponsorship_future", helper: "workAuth", needs: "work_auth" },
+  { qid: "q.auth.require_visa_sponsorship_work_selected", helper: "workAuth", needs: "work_auth" },
+  { qid: "q.core.start_date", helper: "noticeRule", needs: "p.notice_rule" },
+  { qid: "q.core.notice_period", helper: "noticeRule", needs: "p.notice_rule" },
+  { qid: "q.comp.expected_salary", helper: "salaryFor", needs: "p.salary" },
+  { qid: "q.core.relocation", helper: "relocationFor", needs: "p.relocation" },
+  { qid: "q.core.in_office", helper: "inOfficeFor", needs: "p.in_office" },
+  { qid: "q.legal.previously_applied", helper: "appliedBeforeFor", needs: "pipeline" },
+  // Where the user lives and how long they have worked change without anybody editing memory, so
+  // they are computed at fill time from the facts rather than copied into a constant that quietly
+  // goes stale (PLAN §2.1: numbers and dates are code's job).
+  { qid: "q.core.location_current", helper: "statedPlace", needs: ["f.identity.location", "f.identity.city"] },
+  { qid: "q.core.address_working", helper: "statedPlace", needs: ["f.identity.address", "f.identity.location", "f.identity.city"] },
+  { qid: "q.core.years_experience", helper: "fullTimeYears", needs: "full_time_years" },
+  { qid: "q.core.years_experience_total", helper: "fullTimeYears", needs: "full_time_years" },
 ]);
+
+/** @type {ReadonlyArray<{qid:string, ref:string, helper:string, needs:string|string[]}>} */
+export const RULES = Object.freeze(
+  RULE_BACKING.filter((row) => CANON_RULES.has(row.qid)).map((row) => Object.freeze({ ...row, ref: CANON_RULES.get(row.qid) })),
+);
 
 /**
  * What a rule reads, as the row's `source` token — or null when nothing backs it, in which case the
  * row is omitted and the id that would fix it is reported instead.
  */
 function ruleBacking(mem, needs, pipeline) {
+  if (Array.isArray(needs)) {
+    const id = needs.find((factId) => getFact(mem, factId)?.value != null);
+    return id ? `fact:${id}` : null;
+  }
   if (needs === "work_auth") {
     const { countries, hasDefault } = workAuthCountries(mem) ?? {};
     return (countries?.length || hasDefault) ? "fact:f.work_auth" : null;
@@ -188,6 +222,9 @@ function ruleBacking(mem, needs, pipeline) {
   if (needs === "pipeline") {
     return (Array.isArray(pipeline) ? pipeline : (pipeline?.jobs ?? [])).length ? "pipeline" : null;
   }
+  // A count of nothing is not an answer: with no full-time employment fact on file the row is
+  // omitted and `f.employment.*` is reported as what would fix it.
+  if (needs === "full_time_years") return fullTimeYears(mem) > 0 ? "fact:f.employment" : null;
   return resolvePreference(mem, needs) ? `fact:${needs}` : null;
 }
 
@@ -317,7 +354,7 @@ export function factRows(canon, mem, { date = stamp(), pipeline = null } = {}) {
     if (!bank.has(spec.qid)) continue;
     const found = constantValue(mem, spec);
     if (!found) {
-      omitted.push({ qid: spec.qid, need: spec.facts[0] });
+      omitted.push({ qid: spec.qid, need: spec.pref ?? spec.facts[0] });
       continue;
     }
     rows.push({ ...baseRow(spec.qid, "constant", `fact:${found.from}`, { date }), value: found.value });
@@ -327,7 +364,7 @@ export function factRows(canon, mem, { date = stamp(), pipeline = null } = {}) {
     if (!bank.has(rule.qid)) continue;
     const backing = ruleBacking(mem, rule.needs, pipeline);
     if (!backing) {
-      omitted.push({ qid: rule.qid, need: rule.needs });
+      omitted.push({ qid: rule.qid, need: Array.isArray(rule.needs) ? rule.needs[0] : rule.needs });
       continue;
     }
     rows.push({ ...baseRow(rule.qid, "rule", backing, { date }), rule_ref: rule.ref });

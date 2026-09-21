@@ -23,44 +23,17 @@ import path from "node:path";
 import { slugify } from "../config.mjs";
 import { documentFor, getFact, resolvePreference } from "../memory/resolve.mjs";
 import { appliedBefore, noticeRule, roleFamilyFor, salaryFor, workAuth } from "../memory/derive.mjs";
+import { countryFromText } from "../schema/normalize.mjs";
 
 // ─── posting country ──────────────────────────────────────────────────────────────────────────
-// A small, inspectable city/country table. Work authorization is two-valued *per country*, so a
-// wrong country here is a wrong answer on the form: anything unrecognised returns null → ask.
-// "Remote" with no country named is deliberately null — nobody can say which country's
-// authorization a remote posting is asking about.
+// The table itself lives in `src/schema/normalize.mjs`, which stamps every FormPlan with
+// `job.country` and `job.remote` while it still has the raw payload (Cloudflare's `location.name`
+// is "In-Office"; only `offices[]` names the country). Work authorization is two-valued *per
+// country*, so a wrong country here is a wrong answer on the form: unrecognised stays null → ask.
 
-const COUNTRY_RULES = [
-  [/\b(india|bengaluru|bangalore|mumbai|new delhi|delhi|noida|gurgaon|gurugram|hyderabad|chennai|pune|kolkata|patna)\b/, "IN"],
-  [/\b(united states|u\.s\.a?\.?|usa|us|san francisco|sf bay|bay area|palo alto|mountain view|menlo park|sunnyvale|santa clara|cupertino|san jose|redwood city|oakland|berkeley|seattle|bellevue|redmond|new york|nyc|manhattan|brooklyn|boston|cambridge, ma|austin|dallas|houston|chicago|denver|boulder|los angeles|san diego|atlanta|miami|portland|pittsburgh|philadelphia|washington, d\.?c\.?|california|texas|colorado|massachusetts)\b/, "US"],
-  [/\b(united kingdom|u\.k\.|uk|england|london|cambridge, uk|oxford|manchester|edinburgh|bristol)\b/, "GB"],
-  [/\b(canada|toronto|vancouver|montreal|ottawa|waterloo)\b/, "CA"],
-  [/\b(germany|berlin|munich|münchen|hamburg|frankfurt|cologne|stuttgart)\b/, "DE"],
-  [/\b(france|paris|lyon|toulouse|grenoble)\b/, "FR"],
-  [/\b(netherlands|amsterdam|utrecht|eindhoven|rotterdam|the hague|delft)\b/, "NL"],
-  [/\b(switzerland|zurich|zürich|geneva|genève|lausanne|basel)\b/, "CH"],
-  [/\b(ireland|dublin)\b/, "IE"],
-  [/\b(israel|tel aviv|haifa|jerusalem)\b/, "IL"],
-  [/\b(singapore)\b/, "SG"],
-  [/\b(japan|tokyo|osaka|kyoto|yokohama)\b/, "JP"],
-  [/\b(australia|sydney|melbourne|brisbane|perth|canberra)\b/, "AU"],
-  [/\b(poland|warsaw|krakow|kraków|wroclaw|wrocław)\b/, "PL"],
-  [/\b(spain|madrid|barcelona|valencia)\b/, "ES"],
-  [/\b(sweden|stockholm|gothenburg)\b/, "SE"],
-  [/\b(united arab emirates|uae|dubai|abu dhabi)\b/, "AE"],
-];
-
-/** Country code named anywhere in `text`, or null. */
-export function countryFromText(text) {
-  const hay = String(text ?? "").toLowerCase();
-  if (!hay.trim()) return null;
-  for (const [re, cc] of COUNTRY_RULES) if (re.test(hay)) return cc;
-  return null;
-}
-
-/** The posting's country: what the job says, or null for "remote, country unstated" → ask. */
+/** The posting's country: what the plan already read, else what the job strings say; null → ask. */
 export function countryFor(job = {}) {
-  return countryFromText([job.location, job.office, job.market].filter(Boolean).join(" ; "));
+  return job.country ?? countryFromText([job.location, job.office, job.market].filter(Boolean).join(" ; "));
 }
 
 // ─── label rules ──────────────────────────────────────────────────────────────────────────────
@@ -121,6 +94,21 @@ export function factText(row) {
 
 const firstFact = (mem, ids) => ids.map((id) => getFact(mem, id)).find((row) => row?.value != null);
 
+/** Where the user says they are a citizen — the country ids `f.citizenship` is filed under. */
+const CITIZENSHIP_FACTS = ["f.citizenship", "f.identity.citizenship", "f.identity.nationality"];
+
+/**
+ * The country the user states citizenship of, as an ISO-2 code, or null.
+ * Only ever read for a remote posting that names no country at all: it is the user's own stated
+ * fact, not an inference about where they may work (the two-valued authorization fact still
+ * decides the answer, and such a row is filled as `check`, never silently).
+ */
+function citizenshipCountry(mem) {
+  const row = firstFact(mem, CITIZENSHIP_FACTS);
+  const country = row ? countryFromText(factText(row)?.text ?? row.value) : null;
+  return country ? { country, fact: row.id } : null;
+}
+
 /** Fill from a fact row: `check` instead of `fill` when the fact's own text hedges the value. */
 function fromFact(row, extra = {}) {
   const parsed = factText(row);
@@ -139,7 +127,12 @@ const NO = "No";
 
 // ─── the pass ─────────────────────────────────────────────────────────────────────────────────
 
-/** Posting context every rule shares: company slug, role family (memory's), country, job row. */
+/**
+ * Posting context every rule shares: company slug, role family (memory's), country, job row.
+ * `role_family` stays the user's *own* vocabulary (`p.looking_for.role_families`) because it keys
+ * their scoped preferences and answers; the canon taxonomy's name for the same posting is a
+ * separate thing and is only used where a table is keyed by it (`derive.mjs tableFamily`).
+ */
 export function jobContext(formPlan, mem) {
   const job = formPlan?.job ?? {};
   const role_family = roleFamilyFor(mem, job) ?? null;
@@ -149,6 +142,7 @@ export function jobContext(formPlan, mem) {
     title: job.title ?? "",
     location: job.location ?? "",
     country: countryFor(job),
+    remote: job.remote === true,
     role_family,
     job: { ...job, role_family },
   };
@@ -170,7 +164,12 @@ export function resolveForm(formPlan, { mem, pipeline = null, baselines = null, 
       action: "ask",
       why: "no rule matched",
       _open: false,
-      _onNone: !q.required && q.class === "optional_text" ? "skip" : "ask",
+      // What an open row becomes when nothing answers it. An *optional* question the user's
+      // memory cannot answer is left blank and listed under NOT FILLED (PLAN §2.1, §2.6) — that
+      // is already the rule for optional free text, and a company's optional extra ("Check this
+      // box to join our talent community") is the same case wearing a checkbox. Required rows,
+      // and every question about the user's circumstances, are still handed back as an `ask`.
+      _onNone: !q.required && (q.class === "optional_text" || q.class === "company_specific") ? "skip" : "ask",
     };
     const resolved = resolveQuestion(q, { mem, pipeline, baselines, now, context });
     const decision = { ...base, ...resolved };
@@ -198,7 +197,13 @@ function resolveQuestion(q, ctx) {
     case "why_us":
       return whyUsRow(q, ctx);
     case "company_specific":
-      return { source: "none", action: "ask", why: "only this company asks this" };
+      // "Only this company asks this" is a statement about the *label*, not about the answer.
+      // Measured on the 14-posting bench, most such rows are a company's own phrasing of a
+      // question the canonical bank already holds ("What brought you to this job posting" is
+      // `q.core.how_heard`; "What is your current city and country of residence?" is
+      // `q.core.location_current`), so the row is offered to the canonical pass before it is
+      // handed to the user. Nothing is defaulted: a row the pass cannot map stays this `ask`.
+      return { _open: true, source: "none", action: "ask", why: "only this company asks this" };
     default:
       // essay · optional_text — nothing deterministic to say; Jev step 5 looks for saved material.
       return { _open: true, source: "none", action: "ask", why: "open prompt — no saved answer yet" };
@@ -315,10 +320,16 @@ function circumstanceRow(q, ctx) {
   const label = q.label ?? "";
   const open = (why) => ({ _open: true, source: "none", action: "ask", why });
 
-  // Work authorization is two-valued per country: the label names the country when it can,
-  // otherwise the posting does. No country → ask; never answer for the wrong jurisdiction.
+  // Work authorization is two-valued per country, and the jurisdiction is read in one fixed order:
+  //   1. the question's own wording ("authorized to work in the United States") — always wins,
+  //      because a form may ask about a country the posting is not in;
+  //   2. the posting (`job.country`, read from the raw schema by `src/schema/normalize.mjs`);
+  //   3. for a remote listing that names no country at all, the country the user is a citizen of —
+  //      their own stated fact, and the only jurisdiction such a posting can mean for them.
+  // Still nothing → ask. Never answer for the wrong jurisdiction.
   if (SPONSOR_RE.test(label) || AUTHORIZED_RE.test(label)) {
-    const country = countryFromText(label) ?? context.country;
+    const fromCitizenship = !countryFromText(label) && !context.country && context.remote ? citizenshipCountry(mem) : null;
+    const country = countryFromText(label) ?? context.country ?? fromCitizenship?.country ?? null;
     if (!country) return { source: "none", action: "ask", topic: "work_auth", why: "the posting names no country" };
     const auth = workAuth(mem, country);
     if (!auth) {
@@ -331,18 +342,22 @@ function circumstanceRow(q, ctx) {
       };
     }
     const { value, answerText, kind } = workAuthAnswer(workAuthKind(label), auth, country);
-    // A country the user never named is answered from their blanket default rule. The value is
-    // usable — it is their own stated rule — but the two most legally consequential rows on the
-    // form are never filled silently from it: `check` is still filled and shows up under ► CHECK.
-    // The default-rule phrase leads the `why` because `summary.mjs` clips it at the first " (".
+    // A country the user never named is answered from their blanket default rule, and a country
+    // the *posting* never named is answered from their citizenship. Both values are usable — they
+    // are the user's own stated facts — but the two most legally consequential rows on the form
+    // are never filled silently from either: `check` is still filled and shows up under ► CHECK.
+    // The inferred-jurisdiction phrase leads the `why` because `summary.mjs` clips it at " (".
+    const exact = auth.exact && !fromCitizenship;
     return {
       source: "derived",
       value,
-      action: auth.exact ? "fill" : "check",
+      action: exact ? "fill" : "check",
       topic: "work_auth",
-      why: auth.exact
+      why: exact
         ? `${auth.fact} for ${country} (${kind})`
-        : `from your default rule (no ${country}-specific fact) — ${auth.fact} for ${country} (${kind})`,
+        : fromCitizenship
+          ? `remote posting names no country — answered for ${country} from ${fromCitizenship.fact} (${kind})`
+          : `from your default rule (no ${country}-specific fact) — ${auth.fact} for ${country} (${kind})`,
       _answerText: answerText,
     };
   }

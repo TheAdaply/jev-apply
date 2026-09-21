@@ -1,11 +1,17 @@
-// PLAN §2.2 steps 5–7 — the two Jev passes over the rows the deterministic resolver left open.
+// PLAN §2.2 steps 5–7 — the Jev passes over the rows the deterministic resolver left open.
+// Three requests per posting at most, whatever the form looks like.
 //
 //   request 1  "which canonical question is this field an instance of?" over the candidate canon
 //              ids (`canon/questions.yaml`: universal core + the posting's family + narrative +
-//              any recorded company template). While that bank is still being built, the documented
-//              fallback runs instead: "which saved item answers this field?" over saved story/answer
-//              titles, kind-filtered by the field's shape (PLAN §2.2 step 5, last sentence).
-//   request 2  select / radio / boolean / multi-select rows that now carry an answer: a Choice over
+//              any recorded company template).
+//   request 2  one narrower question for each row request 1 could not answer. Two judgments, never
+//              both for the same row: "is this asking for the same information as one of these
+//              saved questions?" over narrative + family screening ids, for a field that mapped to
+//              a canonical id with nothing saved behind it or is a `company_specific` label the
+//              bank does not hold; and the documented fallback "which saved item answers this
+//              field?" over saved story/answer titles for everything else free-text (PLAN §2.2
+//              step 5, last sentence).
+//   request 3  select / radio / boolean / multi-select rows that now carry an answer: a Choice over
 //              the form's *own* option labels (+ none_of_these), state = {question, answer_text};
 //              multi-select gets one Noul per option.
 //
@@ -13,9 +19,9 @@
 // carries `none_of_these`; every answer is gated through `src/jev/gates.mjs`; every request and
 // response is appended to `applications/<slug>/trace.jsonl`.
 //
-// Two judgments are never merged into one question: "which canonical question is this?" and
-// "which saved item answers this?" are separate passes, so a canon miss that falls back to story
-// titles costs one extra request (and only for free-text rows, where a story is usable at all).
+// Two judgments are never merged into one *question*: "which canonical question is this?" and
+// "which saved item answers this?" stay separate asks with their own criteria. They do travel in
+// one request when they apply to different rows, which is what keeps a posting inside three.
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -24,9 +30,9 @@ import { parse as parseYaml } from "yaml";
 
 import { paths } from "../config.mjs";
 import { classifyTitle } from "../canon/families.mjs";
-import { answersFor, resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { noticeRule, salaryFor, workAuth } from "../memory/derive.mjs";
-import { appliedBeforeFor, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
+import { answersFor, getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
+import { fullTimeYears, noticeRule, salaryFor, workAuth } from "../memory/derive.mjs";
+import { appliedBeforeFor, factText, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
 import { appendTrace } from "../browser/trace.mjs";
 import { NONE, choice, noul, systemOne, withNone } from "./client.mjs";
 import { GATES, gate, runnerUpGap } from "./gates.mjs";
@@ -182,11 +188,19 @@ export async function planWithJev({ formPlan, decisions, mem, context, slug, can
   const out = decisions.map((d) => ({ ...d }));
   const totals = { requests: 0, ms: 0, usage: { input_tokens: 0, output_tokens: 0 }, stages: [] };
 
+  // Request 1 — the canonical question for the fields the schema describes as ordinary
+  // application questions. `company_specific` rows are deliberately held back: they are the
+  // widest rows on the form (nothing deterministic applies and the schema says nothing about
+  // them), and a request repeats its criteria inside every question it carries, so sending all of
+  // them here pushes request 1 past the vendor's token cap and the client splits it in two. They
+  // ask the same question one request later instead, which costs no extra round trip and keeps
+  // the criteria surface-form-rich — what makes near-duplicate labels resolvable (PLAN §5 risk 8).
   const open = out.filter((d) => d._open && d.action === "ask");
-  if (open.length && canon) await canonStage(open, { formPlan, byQid, mem, context, canon, baselines, pipeline, slug, signal, totals });
-  const stillOpen = out.filter((d) => d._open && d.action === "ask" && !d.canon);
-  const textRows = stillOpen.filter((d) => FREE_TEXT_TYPES.has(byQid.get(d.qid)?.type ?? "text"));
-  if (textRows.length) await storyStage(textRows, { formPlan, byQid, mem, slug, signal, totals });
+  const wide = new Set(open.filter((d) => byQid.get(d.qid)?.class === "company_specific").map((d) => d.qid));
+  const first = open.filter((d) => !wide.has(d.qid));
+  if (first.length && canon) await canonStage(first, { formPlan, byQid, mem, context, canon, baselines, pipeline, slug, signal, totals });
+  // Request 2 — one more question for every row still open, and never more than one per row.
+  await secondPass(out, { formPlan, byQid, mem, context, canon, baselines, pipeline, slug, signal, totals });
 
   // Rows that stayed open take their class's no-match action (`optional_text` → skip, else ask),
   // and no row is left open afterwards: a re-plan (`--answers`) asks Jev only about what the host
@@ -228,6 +242,11 @@ async function canonStage(rows, { formPlan, byQid, mem, context, canon, baseline
   }
 
   const answers = await ask({ stage: "canon", state, questions, slug, signal, totals });
+  applyCanonical(rows, answers, { canon, mem, context, baselines, pipeline, byQid });
+}
+
+/** A `canon_<qid>` answer → the canonical id and the typed answer it resolves to. */
+function applyCanonical(rows, answers, { canon, mem, context, baselines, pipeline, byQid }) {
   for (const d of rows) {
     const answer = answers[`canon_${d.qid}`];
     if (!answer) continue;
@@ -239,11 +258,150 @@ async function canonStage(rows, { formPlan, byQid, mem, context, canon, baseline
       continue;
     }
     d.canon = answer.choice;
-    Object.assign(d, canonAnswer(answer.choice, canon, { mem, context, baselines, pipeline, action, limits: byQid.get(d.qid)?.limits }));
+    const resolved = canonAnswer(answer.choice, canon, { mem, context, baselines, pipeline, action, limits: byQid.get(d.qid)?.limits });
+    Object.assign(d, resolved);
+    // A canonical id with nothing saved behind it is not an answer. When that id belongs to a
+    // layer whose questions are about the *work* — narrative, family screening, this company's own
+    // template — the field is very often another phrasing of a prompt the user has answered under
+    // a different id, so the rephrasing judgment asks exactly that. A core/auth/legal/comp id is
+    // not: nobody's phone number or arbitration stance is hiding in a story. A row answered inside
+    // request 2 has no second look left, which is the one-extra-question-per-row budget.
+    if (resolved.action === "ask" && REPHRASABLE.test(String(layerOf(canon, answer.choice)))) d._rephrasing = answer.choice;
   }
 }
 
-/** The chosen canonical id → a typed answer from `answers.yaml` (PLAN §2.2 step 5). */
+/** Layers whose questions are about the work, and can therefore be asked twice (see `canonStage`). */
+const REPHRASABLE = /^(?:narrative|screening|family|company|template)/i;
+
+/** The canon bank's own layer for one id, or "" when the bank does not hold it. */
+function layerOf(canon, qid) {
+  return (canon?.questions ?? []).find((row) => (row.qid ?? row.id) === qid)?.layer ?? "";
+}
+
+/**
+ * Request 2 — one more question for every row still open, in a single call. Three judgments,
+ * each row in exactly one of them, so no field is ever put to the model twice in this request:
+ *
+ *   canonical   a `company_specific` label request 1 held back → the same question request 1
+ *               asks, over the same candidate ids. Held back only to keep either request inside
+ *               the vendor token cap (see `planWithJev`); the judgment is identical.
+ *   rephrasing  a field request 1 mapped to a canonical question with nothing saved behind it →
+ *               "is this asking for the same information as one of these?" over the narrative
+ *               prompts and this posting's family screening set. Resolved through `canonAnswer`,
+ *               so the value is the user's own saved text (length variant by the field's limit)
+ *               or nothing at all.
+ *   saved item  anything else still open and free-text → the documented title-selection fallback.
+ */
+async function secondPass(out, { formPlan, byQid, mem, context, canon, baselines, pipeline, slug, signal, totals }) {
+  const open = out.filter((d) => d._open && d.action === "ask");
+  if (!open.length) return;
+
+  const held = canon ? open.filter((d) => !d.canon && byQid.get(d.qid)?.class === "company_specific") : [];
+  const rephrasing = canon ? open.filter((d) => d._rephrasing) : [];
+  const asked = new Set([...held, ...rephrasing].map((d) => d.qid));
+  const items = open.filter(
+    (d) => !asked.has(d.qid) && !d.canon && FREE_TEXT_TYPES.has(byQid.get(d.qid)?.type ?? "text"),
+  );
+  if (!held.length && !rephrasing.length && !items.length) return;
+
+  const state = { job: jobState(formPlan), questions: {} };
+  const questions = {};
+  const pools = new Map();
+  const candidates = canon ? canonCandidates(canon, { title: formPlan?.job?.title, company: formPlan?.job?.company }) : [];
+
+  if (held.length && candidates.length) {
+    const criteria = {};
+    for (const row of candidates.slice(0, MAX_CANDIDATES)) criteria[row.qid ?? row.id] = canonCriterion(row);
+    for (const d of held) {
+      state.questions[d.qid] = fieldState(byQid.get(d.qid));
+      questions[`canon_${d.qid}`] = choice(
+        `Which canonical question is \`questions.${d.qid}\` an instance of? Pick the one asking for the same information.`,
+        withNone(criteria, "This field matches none of the canonical questions"),
+      );
+    }
+  }
+
+  const shared = {};
+  for (const row of rephrasing.length ? candidates : []) {
+    const layer = String(row.layer ?? "");
+    if (REPHRASABLE.test(layer) && !LAYER.company.test(layer)) shared[row.qid ?? row.id] = canonCriterion(row);
+  }
+  for (const d of rephrasing) {
+    const criteria = { ...shared };
+    // The id this row already matched has no saved answer; offering it again is a dead end.
+    delete criteria[d._rephrasing];
+    if (!Object.keys(criteria).length) continue;
+    state.questions[d.qid] = fieldState(byQid.get(d.qid));
+    questions[`same_${d.qid}`] = choice(
+      `Is \`questions.${d.qid}\` asking for the same information as one of these saved questions? Pick one only if answering that question would answer \`questions.${d.qid}\`.`,
+      withNone(criteria, "This field asks for something none of these saved questions cover"),
+    );
+  }
+
+  for (const d of items) {
+    const q = byQid.get(d.qid);
+    const { rows: pool, mode } = storyPool(mem, q);
+    if (!pool.length) continue;
+    pools.set(d.qid, new Map(pool.map((row) => [row.id, row])));
+    const criteria = {};
+    for (const row of pool) criteria[row.id] = clip(row.title ?? row.text);
+    state.questions[d.qid] = fieldState(q);
+    questions[`item_${d.qid}`] =
+      mode === "material"
+        ? choice(
+            `Which saved item is the material for answering \`questions.${d.qid}\`? Pick the one describing the work this prompt asks about.`,
+            withNone(criteria, "No saved item covers what this prompt asks about"),
+          )
+        : choice(
+            `Which saved item already states the answer to \`questions.${d.qid}\`? Pick one only if it answers that exact question.`,
+            withNone(criteria, "No saved item answers this; ask the user"),
+          );
+  }
+  if (!Object.keys(questions).length) return;
+
+  const answers = await ask({ stage: "second_look", state, questions, slug, signal, totals });
+  applyCanonical(held, answers, { canon, mem, context, baselines, pipeline, byQid });
+  applyRephrasing(rephrasing, answers, { canon, mem, context, baselines, pipeline, byQid });
+  applySavedItems(items, answers, pools);
+}
+
+/** A matched saved question → its own answer, under this field's `why`. */
+function applyRephrasing(rows, answers, { canon, mem, context, baselines, pipeline, byQid }) {
+  for (const d of rows) {
+    const answer = answers[`same_${d.qid}`];
+    if (!answer) continue;
+    const action = gate(answer);
+    d.confidence = round(answer.confidence);
+    d.gap = round(runnerUpGap(answer.probabilities, answer.choice));
+    if (answer.choice === NONE || action === "ask") {
+      d.why = answer.choice === NONE ? "no saved question asks for the same information" : `rephrasing match too uncertain (${d.confidence})`;
+      continue;
+    }
+    const resolved = canonAnswer(answer.choice, canon, {
+      mem,
+      context,
+      baselines,
+      pipeline,
+      action,
+      limits: byQid.get(d.qid)?.limits,
+    });
+    if (resolved.action === "ask") {
+      d.why = `company question matched ${answer.choice}, which has no saved answer either`;
+      continue;
+    }
+    Object.assign(d, resolved, { canon: answer.choice, why: `company question matched ${answer.choice}` });
+  }
+}
+
+/**
+ * The chosen canonical id → a typed answer from `answers.yaml` (PLAN §2.2 step 5).
+ *
+ * A canonical id with no stored row is not automatically an ask: `CANON_RULES` lists the ids the
+ * shared derivations answer from memory alone, and those are tried first. That is what makes a
+ * store written before a derivation existed — or by a user who never ran `answers.mjs` — answer
+ * the same way a freshly generated one does. Nothing is invented on this path: every derivation
+ * returns null rather than guess, and the caller then asks.
+ */
 function canonAnswer(qid, canon, { mem, context, baselines, pipeline, action, limits }) {
   const saved = answersFor(mem, qid, { company: context.company, role_family: context.role_family })[0];
   const definition = (canon.questions ?? []).find((row) => (row.qid ?? row.id) === qid);
@@ -251,16 +409,16 @@ function canonAnswer(qid, canon, { mem, context, baselines, pipeline, action, li
   const why = `canon ${qid}`;
 
   if (!saved) {
-    if (kind === "rule") {
-      const ruled = ruleAnswer(definition?.rule_ref ?? qid, { mem, context, baselines, pipeline });
-      if (ruled) return ruledRow(ruled, { why, action });
-    }
+    const ref = definition?.rule_ref ?? CANON_RULES.get(qid) ?? (kind === "rule" ? qid : null);
+    const ruled = ref ? ruleAnswer(ref, { mem, context, baselines, pipeline }) : null;
+    if (ruled) return ruledRow(ruled, { why, action });
     return { action: "ask", why: `${why} has no saved answer` };
   }
   if (kind === "never") return { action: "ask", why: `${why} is marked never-answer` };
   if (kind === "rule") {
-    const ruled = ruleAnswer(saved.rule_ref ?? qid, { mem, context, baselines, pipeline });
-    if (!ruled) return { action: "ask", why: `${why}: rule ${saved.rule_ref ?? qid} cannot be evaluated` };
+    const ref = saved.rule_ref ?? CANON_RULES.get(qid) ?? qid;
+    const ruled = ruleAnswer(ref, { mem, context, baselines, pipeline });
+    if (!ruled) return { action: "ask", why: `${why}: rule ${ref} cannot be evaluated` };
     return ruledRow(ruled, { why, action });
   }
   const value = saved.value ?? pickVariant(saved.variants, limits);
@@ -292,6 +450,32 @@ function pickVariant(variants, limits) {
   if (words != null && words >= 200) return variants.long ?? variants.medium ?? variants.short ?? null;
   return variants.medium ?? variants.long ?? variants.short ?? null;
 }
+
+/**
+ * Canonical question id → the derivation that answers it, for the ids whose answer is computed
+ * rather than stored. This is the table `src/canon/answers.mjs` writes its `rule` rows from, so
+ * the ref a stored row carries and the ref fill time evaluates are the same string by
+ * construction — a `rule_ref` that `ruleAnswer()` returns null for is strictly worse than no row
+ * at all, because it turns "no saved answer" into "rule cannot be evaluated" and still ends in
+ * `ask`. Fill time owns it for the same reason it owns `canonCriterion()`: one definition, not
+ * two that can drift.
+ */
+export const CANON_RULES = new Map([
+  ["q.auth.authorized_in_country", "work_auth.authorized_now"],
+  ["q.auth.sponsorship_now", "work_auth.sponsorship_now"],
+  ["q.auth.sponsorship_future", "work_auth.sponsorship_future"],
+  ["q.auth.require_visa_sponsorship_work_selected", "work_auth.sponsorship_future"],
+  ["q.core.start_date", "p.notice_rule"],
+  ["q.core.notice_period", "p.notice_rule"],
+  ["q.comp.expected_salary", "p.salary"],
+  ["q.core.relocation", "p.relocation"],
+  ["q.core.in_office", "p.in_office"],
+  ["q.legal.previously_applied", "applied_before"],
+  ["q.core.location_current", "identity.location"],
+  ["q.core.address_working", "identity.address"],
+  ["q.core.years_experience", "experience.years_total"],
+  ["q.core.years_experience_total", "experience.years_total"],
+]);
 
 /**
  * `rule` answers are evaluated here, from the same derivations the deterministic pass uses —
@@ -329,40 +513,49 @@ function ruleAnswer(ruleRef, { mem, context, baselines, pipeline = null }) {
   if (/reloc/.test(ref)) return answered(relocationFor(mem, { ...scope, country: context.country }));
   if (/in[_ -]?office/.test(ref)) return answered(inOfficeFor(mem, scope));
   if (/applied/.test(ref)) return answered(appliedBeforeFor(pipeline, context.company));
+  // Where the user lives, in their own words. `identity.address` prefers the street address a
+  // form asking for one wants, and falls back to the location they stated — the same facts, and
+  // the same `check`-when-qualified rule, `src/plan/resolve.mjs identityRow()` applies to a field
+  // labelled "Current Location". Tested after `/reloc/`, which also contains "location".
+  if (/identity\.address|address_working/.test(ref)) {
+    return statedPlace(mem, ["f.identity.address", "f.identity.location", "f.identity.city"]);
+  }
+  if (/identity\.location|location_current/.test(ref)) {
+    return statedPlace(mem, ["f.identity.location", "f.identity.city"]);
+  }
+  // Total professional experience, counted at fill time from the `since:` dates on the facts that
+  // say they are full-time (PLAN §2.1: numbers are code's job, never the model's). Floored, never
+  // rounded up: a form answer must not overstate the user's experience by half a year.
+  if (/experience\.years_total|years_experience/.test(ref)) {
+    const years = fullTimeYears(mem);
+    if (!(years > 0)) return null;
+    const whole = String(Math.floor(years));
+    return { value: whole, why: `${years} yr full-time on file`, text: `${whole} years of full-time professional experience` };
+  }
+  return null;
+}
+
+/** The first of `ids` memory states, as a rule answer. A hedged value comes back `exact: false`. */
+function statedPlace(mem, ids) {
+  for (const id of ids) {
+    const row = getFact(mem, id);
+    const parsed = row ? factText(row) : null;
+    if (!parsed?.text) continue;
+    return {
+      value: parsed.text,
+      text: parsed.text,
+      exact: !parsed.qualified,
+      why: parsed.qualified ? `${id} (value is qualified — verify)` : id,
+    };
+  }
   return null;
 }
 
 /** A shared derivation's `{value, why, text}` → a rule answer, or null when it had to ask. */
 const answered = ({ value, why, text }) => (value == null ? null : { value, why, text });
 
-/** Request 1 fallback — saved-item selection by title, for free-text rows only. */
-async function storyStage(rows, { formPlan, byQid, mem, slug, signal, totals }) {
-  const state = { job: jobState(formPlan), questions: {} };
-  const questions = {};
-  const pools = new Map();
-
-  for (const d of rows) {
-    const q = byQid.get(d.qid);
-    const { rows: pool, mode } = storyPool(mem, q);
-    if (!pool.length) continue;
-    pools.set(d.qid, new Map(pool.map((row) => [row.id, row])));
-    const criteria = {};
-    for (const row of pool) criteria[row.id] = clip(row.title ?? row.text);
-    state.questions[d.qid] = fieldState(q);
-    questions[`item_${d.qid}`] =
-      mode === "material"
-        ? choice(
-            `Which saved item is the material for answering \`questions.${d.qid}\`? Pick the one describing the work this prompt asks about.`,
-            withNone(criteria, "No saved item covers what this prompt asks about"),
-          )
-        : choice(
-            `Which saved item already states the answer to \`questions.${d.qid}\`? Pick one only if it answers that exact question.`,
-            withNone(criteria, "No saved item answers this; ask the user"),
-          );
-  }
-  if (!Object.keys(questions).length) return;
-
-  const answers = await ask({ stage: "saved_items", state, questions, slug, signal, totals });
+/** A matched saved item → grounding for the writer, never raw story text in the form. */
+function applySavedItems(rows, answers, pools) {
   for (const d of rows) {
     const answer = answers[`item_${d.qid}`];
     if (!answer) continue;
@@ -389,7 +582,7 @@ async function storyStage(rows, { formPlan, byQid, mem, slug, signal, totals }) 
   }
 }
 
-/** Request 2 — the form's own options. Exact (normalised) label equality never needs a model. */
+/** Request 3 — the form's own options. Exact (normalised) label equality never needs a model. */
 async function optionStage(rows, { byQid, slug, signal, totals }) {
   const pending = [];
   for (const d of rows) {

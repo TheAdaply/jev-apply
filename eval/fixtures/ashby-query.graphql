@@ -1,0 +1,44 @@
+query ApiJobPosting($organizationHostedJobsPageName: String!, $jobPostingId: String!) {
+  jobPosting(
+    organizationHostedJobsPageName: $organizationHostedJobsPageName
+    jobPostingId: $jobPostingId
+  ) {
+    id
+    title
+    departmentName
+    locationName
+    employmentType
+    workplaceType
+    isListed
+    isConfidential
+    applicationDeadline
+    descriptionHtml
+    compensationTierSummary
+    compensationTiers {
+      id
+      title
+      tierSummary
+    }
+    applicationForm {
+      id
+      sections {
+        title
+        descriptionHtml
+        fieldEntries {
+          id
+          field
+          isRequired
+          isHidden
+          descriptionHtml
+        }
+      }
+      fieldEntries {
+        id
+        field
+        isRequired
+        isHidden
+        descriptionHtml
+      }
+    }
+  }
+}

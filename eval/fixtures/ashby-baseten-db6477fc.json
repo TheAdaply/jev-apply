@@ -1,0 +1,341 @@
+{
+ "data": {
+  "jobPosting": {
+   "id": "db6477fc-111a-4340-bf00-525fe023e6f3",
+   "title": "AI Inference Engineer",
+   "departmentName": "EPD",
+   "locationName": "San Francisco",
+   "employmentType": "FullTime",
+   "workplaceType": "Hybrid",
+   "isListed": true,
+   "isConfidential": false,
+   "applicationDeadline": null,
+   "descriptionHtml": "<p style=\"min-height:1.5em\"><strong><u>ABOUT BASETEN</u></strong></p><p style=\"min-height:1.5em\">Baseten powers mission-critical inference for the world's most dynamic AI companies, like Cursor, Notion, OpenEvidence, Abridge, Clay, Gamma, and Writer. By uniting applied AI research, flexible infrastructure, and seamless developer tooling, we enable companies operating at the frontier of AI to bring cutting-edge models into production. We're growing quickly and recently raised our <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.baseten.co/blog/announcing-our-series-f/\">$1.5B Series F</a>, led by Altimeter Capital, Conviction Partners, and Spark Capital. Join us and help build the platform engineers turn to ship AI products.</p><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong><u>THE ROLE</u></strong></p><p style=\"min-height:1.5em\">As a Forward Deployed Engineer at Baseten, you will partner directly with customers to architect, build, and deploy high-scale production AI applications on Baseten’s platform. You’ll own the journey with customers from initial exploration to production deployment, translating ambiguous business goals into reliable, observable services with clear quality, latency, and cost outcomes.</p><p style=\"min-height:1.5em\">This role is a great fit for entrepreneurial engineers who want a front-row view into how modern companies adopt AI at scale and who enjoy working across product, software development, performance engineering, and customer-facing implementations.</p><p style=\"min-height:1.5em\">To be clear, this is an engineering role with hands-on coding and software development that also includes aspects of product management, technical customer success, and pre-sales solution engineering mixed in.</p><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong><u>EXAMPLE INITIATIVES</u></strong></p><p style=\"min-height:1.5em\">Take a look at these blog posts written by members of our Forward Deployed Engineering team: </p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\"><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.baseten.co/blog/forward-deployed-engineering/\">Forward Deployed Engineering on the frontier of AI</a></p></li><li><p style=\"min-height:1.5em\"><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.baseten.co/blog/the-fastest-most-accurate-and-cost-efficient-whisper-transcription/\">The fastest, most accurate Whisper transcription</a></p></li><li><p style=\"min-height:1.5em\"><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.baseten.co/blog/deploy-production-model-servers-from-docker-images/\">Deploy production-ready model servers from Docker images</a></p></li><li><p style=\"min-height:1.5em\"><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.baseten.co/blog/deploying-custom-comfyui-workflows-as-apis/\">Deploy custom ComfyUI workflows as APIs</a></p></li></ul><p style=\"min-height:1.5em\"><br /><strong><u>RESPONSIBILITIES</u></strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">Develop and maintain software systems and product features using one or more general-purpose programming languages in a production-level environment, with a preference for Python due to its relevance in ML projects.</p></li><li><p style=\"min-height:1.5em\">Drive customer impact by designing, implementing, and deploying Baseten solutions end-to-end (problem framing → evaluation → production deployment → monitoring). This involves working with customers’ engineering teams at every stage of the customer journey including: sales, implementation, and expansion.</p></li><li><p style=\"min-height:1.5em\">Deliver with velocity: turn vague objectives into clear specs and well-defined PoCs so we can rapidly ship well-tested services and outcomes for our customers</p></li><li><p style=\"min-height:1.5em\">Optimize and enhance AI/ML projects, contributing to the continuous improvement of our technical stack. This includes developing features and PRDs with other engineering and product orgs.</p></li><li><p style=\"min-height:1.5em\">Own products and customer projects end-to-end, functioning as both an engineer, project manager, and product manager, with a focus on user empathy, project specification, and end-to-end execution.</p></li><li><p style=\"min-height:1.5em\">Navigate ambiguity and exercise good judgment on tradeoffs and tools needed to solve problems, avoiding unnecessary complexity.</p></li><li><p style=\"min-height:1.5em\">Demonstrate pride, ownership, and accountability for your work, expecting the same from your teammates.</p><p style=\"min-height:1.5em\"></p></li></ul><p style=\"min-height:1.5em\"><strong><u>REQUIREMENTS</u></strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">Bachelor's, Master's, or Ph.D. degree in Computer Science, Engineering, Mathematics, or related field.</p></li><li><p style=\"min-height:1.5em\">2+ years of  professional work experience in a fast-paced, high-growth environment.</p></li><li><p style=\"min-height:1.5em\">Demonstrated experience with one or more general-purpose programming languages in a production-level environment, with a strong preference for Python.</p></li><li><p style=\"min-height:1.5em\">Familiarity with AI/ML pipelines and the lifecycle of ML model development and deployment.</p></li><li><p style=\"min-height:1.5em\">Strong communication skills, particularly on complex technical topics.</p></li><li><p style=\"min-height:1.5em\">Experience in building or optimizing AI/ML projects is highly valued.</p></li></ul><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong><u>BENEFITS</u></strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">Competitive compensation, including meaningful equity</p></li><li><p style=\"min-height:1.5em\">(U.S. only) 100% coverage of medical, dental, and vision insurance for employee and dependents</p></li><li><p style=\"min-height:1.5em\">Flexible PTO policy including company wide Winter Break (our offices are closed from Christmas Eve to New Year's Day!)</p></li><li><p style=\"min-height:1.5em\">Paid parental leave</p></li><li><p style=\"min-height:1.5em\">Fertility and family-building stipend through Carrot</p></li><li><p style=\"min-height:1.5em\">(U.S. only) Company-facilitated 401(k)</p></li><li><p style=\"min-height:1.5em\">Exposure to a variety of ML startups, offering unparalleled learning and networking opportunities.</p></li></ul><p style=\"min-height:1.5em\"><strong>Apply now</strong> to embark on a rewarding journey in shaping the future of AI! If you are a motivated individual with a passion for machine learning and a desire to be part of a collaborative and forward-thinking team, we would love to hear from you.</p><p style=\"min-height:1.5em\"><em>At Baseten, we are committed to fostering a diverse and inclusive workplace. We provide equal employment opportunities to all employees and applicants without regard to race, color, religion, gender, sexual orientation, gender identity or expression, national origin, age, genetic information, disability, or veteran status.</em></p><p style=\"min-height:1.5em\"><em>We are an Equal Opportunity Employer and will consider qualified applicants with criminal histories in a manner consistent with applicable law (by example, the requirements of the San Francisco Fair Chance Ordinance, where applicable).</em></p>",
+   "compensationTierSummary": "$165K – $330K • Offers Equity",
+   "compensationTiers": [
+    {
+     "id": "4e8a05e1-92ec-4f37-a1ee-ce7625777d64",
+     "title": null,
+     "tierSummary": "$165K – $330K • Offers Equity"
+    }
+   ],
+   "applicationForm": {
+    "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86",
+    "fieldEntries": [
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86__systemfield_name",
+      "field": {
+       "id": "d0f8459b-1934-412f-b598-64c4cacbe395",
+       "path": "_systemfield_name",
+       "humanReadablePath": "Name",
+       "title": "Name",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_79112628-3105-483f-be42-655eb70ece9e",
+      "field": {
+       "id": "79112628-3105-483f-be42-655eb70ece9e",
+       "path": "79112628-3105-483f-be42-655eb70ece9e",
+       "humanReadablePath": "",
+       "title": "Phone Number",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86__systemfield_email",
+      "field": {
+       "id": "9737204d-beeb-41af-bf7d-7e4ca97069ec",
+       "path": "_systemfield_email",
+       "humanReadablePath": "Email",
+       "title": "Email",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Email",
+       "__autoSerializationID": "EmailField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86__systemfield_resume",
+      "field": {
+       "id": "03727225-3c4e-443d-a94b-3abc404d167c",
+       "path": "_systemfield_resume",
+       "humanReadablePath": "Resume",
+       "title": "Resume",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "File",
+       "__autoSerializationID": "FileField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_8dfc45a4-24ae-4c49-b722-45a9a37d2056",
+      "field": {
+       "id": "8dfc45a4-24ae-4c49-b722-45a9a37d2056",
+       "path": "8dfc45a4-24ae-4c49-b722-45a9a37d2056",
+       "humanReadablePath": "",
+       "title": "LinkedIn Profile",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_b71bcd16-9860-4277-a3fb-fade0a5c9faf",
+      "field": {
+       "id": "b71bcd16-9860-4277-a3fb-fade0a5c9faf",
+       "path": "b71bcd16-9860-4277-a3fb-fade0a5c9faf",
+       "humanReadablePath": "",
+       "title": "Current Company",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_78a49344-43a1-4d4d-9b5b-e3addf20b0da",
+      "field": {
+       "id": "78a49344-43a1-4d4d-9b5b-e3addf20b0da",
+       "path": "78a49344-43a1-4d4d-9b5b-e3addf20b0da",
+       "humanReadablePath": "",
+       "title": "Do you currently have unrestricted work authorization in the United States?",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Boolean",
+       "__autoSerializationID": "BooleanField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_274e6df0-7a3d-49a8-92b6-e63a8550e7c8",
+      "field": {
+       "id": "274e6df0-7a3d-49a8-92b6-e63a8550e7c8",
+       "path": "274e6df0-7a3d-49a8-92b6-e63a8550e7c8",
+       "humanReadablePath": "",
+       "title": "Will you now, or in the future, require employment-based visa sponsorship?",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Boolean",
+       "__autoSerializationID": "BooleanField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     }
+    ],
+    "sections": [
+     {
+      "title": null,
+      "descriptionHtml": null,
+      "fieldEntries": [
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86__systemfield_name",
+        "field": {
+         "id": "d0f8459b-1934-412f-b598-64c4cacbe395",
+         "path": "_systemfield_name",
+         "humanReadablePath": "Name",
+         "title": "Name",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_79112628-3105-483f-be42-655eb70ece9e",
+        "field": {
+         "id": "79112628-3105-483f-be42-655eb70ece9e",
+         "path": "79112628-3105-483f-be42-655eb70ece9e",
+         "humanReadablePath": "",
+         "title": "Phone Number",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86__systemfield_email",
+        "field": {
+         "id": "9737204d-beeb-41af-bf7d-7e4ca97069ec",
+         "path": "_systemfield_email",
+         "humanReadablePath": "Email",
+         "title": "Email",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Email",
+         "__autoSerializationID": "EmailField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86__systemfield_resume",
+        "field": {
+         "id": "03727225-3c4e-443d-a94b-3abc404d167c",
+         "path": "_systemfield_resume",
+         "humanReadablePath": "Resume",
+         "title": "Resume",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "File",
+         "__autoSerializationID": "FileField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_8dfc45a4-24ae-4c49-b722-45a9a37d2056",
+        "field": {
+         "id": "8dfc45a4-24ae-4c49-b722-45a9a37d2056",
+         "path": "8dfc45a4-24ae-4c49-b722-45a9a37d2056",
+         "humanReadablePath": "",
+         "title": "LinkedIn Profile",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_b71bcd16-9860-4277-a3fb-fade0a5c9faf",
+        "field": {
+         "id": "b71bcd16-9860-4277-a3fb-fade0a5c9faf",
+         "path": "b71bcd16-9860-4277-a3fb-fade0a5c9faf",
+         "humanReadablePath": "",
+         "title": "Current Company",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_78a49344-43a1-4d4d-9b5b-e3addf20b0da",
+        "field": {
+         "id": "78a49344-43a1-4d4d-9b5b-e3addf20b0da",
+         "path": "78a49344-43a1-4d4d-9b5b-e3addf20b0da",
+         "humanReadablePath": "",
+         "title": "Do you currently have unrestricted work authorization in the United States?",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Boolean",
+         "__autoSerializationID": "BooleanField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "15f4d8bb-0b5c-4d45-bb79-8ebb7d895e86_274e6df0-7a3d-49a8-92b6-e63a8550e7c8",
+        "field": {
+         "id": "274e6df0-7a3d-49a8-92b6-e63a8550e7c8",
+         "path": "274e6df0-7a3d-49a8-92b6-e63a8550e7c8",
+         "humanReadablePath": "",
+         "title": "Will you now, or in the future, require employment-based visa sponsorship?",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Boolean",
+         "__autoSerializationID": "BooleanField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

@@ -25,19 +25,32 @@
 
 import { existsSync } from "node:fs";
 
-import { atsFromUrl, setField, snapshotRequired, uploadFile, waitForForm } from "../browser/adapters/index.mjs";
+import { atsFromUrl, handles, resolveSelector, setField, snapshotRequired, uploadFile, waitForForm } from "../browser/adapters/index.mjs";
+import { detectControl, waitForOptions } from "../browser/controls.mjs";
 import { findTab, openTab, pagesOf } from "../browser/chrome.mjs";
 import { norm, normLabel, pace } from "../browser/readback.mjs";
 import { appendTrace, captureFailure } from "../browser/trace.mjs";
 import { classify } from "../schema/classes.mjs";
+import { choice, systemOne, withNone, NONE } from "../jev/client.mjs";
+import { gate, runnerUpGap } from "../jev/gates.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
 
 /** Stop rules and round caps (PLAN §2.2 steps 9 and 11). */
 export const LIMITS = { jevRequests: 40, wallMs: 120000, noChange: 3, deltaRounds: 2 };
 
 const OPTION_WAIT_MS = 3500;
-/** Controls whose answer must come from the form's own vocabulary (never free text). */
-const OPTION_CONTROLS = new Set(["react_select", "native_select", "radio", "checkbox"]);
+/**
+ * Controls whose answer must come from the form's own vocabulary (never free text).
+ * `location` is deliberately absent: a geocoder's list is not a vocabulary to choose from, it is
+ * a search result, and the adapters' location ladder types the city and matches the entry that
+ * contains it. Routing it through `resolveVocabulary` is what turned the Greenhouse Pelias field
+ * into an `ask` on both recorded runs.
+ */
+const OPTION_CONTROLS = new Set(["react_select", "native_select", "radio", "checkbox", "checkbox_group", "combobox", "listbox"]);
+/** A live menu wider than this is a country list, not a question's options; never put it to Jev. */
+const MAX_LIVE_OPTIONS = 120;
+
+const round2 = (n) => (typeof n === "number" && Number.isFinite(n) ? Math.round(n * 100) / 100 : null);
 
 export class Blocked extends Error {
   constructor(reason, detail, extra = {}) {
@@ -141,6 +154,10 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
     .slice()
     .sort((a, b) => (order.get(a.qid) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.qid) ?? Number.MAX_SAFE_INTEGER));
 
+  // A Jev-resolved option whose margin over the runner-up is thin is filled but flagged, the same
+  // way `gate` treats a thin margin in the offline plan (PLAN §2.2 step 7).
+  const thin = new Set();
+  const chooseOption = optionChooser({ slug, budget, onCheck: (q) => thin.add(q?.qid) });
   let filled = 0;
   let failed = 0;
   for (const d of todo) {
@@ -151,12 +168,16 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
       failed += 1;
       continue;
     }
-    const result = await setRow({ page, ats, formPlan, question, decision: d, slug });
+    const result = await setRow({ page, ats, formPlan, question, decision: d, slug, chooseOption });
     if (!result) continue; // turned into an `ask` before anything was written
     d.readback = { ok: result.ok === true, observed: question.class === "sensitive" ? "" : String(result.observed ?? ""), attempts: result.attempts ?? 0 };
     if (result.ok) {
       filled += 1;
       delete d.shot;
+      if (thin.has(d.qid) && d.action !== "ask") {
+        d.action = "check";
+        d.why = `${d.why} — matched to the form's own wording, worth a look`;
+      }
     } else {
       failed += 1;
       markAsk(d, `the form would not take it (${result.reason ?? "read-back mismatch"}) — intended: ${clipValue(d, question)}`, { shot: result.shot });
@@ -166,12 +187,78 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
   return { filled, failed, executed: todo.length };
 }
 
+/**
+ * The Jev rung of the adapters' option ladder (`src/browser/controls.mjs`): when a control's own
+ * rendered vocabulary has no exact, prefix or substring match for the answer, one Choice over the
+ * labels the widget is showing *plus* `none_of_these` decides. The verdict is `gates.mjs`'s own
+ * `gate()`, not a bare confidence test: a 0.55/0.54 near-tie between two rendered options is a
+ * `check`, not a silent fill, and `onCheck` is how that reaches the user's summary.
+ *
+ * Never for a `sensitive` row (EEO option text is not sent anywhere) and never for `location`,
+ * which the ladder refuses by construction. The request is charged to the posting's budget; a cap
+ * reached here stops the run at the next row boundary, not inside a field that is mid-write.
+ */
+export function optionChooser({ slug = null, budget = null, signal = null, onCheck = null } = {}) {
+  return async ({ question, value, labels, control }) => {
+    if (!labels?.length || labels.length > MAX_LIVE_OPTIONS) return null;
+    if (question?.class === "sensitive") return null;
+    if ((budget?.requests ?? 0) >= (budget?.limits?.jevRequests ?? Infinity)) return null;
+    const criteria = {};
+    labels.forEach((label, i) => {
+      criteria[`o${i}`] = String(label).slice(0, 180);
+    });
+    let answer = null;
+    let requests = 1;
+    try {
+      const res = await systemOne({
+        state: { field: { label: question?.label ?? "", control, answer_text: String(value) } },
+        questions: {
+          pick: choice(
+            "Which option in `criteria` states the same thing as `field.answer_text`?",
+            withNone(criteria, "No option offered by the form states that answer"),
+          ),
+        },
+        signal,
+      });
+      requests = res.requests ?? 1;
+      answer = res.answers?.pick ?? null;
+    } catch {
+      return null; // a model that cannot answer must not stop the fill; the row becomes an `ask`
+    } finally {
+      try {
+        budget?.spend(requests);
+      } catch {
+        /* the cap is enforced at the next row boundary, never mid-write */
+      }
+    }
+    const picked = answer?.choice;
+    const index = picked && picked !== NONE ? Number(String(picked).slice(1)) : -1;
+    const label = Number.isInteger(index) && index >= 0 ? labels[index] : undefined;
+    const action = answer ? gate({ choice: picked, confidence: answer.confidence, probabilities: answer.probabilities }) : "ask";
+    await appendTrace(slug, {
+      op: "vocab",
+      qid: question?.qid ?? null,
+      control,
+      options: labels.length,
+      picked: label === undefined ? null : index,
+      action,
+      confidence: typeof answer?.confidence === "number" ? Math.round(answer.confidence * 100) / 100 : null,
+      gap: round2(runnerUpGap(answer?.probabilities, picked)),
+    });
+    if (action === "ask" || label === undefined) return null;
+    if (action === "check") onCheck?.(question, { label, confidence: answer.confidence });
+    return { label, confidence: answer.confidence, check: action === "check" };
+  };
+}
+
 /** One row → one adapter call. Returns null when the row became an `ask` without a DOM write. */
-async function setRow({ page, ats, formPlan, question, decision, slug }) {
+async function setRow({ page, ats, formPlan, question, decision, slug, chooseOption = null }) {
   // `mask` paints the EEO controls out of any failure screenshot; a sensitive row is never
   // photographed at all (src/browser/trace.mjs).
-  const opts = { trace: { slug, mask: formPlan }, ats };
+  const opts = { trace: { slug, mask: formPlan }, ats, chooseOption };
 
+  // File first: Greenhouse removes the input once a file is attached, so there is nothing left
+  // for detection to look at on a re-attach — `uploadFile` reads the chip instead.
   if (question.control === "file" || question.type === "file") {
     const file = decision.path;
     if (!file || !existsSync(file)) {
@@ -186,15 +273,33 @@ async function setRow({ page, ats, formPlan, question, decision, slug }) {
     return null;
   }
 
+  // What the control *is*, before anything is typed into it. The FormPlan's `control` was a guess
+  // made offline from the ATS schema; where the two disagree the DOM wins, both are written to the
+  // trace, and the plan row is corrected so the frozen decisions describe the form that exists.
+  const selector = await resolveSelector(page, ats, question);
+  const detected = await detectControl(page, selector, { question });
+  if (!detected.agreed) {
+    await appendTrace(slug, {
+      op: "detect",
+      qid: question.qid,
+      planned: detected.planned,
+      control: detected.control,
+      why: detected.why,
+      route: handles(ats, detected.control) ? ats : "generic",
+    });
+    question.control = detected.control;
+  }
+
   // A select whose vocabulary the schema did not carry (an autocomplete): the form's own list
   // only exists once you type into it, so it is read off the DOM — and only an exact match may
   // be committed from it. See resolveVocabulary.
-  if (OPTION_CONTROLS.has(question.control) && decision.option == null && !(question.options ?? []).length) {
-    const picked = await resolveVocabulary({ page, question, decision, slug });
+  if (OPTION_CONTROLS.has(detected.control) && decision.option == null && !(question.options ?? []).length) {
+    const picked = await resolveVocabulary({ page, question, decision, slug, selector });
     if (!picked.ok) return null;
   }
 
-  return setField(page, question, decision.option ?? decision.value, opts);
+  // `setField` routes a control this ATS adapter does not tune to `adapters/generic.mjs`.
+  return setField(page, question, decision.option ?? decision.value, { ...opts, detected, selector });
 }
 
 const clipValue = (d, q) => (q?.class === "sensitive" ? "••••" : String(d.option ?? d.value ?? "").slice(0, 60));
@@ -213,8 +318,8 @@ const clipValue = (d, q) => (q?.class === "sensitive" ? "••••" : String(
  * states neither. "Remote" is a work arrangement with no correct rendering in a geographic picker;
  * the only honest answer is to ask, on a form that is otherwise already filled (D13).
  */
-async function resolveVocabulary({ page, question, decision, slug }) {
-  const labels = await probeVocabulary(page, question, decision.value);
+async function resolveVocabulary({ page, question, decision, slug, selector = null }) {
+  const labels = await probeVocabulary(page, { ...question, selector: selector ?? question.selector }, decision.value);
   await appendTrace(slug, { op: "probe", qid: question.qid, control: question.control, options: labels.length });
   if (!labels.length) {
     markAsk(decision, `the form's "${question.label}" list showed nothing for ${clipValue(decision, question)} — what should I enter?`);
@@ -242,7 +347,14 @@ export async function probeVocabulary(page, question, value, { timeout = OPTION_
   if (control === "native_select") {
     return uniq(await page.$$eval(`${selector} option`, (els) => els.map((el) => el.textContent ?? "")).catch(() => []));
   }
-  if (control === "radio" || control === "checkbox") {
+  if (control === "radio" || control === "checkbox" || control === "checkbox_group") {
+    // The selector may name the group's members or the field that contains them; try both, and
+    // include the button groups a segmented control renders instead of inputs.
+    const members = ["input[type=radio]", "input[type=checkbox]", "button[data-option]", '[role="radio"]']
+      .map((m) => `${selector} ${m}`)
+      .join(", ");
+    const inner = uniq(await page.$$eval(members, groupLabels).catch(() => []));
+    if (inner.length) return inner;
     return uniq(await page.$$eval(selector, groupLabels).catch(() => []));
   }
 
@@ -253,8 +365,8 @@ export async function probeVocabulary(page, question, value, { timeout = OPTION_
     await input.click({ timeout: 5000 });
     const key = norm(value).slice(0, 24);
     if (key) await input.pressSequentially(key, { delay: 35 });
-    await page.locator('[role="option"]:visible').first().waitFor({ state: "visible", timeout }).catch(() => {});
-    return uniq(await (await openMenu(page, input)).allTextContents());
+    const { labels } = await waitForOptions(page, input, null, timeout);
+    return uniq(labels);
   } catch {
     return [];
   } finally {
@@ -262,23 +374,6 @@ export async function probeVocabulary(page, question, value, { timeout = OPTION_
   }
 }
 
-/**
- * The options of the menu *this* input just opened, narrowest scope first: the listbox it owns,
- * then the portal react-select renders into, then whatever is visibly an option. The last step is
- * `:visible` for a reason — an intl-tel-input phone field keeps its 246 country rows in the DOM
- * at all times, and a page-wide `[role=option]` would hand the user that list instead of the
- * three the location field actually offered.
- */
-async function openMenu(page, input) {
-  const owned = (await input.getAttribute("aria-controls").catch(() => null)) || (await input.getAttribute("aria-owns").catch(() => null));
-  if (owned) {
-    const byOwner = page.locator(`[id="${owned.replace(/(["\\])/g, "\\$1")}"] [role="option"]`);
-    if (await byOwner.count()) return byOwner;
-  }
-  const portal = page.locator('#react-portal-mount-point [role="option"]:visible');
-  if (await portal.count()) return portal;
-  return page.locator('[role="option"]:visible');
-}
 
 /** In-page: the visible label of each control in a radio/checkbox/button group. */
 function groupLabels(els) {

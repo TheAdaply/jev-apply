@@ -17,27 +17,37 @@ import {
   attemptSet,
   byId,
   cadenceMs,
-  digits,
   guardNoSubmit,
-  labelsOf,
   moveMouseTo,
   norm,
   normLabel,
   pace,
   pickOption,
-  asYesNo,
   sleep,
   textOf,
   valueOf,
   waitUntil,
 } from "../readback.mjs";
-import { captureFailure, fieldEvent, tracer } from "../trace.mjs";
+import { chooseLabel, detectControl, isPlaceholderLabel, searchKeys, setControl } from "../controls.mjs";
+import { captureFailure, tracer } from "../trace.mjs";
+import * as generic from "./generic.mjs";
 
 export const id = "greenhouse";
 
+/**
+ * The controls this board renders and tunes itself. Everything else — a date picker, a number
+ * field, a checkbox group answered with several values, a geocoder, or a widget nothing
+ * recognises — belongs to the shared ladder in `adapters/generic.mjs`. `checkbox` is the ladder's
+ * too: a Greenhouse `multi_value_multi_select` with exactly one value (Cloudflare's privacy-policy
+ * acknowledgement) renders as one box whose answer is that value's own sentence, and the yes/no
+ * copy this file used to carry scored it `set_failed:not_boolean`.
+ */
+export const HANDLES = new Set(["text", "textarea", "react_select", "native_select", "file"]);
+
 const OPTION_WAIT_MS = 3000;
 
-const fieldSelector = (question) => question?.selector || byId(question?.qid ?? "");
+export const selectorFor = (question) => question?.selector || byId(question?.qid ?? "");
+const fieldSelector = selectorFor;
 
 /** Jev may answer with an option's `value`; the DOM only knows labels. */
 function wantedLabel(question, value) {
@@ -87,7 +97,7 @@ async function setText(page, question, value, selector) {
 
 // ------------------------------------------------------------------------------- react-select
 
-async function setReactSelect(page, question, value, selector) {
+async function setReactSelect(page, question, value, selector, { chooseOption = null } = {}) {
   const input = page.locator(selector).first();
   await input.waitFor({ state: "attached", timeout: 10000 });
   const shell = await selectShell(input);
@@ -99,7 +109,10 @@ async function setReactSelect(page, question, value, selector) {
     : '#react-portal-mount-point [role="option"]';
 
   const want = wantedLabel(question, value);
-  const searchKey = norm(want).slice(0, 24);
+  // Three filter strings, tried in order: the answer itself (short answers filter fine), its most
+  // distinctive word (a saved sentence matches no option verbatim), then nothing at all — the
+  // unfiltered menu is the only thing a paraphrase can be matched against.
+  const keys = searchKeys(want);
   const options = page.locator(optionSelector);
   // Neither Escape nor `fill("")`: both clear the committed value (react-select's
   // `backspaceRemovesValue`, measured on the live form). Blur closes the menu, drops the typed
@@ -117,32 +130,45 @@ async function setReactSelect(page, question, value, selector) {
 
   await pace(page, control);
   let reason = null;
+  let strategy = null;
 
   const result = await attemptSet({
     settleMs: 350,
+    // One `set` climbs every filter string but clicks at most one option; the loop's two attempts
+    // stay the read-back budget PLAN §2.2 step 11 allows. The model rung is offered only on the
+    // last, unfiltered key — a filtered react-select menu is a substring match for what we typed,
+    // so every entry already contains the answer and `none_of_these` cannot compete (measured on
+    // the live location picker; see resolveVocabulary in src/plan/execute.mjs).
     set: async () => {
       reason = null;
-      await control.click({ timeout: 5000 });
-      // react-select resets its own filter text on blur, so there is nothing to clear here.
-      if (searchKey) await input.pressSequentially(searchKey, { delay: 35 });
-      await options.first().waitFor({ state: "visible", timeout: OPTION_WAIT_MS }).catch(() => {});
-      const labels = (await options.allTextContents()).map(norm).filter(Boolean);
-      if (!labels.length) {
-        reason = "no_options_rendered";
-        await dismiss();
+      strategy = null;
+      for (const key of keys) {
+        await control.click({ timeout: 5000 });
+        // react-select resets its own filter text on blur, so there is nothing to clear here.
+        if (key) await input.pressSequentially(key, { delay: 35 });
+        await options.first().waitFor({ state: "visible", timeout: OPTION_WAIT_MS }).catch(() => {});
+        const labels = (await options.allTextContents()).map(norm).filter(Boolean);
+        const real = labels.filter((l) => !isPlaceholderLabel(l));
+        if (!real.length) {
+          reason = "no_options_rendered";
+          await dismiss();
+          continue;
+        }
+        const pick = await chooseLabel({ labels, want, question, control: "react_select", chooseOption, allowModel: key === "" });
+        if (!pick || isPlaceholderLabel(pick.label)) {
+          // Never index 0: an unmatched value leaves the control exactly as it was.
+          reason = `no_matching_option (${real.length} shown)`;
+          await dismiss();
+          continue;
+        }
+        const target = options.nth(pick.index);
+        await guardNoSubmit(target);
+        await moveMouseTo(page, target);
+        await target.click({ timeout: 5000 });
+        strategy = pick.strategy;
+        reason = null;
         return;
       }
-      const pick = pickOption(labels, want);
-      if (!pick) {
-        // Never index 0: an unmatched value leaves the control exactly as it was.
-        reason = `no_matching_option (${labels.length} shown)`;
-        await dismiss();
-        return;
-      }
-      const target = options.nth(pick.index);
-      await guardNoSubmit(target);
-      await moveMouseTo(page, target);
-      await target.click({ timeout: 5000 });
     },
     read: committed,
     ok: async (observed) => {
@@ -159,237 +185,63 @@ async function setReactSelect(page, question, value, selector) {
     onFail: dismiss,
   });
 
-  return reason && !result.ok ? { ...result, reason } : result;
+  if (result.ok) return { ...result, strategy };
+  return reason ? { ...result, reason } : result;
 }
 
 // ------------------------------------------------------------------------------ native select
 
-async function setNativeSelect(page, question, value, selector) {
-  const loc = page.locator(selector).first();
-  await loc.waitFor({ state: "visible", timeout: 10000 });
-  await pace(page, loc);
-  const want = wantedLabel(question, value);
-  const labels = (await loc.locator("option").allTextContents()).map(norm);
-  const pick = pickOption(labels, want);
-  if (!pick) return { ok: false, observed: norm(await loc.inputValue().catch(() => "")), attempts: 1, reason: "no_matching_option" };
-  return attemptSet({
-    set: async () => {
-      await loc.selectOption({ label: labels[pick.index] });
-    },
-    read: async () => norm(await loc.locator("option:checked").first().textContent().catch(() => "")),
-    ok: (observed) => matchesWanted(observed, want),
-  });
-}
+/** Plain `<select>`: the ladder's three rungs (label → value → Jev over the live option list). */
+const setNativeSelect = (page, question, value, selector, opts = {}) =>
+  setControl(page, question, value, { ...opts, selector, detected: { control: "native_select" } });
 
 // --------------------------------------------------------------------------- radio / checkbox
-
-/** Candidate ways to reach a radio group, most specific first. */
-function radioSelectors(question, selector) {
-  const name = String(question?.name ?? question?.qid ?? "").replace(/(["\\])/g, "\\$1");
-  return [
-    `${selector} input[type="radio"]`,
-    name ? `input[type="radio"][name="${name}"]` : null,
-    name ? `input[type="radio"][id^="${name}"]` : null,
-  ].filter(Boolean);
-}
-
-async function setRadio(page, question, value, selector) {
-  let radios = null;
-  for (const sel of radioSelectors(question, selector)) {
-    const loc = page.locator(sel);
-    if (await loc.count()) {
-      radios = loc;
-      break;
-    }
-  }
-  if (!radios) return { ok: false, observed: "", attempts: 1, reason: "radio_group_not_found" };
-
-  const meta = await labelsOf(radios);
-  const want = wantedLabel(question, value);
-  const pick = pickOption(meta.map((m) => m.label), want);
-  if (!pick) {
-    return {
-      ok: false,
-      observed: meta.map((m) => m.label).join(" | ").slice(0, 140),
-      attempts: 1,
-      reason: "no_matching_option",
-    };
-  }
-
-  const target = radios.nth(pick.index);
-  const chosen = meta[pick.index];
-  const label = chosen.id ? page.locator(`label[for="${chosen.id}"]`).first() : target;
-  const clickable = (await label.count()) ? label : target;
-  await pace(page, clickable);
-  return attemptSet({
-    set: async () => {
-      await guardNoSubmit(clickable);
-      await clickable.click({ timeout: 5000 }).catch(async () => {
-        await target.check({ timeout: 5000, force: true });
-      });
-    },
-    read: async () => ((await target.isChecked().catch(() => false)) ? chosen.label : ""),
-    ok: (observed) => matchesWanted(observed, want),
-  });
-}
-
-/**
- * One checkbox is a Boolean; several are a multi-select (Greenhouse renders those as a
- * `fieldset.checkbox` of `input[name="question_<id>[]"]`, so the FormPlan selector matches the
- * whole group). A group is answered by label — checking `.first()` would be an option-0 guess.
- */
-async function setCheckbox(page, question, value, selector) {
-  const boxes = page.locator(selector);
-  const count = await boxes.count();
-  if (count === 0) return { ok: false, observed: "", attempts: 1, reason: "checkbox_not_found" };
-
-  if (count > 1) {
-    const meta = await labelsOf(boxes);
-    const want = wantedLabel(question, value);
-    const pick = pickOption(meta.map((m) => m.label), want);
-    if (!pick) {
-      return {
-        ok: false,
-        observed: meta.map((m) => m.label).join(" | ").slice(0, 140),
-        attempts: 1,
-        reason: "no_matching_option",
-      };
-    }
-    const target = boxes.nth(pick.index);
-    const chosen = meta[pick.index];
-    const label = chosen.id ? page.locator(`label[for="${chosen.id}"]`).first() : target;
-    const clickable = (await label.count()) ? label : target;
-    await pace(page, clickable);
-    return attemptSet({
-      set: async () => {
-        await guardNoSubmit(clickable);
-        await clickable.click({ timeout: 5000 }).catch(async () => {
-          await target.check({ timeout: 5000, force: true });
-        });
-      },
-      read: async () => ((await target.isChecked().catch(() => false)) ? chosen.label : ""),
-      ok: (observed) => matchesWanted(observed, want),
-    });
-  }
-
-  const loc = boxes.first();
-  await loc.waitFor({ state: "attached", timeout: 10000 });
-  const yn = asYesNo(value);
-  if (!yn) return { ok: false, observed: "", attempts: 1, reason: `not_boolean: ${norm(value).slice(0, 40)}` };
-  await pace(page, loc);
-  return attemptSet({
-    set: async () => {
-      if (yn === "yes") await loc.check({ timeout: 5000, force: true });
-      else await loc.uncheck({ timeout: 5000, force: true });
-    },
-    read: async () => ((await loc.isChecked().catch(() => false)) ? "yes" : "no"),
-    ok: (observed) => observed === yn,
-  });
-}
+//
+// Radio groups, checkbox groups and the single Boolean checkbox are all the ladder's
+// (src/browser/controls.mjs): same answer-by-label rule, plus the three things this file never
+// had — a group rendered as buttons rather than inputs, a group answered with several values,
+// and a one-option multi-select whose answer is that option's own sentence rather than "yes".
 
 // --------------------------------------------------------------------------------------- tel
-
-/**
- * Explicit country only (ISO-2 or the country's own name): a phone country is a personal fact.
- * Best effort by design — some Greenhouse forms hide intl-tel-input's picker entirely and drive
- * the country from a separate `#country` select, so this reports rather than throws.
- */
-export async function setPhoneCountry(page, iti, country) {
-  const button = iti.locator("button.iti__selected-country").first();
-  if (!(await button.count())) return { ok: false, observed: "", attempts: 1, reason: "no_country_picker" };
-  if (!(await button.isVisible().catch(() => false))) {
-    return { ok: false, observed: "", attempts: 1, reason: "country_picker_hidden" };
-  }
-  try {
-    await pace(page, button);
-    await button.click({ timeout: 5000 });
-
-    const iso = normLabel(country);
-    let target = iti.locator(`.iti__country-list li[data-country-code="${iso}"]`);
-    if (!(await target.count())) {
-      const search = page.locator("input.iti__search-input").first();
-      if (await search.count()) await search.pressSequentially(String(country), { delay: 30 });
-      const items = iti.locator('.iti__country-list [role="option"]');
-      await items.first().waitFor({ state: "visible", timeout: OPTION_WAIT_MS }).catch(() => {});
-      const names = (await items.locator(".iti__country-name").allTextContents()).map(norm);
-      const pick = pickOption(names, country);
-      if (!pick) {
-        await button.blur().catch(() => {});
-        return { ok: false, observed: "", attempts: 1, reason: "no_matching_country" };
-      }
-      target = items.nth(pick.index);
-    }
-    const chosen = target.first();
-    const code = normLabel((await chosen.getAttribute("data-country-code")) ?? "");
-    const name = norm(await chosen.locator(".iti__country-name").first().textContent().catch(() => ""));
-    await guardNoSubmit(chosen);
-    await chosen.click({ timeout: 5000 });
-    const title = norm((await button.getAttribute("title")) ?? "");
-    const observed = title || name;
-    // A phone country is a personal fact: the committed country must be the requested one.
-    const iso2 = normLabel(country);
-    const ok =
-      (code !== "" && code === iso2) ||
-      (name !== "" && (normLabel(name) === iso2 || pickOption([name], country) !== null)) ||
-      (title !== "" && normLabel(title).startsWith(normLabel(name || country)));
-    return { ok, observed, attempts: 1, ...(ok ? {} : { reason: `committed ${JSON.stringify(observed)}` }) };
-  } catch (err) {
-    return { ok: false, observed: "", attempts: 1, reason: `error: ${String(err.message).split("\n")[0].slice(0, 100)}` };
-  }
-}
-
-async function setPhone(page, question, value, selector) {
-  const input = page.locator(selector).first();
-  await input.waitFor({ state: "visible", timeout: 10000 });
-  const iti = await firstPresent(input.locator('xpath=ancestor::div[contains(@class,"iti")][1]'));
-  // A country hint must never block the number itself.
-  const country = iti && question?.country ? await setPhoneCountry(page, iti, question.country) : null;
-  await pace(page, input);
-  const want = String(value ?? "");
-  const wantDigits = digits(want);
-  const result = await attemptSet({
-    set: async () => {
-      await input.click({ timeout: 5000 }).catch(() => {});
-      await input.fill(want);
-      await input.blur().catch(() => {});
-    },
-    read: () => valueOf(input),
-    // intl-tel-input reformats and may absorb the dial code (≤3 digits) into the flag; anything
-    // shorter than that is a truncated write, not a reformat.
-    ok: (observed) => {
-      const seen = digits(observed);
-      if (seen === "") return false;
-      return seen === wantDigits || (wantDigits.endsWith(seen) && wantDigits.length - seen.length <= 3);
-    },
-  });
-  if (country) result.country = country.ok ? country.observed : (country.reason ?? "unset");
-  return result;
-}
+//
+// intl-tel-input is handled by the ladder's `setCountry`/`setTel` (src/browser/controls.mjs):
+// it knows this board's `.iti__flag-container` / `button.iti__selected-country` as well as the
+// plain `#country` select some Greenhouse forms use instead, so there is one implementation of
+// "commit the requested country, then the number", not two.
 
 // ------------------------------------------------------------------------------------ public
 
-export async function setField(page, question, value, { trace } = {}) {
+export async function setField(page, question, value, opts = {}) {
+  const { trace, chooseOption } = opts;
   const log = tracer(trace);
-  const selector = fieldSelector(question);
-  const control = question?.control ?? "text";
+  const selector = opts.selector ?? fieldSelector(question);
   let result;
+  let detected = opts.detected ?? null;
   try {
-    if (control === "file") throw new Error("file controls go through uploadFile()");
-    const fn =
-      {
-        react_select: setReactSelect,
-        native_select: setNativeSelect,
-        radio: setRadio,
-        checkbox: setCheckbox,
-        tel: setPhone,
-      }[control] ?? setText;
-    result = await fn(page, question, value, selector);
+    // The DOM decides what this is; the FormPlan's `control` was a guess made offline.
+    detected = detected ?? (await detectControl(page, selector, { question }));
+    if (detected.control === "file") throw new Error("file controls go through uploadFile()");
+    // A react-select holding several values commits into `.select__multi-value__label` chips and
+    // never renders the `.select__single-value` this board's own path reads back, so it goes to
+    // the ladder's chip-verified multi pass. Figma renders two 9-option `multi_value_multi_select`
+    // rows exactly this way.
+    const multi = detected.control === "react_select" && (detected.multiple || question?.type === "multi_select");
+    const fn = multi
+      ? null
+      : {
+          react_select: setReactSelect,
+          native_select: setNativeSelect,
+          text: setText,
+          textarea: setText,
+        }[detected.control];
+    if (!fn) return generic.setField(page, question, value, { ...opts, selector, detected });
+    result = await fn(page, question, value, selector, { detected, chooseOption });
   } catch (err) {
     result = { ok: false, observed: "", attempts: 1, reason: `error: ${String(err.message).split("\n")[0].slice(0, 140)}` };
   }
   result.selector = selector;
   if (!result.ok) result.shot = await captureFailure(page, trace, question);
-  await log(fieldEvent({ op: "set", question, value, result }));
+  await log(generic.traceRow({ op: "set", question, value, result, detected }));
   return result;
 }
 
@@ -489,7 +341,7 @@ export async function uploadFile(page, question, filePath, { trace } = {}) {
   }
   result.selector = selector;
   if (!result.ok) result.shot = await captureFailure(page, trace, question);
-  await log(fieldEvent({ op: "upload", question, value: base, result }));
+  await log(generic.traceRow({ op: "upload", question: { ...question, control: "file" }, value: base, result, detected: null }));
   return result;
 }
 

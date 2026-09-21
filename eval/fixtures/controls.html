@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>jev-apply control coverage fixture</title>
+<!--
+  Every control kind src/browser/controls.mjs claims to detect and set, in one offline page, so
+  `scripts/controls-smoke.mjs` can drive each one with a correct value and a wrong value without
+  touching a real application form. The widgets are deliberate replicas of what the two supported
+  boards render:
+
+    react_select / multi   react-select's DOM contract — input.select__input[role=combobox] inside
+                           .select__control, options in a portal listbox, the committed answer in
+                           .select__single-value (or .select__multi-value__label chips), and a blur
+                           that drops the typed filter but keeps the commit.
+    combobox               a plain ARIA combobox that commits into its own input value.
+    location               an async geocoder: a 300 ms round trip, a minimum query length (so the
+                           first, bare-city query legitimately returns nothing and the ladder has
+                           to retry with "city, country"), and a "Loading…"/"No results" row that
+                           must never be mistaken for an answer.
+    location (coarse)      the same geocoder with a *country-only* index and an Ashby DOM: the
+                           input carries neither id nor name and its label is a sibling
+                           `label[for="<data-field-path>"]`, so the field's own label is the only
+                           thing that identifies it as a place picker at all. A city query is
+                           answered "No results"; "city, country" returns the country alone.
+    checkbox (1 option)    a multi-select with exactly one value — an acknowledgement — rendered
+                           as one box in a `<fieldset class="checkbox" id="…[]">`. Its answer is
+                           the option's own sentence, not "yes", and declining selects nothing.
+    tel                    a number field whose country lives in a separate <select>.
+    date                   one masked text input (MM/DD/YYYY) and one native input[type=date].
+
+  Nothing here posts anywhere: submit is counted and cancelled, so a stray click is visible in the
+  smoke output rather than silent.
+-->
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; max-width: 720px; }
+  .field { margin: 0 0 18px; }
+  label, legend { display: block; font-weight: 600; margin-bottom: 4px; }
+  input[type=text], input[type=tel], input[type=date], input[type=number], textarea, select { width: 320px; padding: 6px; }
+  fieldset { border: 1px solid #ccc; padding: 8px 12px; }
+  fieldset label { font-weight: 400; display: inline-block; margin-right: 14px; }
+  .select-shell { width: 320px; }
+  .select__control { border: 1px solid #888; border-radius: 4px; padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; }
+  .select__value-container { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; flex: 1; }
+  .select__input { border: 0; outline: none; flex: 1; min-width: 60px; font: inherit; }
+  .select__single-value { color: #111; }
+  .select__multi-value { background: #e3e8ef; border-radius: 3px; padding: 1px 6px; display: flex; }
+  .menu { border: 1px solid #888; border-radius: 4px; background: #fff; width: 320px; position: absolute; z-index: 20; }
+  .menu[hidden] { display: none; }
+  .menu > div[role=option] { padding: 5px 8px; cursor: pointer; }
+  .menu > div[role=option]:hover { background: #eef2ff; }
+  .menu > div.note { padding: 5px 8px; color: #777; }
+</style>
+</head>
+<body>
+<h1>Control coverage fixture</h1>
+<form id="app" novalidate>
+
+  <div class="field">
+    <label for="text_name">Full name</label>
+    <input type="text" id="text_name" name="text_name" maxlength="10" required>
+  </div>
+
+  <div class="field">
+    <label for="text_about">Short note</label>
+    <textarea id="text_about" name="text_about" maxlength="40"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="native_role">Team</label>
+    <select id="native_role" name="native_role" required>
+      <option value="">Select one</option>
+      <option value="infra">Infrastructure</option>
+      <option value="research">Research Engineer</option>
+      <option value="product">Product Engineer</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="rs_input">Preferred role</label>
+    <div class="select-shell" data-widget="single">
+      <div class="select__control">
+        <div class="select__value-container">
+          <span class="select__single-value" hidden></span>
+          <input class="select__input" id="rs_input" role="combobox" autocomplete="off"
+                 aria-autocomplete="list" aria-expanded="false" aria-controls="react-select-rs_input-listbox">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="multi_input">Languages you want to work in</label>
+    <div class="select-shell" data-widget="multi">
+      <div class="select__control">
+        <div class="select__value-container select__value-container--is-multi" id="multi_values">
+          <input class="select__input" id="multi_input" role="combobox" autocomplete="off"
+                 aria-autocomplete="list" aria-expanded="false" aria-controls="react-select-multi_input-listbox">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="multi_plan[]" id="multi_plan[]-label">Which languages do you use professionally</label>
+    <div class="select-shell" data-widget="multi-plan">
+      <div class="select__control">
+        <div class="select__value-container select__value-container--is-multi" id="multi_plan_values">
+          <input class="select__input" id="multi_plan[]" role="combobox" autocomplete="off"
+                 aria-autocomplete="list" aria-expanded="false" aria-controls="react-select-multi_plan[]-listbox">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="combo_input">How did you hear about us</label>
+    <input type="text" id="combo_input" role="combobox" autocomplete="off"
+           aria-autocomplete="list" aria-expanded="false" aria-controls="source-listbox">
+    <div class="menu" id="source-listbox" role="listbox" hidden></div>
+  </div>
+
+  <div class="field">
+    <label for="location">Where are you based</label>
+    <input type="text" id="location" name="location" data-testid="location-input" autocomplete="off"
+           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="location-listbox" required>
+    <div class="menu" id="location-listbox" role="listbox" hidden></div>
+  </div>
+
+  <div class="field" data-field-path="geo_country">
+    <label for="geo_country">Location</label>
+    <input class="ashby-application-form-input-autocomplete" placeholder="Start typing..." autocomplete="off"
+           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="country-listbox">
+    <div class="menu" id="country-listbox" role="listbox" hidden></div>
+  </div>
+
+  <div class="field">
+    <fieldset id="field_shift">
+      <legend>Which shift do you prefer?</legend>
+      <label for="shift_0"><input type="radio" id="shift_0" name="shift" value="on" required> Weekdays</label>
+      <label for="shift_1"><input type="radio" id="shift_1" name="shift" value="on"> Weekends</label>
+      <label for="shift_2"><input type="radio" id="shift_2" name="shift" value="on"> Either</label>
+    </fieldset>
+  </div>
+
+  <div class="field">
+    <fieldset id="field_langs">
+      <legend>Which do you know?</legend>
+      <label for="lang_0"><input type="checkbox" id="lang_0" name="langs[]"> Python</label>
+      <label for="lang_1"><input type="checkbox" id="lang_1" name="langs[]"> Go</label>
+      <label for="lang_2"><input type="checkbox" id="lang_2" name="langs[]"> Rust</label>
+      <label for="lang_3"><input type="checkbox" id="lang_3" name="langs[]"> TypeScript</label>
+    </fieldset>
+  </div>
+
+  <div class="field">
+    <label for="agree"><input type="checkbox" id="agree" name="agree"> I agree to the terms</label>
+  </div>
+
+  <div class="field">
+    <fieldset id="ack_privacy[]" class="checkbox">
+      <legend>Acknowledge/Confirm</legend>
+      <label for="ack_privacy_1"><input type="checkbox" id="ack_privacy_1" name="ack_privacy[]" required>
+        Please review and acknowledge our Candidate Privacy Policy</label>
+    </fieldset>
+  </div>
+
+  <div class="field">
+    <fieldset id="ack_news[]" class="checkbox">
+      <legend>Stay in touch</legend>
+      <label for="ack_news_1"><input type="checkbox" id="ack_news_1" name="ack_news[]">
+        Yes, tell me about future openings</label>
+    </fieldset>
+  </div>
+
+  <div class="field">
+    <label for="start_date">Earliest start</label>
+    <input type="text" id="start_date" name="start_date" placeholder="MM/DD/YYYY" pattern="\d{2}/\d{2}/\d{4}">
+  </div>
+
+  <div class="field">
+    <label for="iso_date">Graduation date</label>
+    <input type="date" id="iso_date" name="iso_date">
+  </div>
+
+  <div class="field">
+    <label for="years">Years of experience</label>
+    <input type="number" id="years" name="years" min="0" max="40" step="1">
+  </div>
+
+  <div class="field">
+    <label for="phone">Phone</label>
+    <select id="phone_country" name="phone_country" aria-label="Country">
+      <option value="">Select country</option>
+      <option value="DE">Germany (+49)</option>
+      <option value="US">United States (+1)</option>
+      <option value="GB">United Kingdom (+44)</option>
+    </select>
+    <input type="tel" id="phone" name="phone">
+  </div>
+
+  <button type="submit" id="submit">Submit application</button>
+</form>
+
+<div id="react-portal-mount-point"></div>
+
+<script>
+(() => {
+  "use strict";
+  const flat = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  // Real widgets say so when a filter matches nothing — react-select renders
+  // `.select__menu-notice` ("No options"), a geocoder renders "No results". The row is not a
+  // `[role=option]`, which is exactly why the runner has to read the menu's own text to tell an
+  // answered-and-empty menu from one still waiting on the network.
+  const note = (text) => {
+    const row = document.createElement("div");
+    row.className = "note";
+    row.textContent = text;
+    return row;
+  };
+  window.__submitted = 0;
+  document.getElementById("app").addEventListener("submit", (e) => {
+    e.preventDefault();
+    window.__submitted += 1;
+  });
+
+  // ── react-select replicas (single + multi), options in the portal ──────────────────────────
+  const ROLES = ["Research Engineer", "Inference Engineer", "Infrastructure Engineer", "Product Engineer"];
+  const LANGS = ["Python", "Go", "Rust", "TypeScript", "C++"];
+  const portal = document.getElementById("react-portal-mount-point");
+
+  function reactSelect(inputId, items, { multi = false } = {}) {
+    const input = document.getElementById(inputId);
+    const shell = input.closest(".select-shell");
+    const single = shell.querySelector(".select__single-value");
+    const values = shell.querySelector(".select__value-container");
+    const menu = document.createElement("div");
+    menu.id = `react-select-${inputId}-listbox`;
+    menu.className = "menu";
+    menu.setAttribute("role", "listbox");
+    menu.hidden = true;
+    portal.appendChild(menu);
+    const chips = () => [...values.querySelectorAll(".select__multi-value__label")].map((c) => c.textContent);
+
+    const close = () => {
+      menu.hidden = true;
+      menu.replaceChildren();
+      input.setAttribute("aria-expanded", "false");
+    };
+    const open = () => {
+      const typed = flat(input.value);
+      const taken = chips().map(flat);
+      const shown = items.filter((o) => flat(o).includes(typed) && !taken.includes(flat(o)));
+      const rows = shown.map((label) => {
+        const row = document.createElement("div");
+        row.setAttribute("role", "option");
+        row.textContent = label;
+        // mousedown fires before blur, which is how react-select commits a click.
+        row.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          commit(label);
+        });
+        return row;
+      });
+      menu.replaceChildren(...(rows.length ? rows : [note("No options")]));
+      const box = input.getBoundingClientRect();
+      menu.style.left = `${Math.round(box.left + window.scrollX)}px`;
+      menu.style.top = `${Math.round(box.bottom + window.scrollY)}px`;
+      menu.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    };
+    const commit = (label) => {
+      input.value = "";
+      if (multi) {
+        const chip = document.createElement("div");
+        chip.className = "select__multi-value";
+        const text = document.createElement("div");
+        text.className = "select__multi-value__label";
+        text.textContent = label;
+        chip.appendChild(text);
+        values.insertBefore(chip, input);
+      } else {
+        single.textContent = label;
+        single.hidden = false;
+      }
+      close();
+    };
+
+    input.addEventListener("focus", open);
+    input.addEventListener("click", open);
+    input.addEventListener("input", open);
+    // The typed filter is dropped on blur; the commit survives. Clearing it here is what makes
+    // `blur` a safe way to dismiss a menu and `Escape`/fill("") unsafe ones.
+    input.addEventListener("blur", () => {
+      input.value = "";
+      close();
+    });
+  }
+  reactSelect("rs_input", ROLES);
+  reactSelect("multi_input", LANGS, { multi: true });
+  // The row a Greenhouse `multi_value_multi_select` plan calls a checkbox group and Figma renders
+  // as a multi-value react-select, brackets in the DOM id and all.
+  reactSelect("multi_plan[]", LANGS, { multi: true });
+
+  // ── plain ARIA combobox: commits into its own input value ──────────────────────────────────
+  function comboBox(inputId, listId, items) {
+    const input = document.getElementById(inputId);
+    const menu = document.getElementById(listId);
+    let committed = "";
+    const close = () => {
+      menu.hidden = true;
+      menu.replaceChildren();
+      input.setAttribute("aria-expanded", "false");
+    };
+    const open = () => {
+      const typed = flat(input.value);
+      const shown = items.filter((o) => flat(o).includes(typed));
+      const rows = shown.map((label) => {
+        const row = document.createElement("div");
+        row.setAttribute("role", "option");
+        row.textContent = label;
+        row.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          committed = label;
+          input.value = label;
+          close();
+        });
+        return row;
+      });
+      menu.replaceChildren(...(rows.length ? rows : [note("No options")]));
+      menu.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    };
+    input.addEventListener("focus", open);
+    input.addEventListener("click", open);
+    input.addEventListener("input", open);
+    input.addEventListener("blur", () => {
+      input.value = committed;
+      close();
+    });
+  }
+  comboBox("combo_input", "source-listbox", ["A friend", "LinkedIn", "Hacker News", "Conference talk"]);
+
+  // ── async geocoder: 300 ms round trip, 5-character minimum, noise rows ─────────────────────
+  const PLACES = [
+    "Lyon, France",
+    "Lyon, Michigan, United States",
+    "Berlin, Germany",
+    "Munich, Germany",
+    "San Francisco, California, United States",
+  ];
+  (function geocoder() {
+    const input = document.getElementById("location");
+    const menu = document.getElementById("location-listbox");
+    let committed = "";
+    let timer = null;
+    const close = () => {
+      menu.hidden = true;
+      menu.replaceChildren();
+      input.setAttribute("aria-expanded", "false");
+      if (timer) clearTimeout(timer);
+      timer = null;
+    };
+    const search = () => {
+      const query = flat(input.value);
+      if (timer) clearTimeout(timer);
+      if (!query) {
+        close();
+        return;
+      }
+      menu.replaceChildren(note("Loading…"));
+      menu.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+      timer = setTimeout(() => {
+        // A real geocoder does not answer a two-letter query; the ladder must survive the empty
+        // first round and come back with the qualified form.
+        const hits = query.length < 5 ? [] : PLACES.filter((p) => flat(p).includes(query));
+        if (!hits.length) {
+          menu.replaceChildren(note(query.length < 5 ? "Type to search" : "No results"));
+          return;
+        }
+        menu.replaceChildren(
+          ...hits.map((label) => {
+            const row = document.createElement("div");
+            row.setAttribute("role", "option");
+            row.textContent = label;
+            row.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              committed = label;
+              input.value = label;
+              close();
+            });
+            return row;
+          }),
+        );
+      }, 300);
+    };
+    input.addEventListener("input", search);
+    input.addEventListener("blur", () => {
+      input.value = committed;
+      close();
+    });
+  })();
+
+  // ── country-only geocoder, Ashby's DOM ───────────────────────────────────────────────────
+  // `ApiAutocompleteGeoLocation` with `locationTypes:["Country"]`, as the live ElevenLabs form
+  // runs it: "Lisbon" is answered "No results" and "Lisbon, Portugal" returns "Portugal" alone.
+  // The input has neither id nor name — its label is the sibling `label[for="geo_country"]` — so
+  // a runner that only looks at the element itself cannot tell this from any other combobox.
+  (function countryGeocoder() {
+    const field = document.querySelector('[data-field-path="geo_country"]');
+    const input = field.querySelector("input");
+    const menu = document.getElementById("country-listbox");
+    const COUNTRIES = ["Portugal", "Puerto Rico", "Germany", "France", "United States"];
+    let committed = "";
+    let timer = null;
+    const close = () => {
+      menu.hidden = true;
+      menu.replaceChildren();
+      input.setAttribute("aria-expanded", "false");
+      if (timer) clearTimeout(timer);
+      timer = null;
+    };
+    input.addEventListener("input", () => {
+      const words = flat(input.value).split(/[^a-z]+/).filter((w) => w.length >= 3);
+      if (timer) clearTimeout(timer);
+      if (!words.length) {
+        close();
+        return;
+      }
+      menu.replaceChildren(note("Loading…"));
+      menu.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+      timer = setTimeout(() => {
+        const hits = COUNTRIES.filter((c) => words.some((w) => flat(c).includes(w)));
+        if (!hits.length) {
+          menu.replaceChildren(note("No results"));
+          return;
+        }
+        menu.replaceChildren(
+          ...hits.map((label) => {
+            const row = document.createElement("div");
+            row.setAttribute("role", "option");
+            row.textContent = label;
+            row.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              committed = label;
+              input.value = label;
+              close();
+            });
+            return row;
+          }),
+        );
+      }, 300);
+    });
+    input.addEventListener("blur", () => {
+      input.value = committed;
+      close();
+    });
+  })();
+})();
+</script>
+</body>
+</html>

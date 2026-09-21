@@ -18,30 +18,57 @@ import {
   byId,
   cadenceMs,
   guardNoSubmit,
-  labelsOf,
-  moveMouseTo,
   norm,
   normLabel,
   pace,
   pickOption,
   sleep,
-  textOf,
   valueOf,
   waitUntil,
 } from "../readback.mjs";
-import { captureFailure, fieldEvent, tracer } from "../trace.mjs";
+import { detectControl, setControl } from "../controls.mjs";
+import { captureFailure, tracer } from "../trace.mjs";
+import * as generic from "./generic.mjs";
 
 export const id = "ashby";
 
-const OPTION_WAIT_MS = 3000;
-const ENTRY = "div.ashby-application-form-field-entry";
+/**
+ * The controls this form renders and tunes itself — the Yes/No button pair and the radio groups
+ * whose labels are `-radio-N` suffixed are Ashby inventions with no generic equivalent. `unknown`
+ * stays here because a button pair carries no `<input>` for detection to find, and the Yes/No
+ * probe below is what recognises it. Selects, geocoders, dates and numbers belong to the shared
+ * ladder in `adapters/generic.mjs`.
+ */
+export const HANDLES = new Set(["text", "textarea", "radio", "checkbox", "file", "unknown"]);
+
+// The field container. `data-field-path` is the handle, **not** the class: the plain text rows
+// carry `.ashby-application-form-field-entry`, but the choice widgets do not — a 24-option
+// ValueSelect and a one-option MultiValueSelect both render in a bare `div[data-field-path]`
+// (read off the live 1Password form on 2026-09-23). Keying on the class is what made that
+// ValueSelect resolve to nothing and score `control_not_on_the_page`.
+const ENTRY = "div[data-field-path]";
+const entryFor = (path) => `div[data-field-path="${String(path).replace(/(["\\])/g, "\\$1")}"]`;
 
 const fieldPath = (question) => String(question?.path ?? question?.qid ?? "");
-const fieldSelector = (question) => question?.selector || byId(fieldPath(question));
+export const selectorFor = (question) => question?.selector || byId(fieldPath(question));
+
+/**
+ * The element detection should look at. Ashby's `data-field-path` doubles as the input's `id` for
+ * text fields — but a radio group, a Yes/No button pair and a MultiValueSelect carry that path
+ * only on the field entry, and their inputs are `<path>-labeled-radio-N`. Asking for `#<path>`
+ * there finds nothing at all, which reads like a missing control rather than a different DOM.
+ */
+export async function resolveSelector(page, question) {
+  const own = selectorFor(question);
+  if (own && (await page.locator(own).count().catch(() => 0))) return own;
+  const entry = entryLocator(page, question);
+  if (entry && (await entry.count().catch(() => 0))) return entryFor(fieldPath(question));
+  return own;
+}
 
 function entryLocator(page, question) {
-  const p = fieldPath(question).replace(/(["\\])/g, "\\$1");
-  return p ? page.locator(`${ENTRY}[data-field-path="${p}"]`).first() : null;
+  const p = fieldPath(question);
+  return p ? page.locator(entryFor(p)).first() : null;
 }
 
 /** The field's container: by data-field-path, else the input's own entry ancestor. */
@@ -49,7 +76,7 @@ async function scopeFor(page, question, selector) {
   const entry = entryLocator(page, question);
   if (entry && (await entry.count())) return entry;
   const input = page.locator(selector).first();
-  const ancestor = input.locator('xpath=ancestor::*[contains(@class,"ashby-application-form-field-entry")][1]');
+  const ancestor = input.locator("xpath=ancestor::*[@data-field-path][1]");
   if (await ancestor.count()) return ancestor.first();
   return input;
 }
@@ -156,153 +183,52 @@ async function setRadio(page, question, value, scope) {
 }
 
 // -------------------------------------------------------------------------------- checkbox
+//
+// One checkbox is the ladder's (`setSingleCheckbox` in src/browser/controls.mjs): it reads a
+// Boolean yes/no *and* the one-option MultiValueSelect Ashby renders with the same DOM, whose
+// answer is the option's own sentence. This file kept a second, yes/no-only copy, which is what
+// scored 1Password's background-check acknowledgement as `set_failed:not_boolean`. An Ashby
+// MultiValueSelect with several values is n boxes in one field entry, detected as
+// `checkbox_group`, and is the ladder's too. Only the Yes/No button pair below stays here.
 
-/**
- * One checkbox is a Boolean; an Ashby MultiValueSelect is n checkboxes in the same field entry,
- * answered by label — checking `.first()` would be an option-0 guess.
- */
-async function setCheckbox(page, question, value, scope, selector) {
-  const inScope = scope.locator('input[type="checkbox"]');
-  const boxes = (await inScope.count()) ? inScope : page.locator(selector);
-  const count = await boxes.count();
-  if (count === 0) return { ok: false, observed: "", attempts: 1, reason: "checkbox_not_found" };
-
-  if (count > 1) {
-    const meta = await labelsOf(boxes);
-    const want = wantedLabel(question, value);
-    const pick = pickOption(meta.map((m) => m.label), want);
-    if (!pick) {
-      return {
-        ok: false,
-        observed: meta.map((m) => m.label).join(" | ").slice(0, 140),
-        attempts: 1,
-        reason: "no_matching_option",
-      };
-    }
-    const target = boxes.nth(pick.index);
-    const chosen = meta[pick.index];
-    const label = chosen.id ? page.locator(`label[for="${chosen.id}"]`).first() : target;
-    const clickable = (await label.count()) ? label : target;
-    await pace(page, clickable);
-    return attemptSet({
-      set: async () => {
-        await guardNoSubmit(clickable);
-        await clickable.click({ timeout: 5000 }).catch(async () => {
-          await target.check({ timeout: 5000, force: true });
-        });
-      },
-      read: async () => ((await target.isChecked().catch(() => false)) ? chosen.label : ""),
-      ok: (observed) => matchesWanted(observed, want),
-    });
-  }
-
-  const box = boxes.first();
-  const yn = asYesNo(value);
-  if (!yn) return { ok: false, observed: "", attempts: 1, reason: `not_boolean: ${norm(value).slice(0, 40)}` };
-  await pace(page, box);
-  return attemptSet({
-    set: async () => {
-      if (yn === "yes") await box.check({ timeout: 5000, force: true });
-      else await box.uncheck({ timeout: 5000, force: true });
-    },
-    read: async () => ((await box.isChecked().catch(() => false)) ? "yes" : "no"),
-    ok: (observed) => observed === yn,
-  });
-}
-
-// ------------------------------------------------------------------- combobox / dropdown
-
-async function setCombobox(page, question, value, scope, selector) {
-  const input = (await scope.locator('input[role="combobox"], input[aria-autocomplete]').count())
-    ? scope.locator('input[role="combobox"], input[aria-autocomplete]').first()
-    : page.locator(selector).first();
-  const want = wantedLabel(question, value);
-  // Options first from the listbox this input owns (aria-controls, set while open), then inside
-  // the field entry, then page-wide. Only real `[role=option]` nodes are ever clicked: a value
-  // that renders no option must fail loudly rather than commit a guess on a live application.
-  const optionsNow = async () => {
-    const owned = (await input.getAttribute("aria-controls")) || (await input.getAttribute("aria-owns"));
-    if (owned) {
-      const byOwner = page.locator(`[id="${owned.replace(/(["\\])/g, "\\$1")}"] [role="option"]`);
-      if (await byOwner.count()) return byOwner;
-    }
-    const inScope = scope.locator('[role="option"]');
-    if (await inScope.count()) return inScope;
-    return page.locator('[role="option"]');
-  };
-  // Neither Escape nor `fill("")`: on a react-select-style combobox both clear the committed
-  // value, and a failed match must never destroy an existing answer. Blur closes the menu and
-  // drops the typed filter.
-  const dismiss = async () => {
-    await input.blur().catch(() => {});
-  };
-  await pace(page, input);
-  let reason = null;
-
-  const result = await attemptSet({
-    settleMs: 350,
-    set: async () => {
-      reason = null;
-      await input.click({ timeout: 5000 });
-      // The widget resets its own filter text on blur, so there is nothing to clear here.
-      const key = norm(want).slice(0, 24);
-      if (key) await input.pressSequentially(key, { delay: 35 });
-      const probe = page.locator('[role="option"]');
-      await probe.first().waitFor({ state: "visible", timeout: OPTION_WAIT_MS }).catch(() => {});
-      const options = await optionsNow();
-      const labels = (await options.allTextContents()).map(norm).filter(Boolean);
-      if (!labels.length) {
-        reason = "no_options_rendered";
-        await dismiss();
-        return;
-      }
-      const pick = pickOption(labels, want);
-      if (!pick) {
-        reason = `no_matching_option (${labels.length} shown)`;
-        await dismiss();
-        return;
-      }
-      const target = options.nth(pick.index);
-      await guardNoSubmit(target);
-      await moveMouseTo(page, target);
-      await target.click({ timeout: 5000 });
-    },
-    read: async () => {
-      const shown = await valueOf(input);
-      return shown || (await textOf(scope.locator('[class*="selected"], [class*="chip"]')));
-    },
-    // Committed means: the input carries the chosen option's text *and* the listbox is closed.
-    ok: async (observed) => {
-      if (reason || !matchesWanted(observed, want)) return false;
-      const expanded = await input.getAttribute("aria-expanded").catch(() => null);
-      return expanded !== "true";
-    },
-    onFail: dismiss,
-  });
-  return reason && !result.ok ? { ...result, reason } : result;
-}
+// ------------------------------------------------------- combobox / dropdown / geocoder
+//
+// Ashby's dropdowns and its location autocomplete go through the shared ladder
+// (src/browser/controls.mjs): same `aria-controls` listbox, same never-index-0 matching, same
+// blur-to-dismiss rule, plus the filter-string rungs and the async polling a geocoder needs.
 
 // ------------------------------------------------------------------------------------ public
 
-export async function setField(page, question, value, { trace } = {}) {
+export async function setField(page, question, value, opts = {}) {
+  const { trace, chooseOption } = opts;
   const log = tracer(trace);
-  const selector = fieldSelector(question);
-  const control = question?.control ?? "text";
+  const selector = opts.selector ?? (await resolveSelector(page, question));
   let result;
+  let detected = opts.detected ?? null;
   try {
-    if (control === "file") throw new Error("file controls go through uploadFile()");
+    // The DOM decides what this is; the FormPlan's `control` was a guess made offline.
+    detected = detected ?? (await detectControl(page, selector, { question }));
+    if (detected.control === "file") throw new Error("file controls go through uploadFile()");
+    if (!HANDLES.has(detected.control) || !detected.evidence) {
+      return generic.setField(page, question, value, { ...opts, selector, detected });
+    }
     const scope = await scopeFor(page, question, selector);
-    // A Boolean is a Yes/No button pair whatever the FormPlan calls it (`radio`, `checkbox`, or
+    // A Boolean is a Yes/No button pair whatever anything else calls it (`radio`, `checkbox`, or
     // a selector pointing straight at `button[data-option]`); everything else goes by control.
     const hasYesNo = Boolean(await scope.locator("button[data-option]").count());
-    if (hasYesNo && control !== "text" && control !== "textarea" && control !== "date") {
+    if (hasYesNo && !["text", "textarea", "date"].includes(detected.control)) {
       result = await setYesNo(page, question, value, scope);
-    } else if (control === "radio") {
+    } else if (detected.control === "radio") {
+      // Ashby's `-radio-N` label trick only exists where Ashby rendered real radio inputs; a
+      // segmented/button group on the same form is the ladder's, not ours.
+      if (!(await scope.locator('input[type="radio"]').count())) {
+        return generic.setField(page, question, value, { ...opts, selector, detected });
+      }
       result = await setRadio(page, question, value, scope);
-    } else if (control === "checkbox") {
-      result = await setCheckbox(page, question, value, scope, selector);
-    } else if (control === "react_select" || control === "native_select") {
-      result = await setCombobox(page, question, value, scope, selector);
+    } else if (detected.control === "checkbox") {
+      result = await setControl(page, question, value, { selector, detected, chooseOption });
+    } else if (detected.control === "unknown") {
+      return generic.setField(page, question, value, { ...opts, selector, detected });
     } else {
       result = await setText(page, question, value, selector);
     }
@@ -311,14 +237,14 @@ export async function setField(page, question, value, { trace } = {}) {
   }
   result.selector = selector;
   if (!result.ok) result.shot = await captureFailure(page, trace, question);
-  await log(fieldEvent({ op: "set", question, value, result }));
+  await log(generic.traceRow({ op: "set", question, value, result, detected }));
   return result;
 }
 
 export async function uploadFile(page, question, filePath, { trace } = {}) {
   const log = tracer(trace);
   const q = { ...question, qid: question?.qid ?? "_systemfield_resume" };
-  const selector = fieldSelector(q);
+  const selector = selectorFor(q);
   const base = path.basename(filePath);
   const input = page.locator(selector).first();
   const scope = await scopeFor(page, q, selector);
@@ -364,7 +290,7 @@ export async function uploadFile(page, question, filePath, { trace } = {}) {
   };
   result.selector = selector;
   if (!result.ok) result.shot = await captureFailure(page, trace, q);
-  await log(fieldEvent({ op: "upload", question: q, value: base, result }));
+  await log(generic.traceRow({ op: "upload", question: { ...q, control: "file" }, value: base, result, detected: null }));
   return result;
 }
 
@@ -373,7 +299,7 @@ export async function uploadFile(page, question, filePath, { trace } = {}) {
  * first field entry before touching anything, or the first set races the render.
  */
 export async function waitForForm(page, { timeout = 30000 } = {}) {
-  await page.locator(`${ENTRY}[data-field-path]`).first().waitFor({ state: "visible", timeout });
+  await page.locator(ENTRY).first().waitFor({ state: "visible", timeout });
   return true;
 }
 

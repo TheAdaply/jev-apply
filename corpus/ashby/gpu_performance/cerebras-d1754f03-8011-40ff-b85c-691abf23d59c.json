@@ -1,0 +1,87 @@
+{
+  "ats": "ashby",
+  "company": "cerebras",
+  "family": "gpu_performance",
+  "title": "Senior Staff AI Accelerator Performance Architect",
+  "location": "Sunnyvale, CA",
+  "url": "https://jobs.ashbyhq.com/cerebras/d1754f03-8011-40ff-b85c-691abf23d59c",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cerebras products, software, source code, technology, and/or services are subject to the U.S. Export Administration Regulations (EAR). Access to controlled source code and technology by our employees may require prior authorization. Cerebras can be required to perform an export compliance assessment to review if an individual is a U.S. person, or may require a license from the U.S. Government in order to release source code and technology to employees who are not U.S. persons. In order to comply with these regulations (and for no other reason), we are asking you to confirm citizenship and permanent residency as defined below. Please check the field that applies to you:",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I am a U.S. person – this includes any individual who is a citizen of the United States, a permanent resident alien of the United States, or a protected individual as defined by 8 U.S.C. 1324b(a)(3).",
+        "I am not a U.S. person, and I am not a current citizen or permanent resident of Cuba, Iran, North Korea, or Syria",
+        "I am not a U.S. person, and I am a current citizen or permanent resident of Cuba, Iran, North Korea, or Syria"
+      ]
+    },
+    {
+      "label": "How many year of experience do you have?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "0-4 years of experience",
+        "5-10 years of experience",
+        "10-15 years of experience",
+        "15+ years of experience"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,86 @@
+{
+  "ats": "ashby",
+  "company": "redis",
+  "family": "mobile",
+  "title": "Strategic Account Executive (T-Mobile) ",
+  "location": "United States",
+  "url": "https://jobs.ashbyhq.com/redis/3f228666-d541-448a-9b0b-81ba8056ed06",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally eligible to work in the country where the job is located?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or in the future require sponsorship for employment visa status?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "If your position is located in or near a Redis office, can you report to the designated office location when required?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

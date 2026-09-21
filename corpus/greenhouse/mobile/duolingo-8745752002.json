@@ -1,0 +1,315 @@
+{
+  "ats": "greenhouse",
+  "company": "duolingo",
+  "family": "mobile",
+  "title": "Senior Android Engineer, Client Platform - Application Stability and Performance",
+  "location": "Pittsburgh, PA",
+  "url": "https://careers.duolingo.com/jobs/8745752002?gh_jid=8745752002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How do you pronounce your name? (e.g., 'An-na' or 'Ah-na')",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you willing to work from the office location of the job?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you authorized to work lawfully in the United States for Duolingo?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now, or in the future, require sponsorship (i.e. H-1B visa, etc.) to legally work in the U.S.?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If so, are you eligible or currently in a period of Optional Practical Training (OPT)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "NA"
+      ]
+    },
+    {
+      "label": "After the OPT, are you eligible for a 24-month OPT extension or are currently in a 24-month OPT extension based upon a degree from a qualifying U.S. institution in Science, Technology, Engineering, or Mathematics after the Optional Practical Training (OPT)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "NA"
+      ]
+    },
+    {
+      "label": "If you're less than 3 years out of school, what is your undergraduate GPA?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Where did you hear about this job?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "LinkedIn",
+        "Glassdoor",
+        "Blind",
+        "TikTok",
+        "Twitter / X",
+        "Instagram",
+        "Youtube",
+        "Reddit",
+        "Mastodon",
+        "Discord",
+        "Podcasts",
+        "Duolingo Employee",
+        "Recruiter",
+        "Duolingo Blog",
+        "In the Duolingo app",
+        "Article or press",
+        "Duolingo Careers Page",
+        "Conference",
+        "Other"
+      ]
+    },
+    {
+      "label": "How has AI changed the way you approach your work?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How would you describe your current level of experience using AI tools or technologies in your work? Select the option that best fits.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I haven't used AI tools in my work yet.",
+        "I'm starting to explore AI and how it might fit into my workflow.",
+        "I use AI occasionally to support or enhance parts of my work.",
+        "I regularly use AI tools as part of my core responsibilities.",
+        "I design, build, or lead AI-driven solutions as a key part of my role."
+      ]
+    },
+    {
+      "label": "As part of the interview process, you will go through a series of technical assessments. What is your preferred coding language?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Python",
+        "Java",
+        "JavaScript",
+        "Swift",
+        "Kotlin"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "How would you describe your gender identity? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Man",
+        "Non-binary",
+        "Woman",
+        "I don't wish to answer",
+        "I prefer to self-describe"
+      ]
+    },
+    {
+      "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Black or of African descent",
+        "East Asian",
+        "Hispanic, Latinx or of Spanish Origin",
+        "Indigenous, American Indian or Alaska Native",
+        "Middle Eastern or North African Native",
+        "Hawaiian or Pacific Islander",
+        "South Asian",
+        "Southeast Asian",
+        "White or European",
+        "I don't wish to answer",
+        "I prefer to self-describe"
+      ]
+    },
+    {
+      "label": "How would you describe your sexual orientation? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Asexual",
+        "Bisexual and/or pansexual",
+        "Gay",
+        "Heterosexual",
+        "Lesbian",
+        "Queer",
+        "I don't wish to answer",
+        "I prefer to self-describe"
+      ]
+    },
+    {
+      "label": "Do you identify as transgender?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer",
+        "I prefer to self-describe"
+      ]
+    },
+    {
+      "label": "Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, other) that substantially limits one or more of your major life activities, including mobility, communication (seeing, hearing, speaking), & learning",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer",
+        "I prefer to self-describe"
+      ]
+    },
+    {
+      "label": "Are you a veteran or active member of the United States Armed Forces?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "I am a veteran or active member",
+        "No, I am not a veteran or active member",
+        "I don't wish to answer",
+        "I prefer to self-describe"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Voluntary Self Identification"
+  ],
+  "captured": "2026-09-22"
+}

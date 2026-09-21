@@ -1,0 +1,105 @@
+{
+  "ats": "ashby",
+  "company": "luma",
+  "family": "research_engineer",
+  "title": "Research Scientist / Engineer – Training Infrastructure",
+  "location": "Redwood City, CA",
+  "url": "https://jobs.ashbyhq.com/lumaai/d2ecd718-6ba4-42a4-a067-e5f8c4c8bb1d",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "Contact Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "Are you open to relocation?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Tell us a little about you.",
+      "options": [
+        "N/A - I am already based in the required location.",
+        "Yes - I can relocate.",
+        "No - I am looking for remote only."
+      ]
+    },
+    {
+      "label": "Portfolio/GitHub/Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Tell us a little about you.",
+      "options": []
+    },
+    {
+      "label": "How did you discover us?",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Tell us a little about you.",
+      "options": [
+        "Referred by a Luma AI team member",
+        "Luma AI Website",
+        "I've used Luma products before",
+        "LinkedIn",
+        "Github",
+        "X/Twitter",
+        "Discord",
+        "Luma Hosted Event (e.g. Dinner)",
+        "External Event (e.g. Conference)",
+        "Reddit",
+        "University/College Job Board",
+        "University/College Event",
+        "Podcast",
+        "News"
+      ]
+    }
+  ],
+  "sections": [
+    "Tell us a little about you."
+  ],
+  "captured": "2026-09-22"
+}

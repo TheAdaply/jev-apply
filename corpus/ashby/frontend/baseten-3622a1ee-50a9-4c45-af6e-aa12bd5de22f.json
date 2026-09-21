@@ -1,0 +1,94 @@
+{
+  "ats": "ashby",
+  "company": "baseten",
+  "family": "frontend",
+  "title": "Frontend Engineer - Dedicated Inference",
+  "location": "San Francisco",
+  "url": "https://jobs.ashbyhq.com/baseten/3622a1ee-50a9-4c45-af6e-aa12bd5de22f",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Company",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you currently have unrestricted work authorization in the United States?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now, or in the future, require employment-based visa sponsorship?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you able to work in-person in San Francisco or New York City at least 3 days of the week?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What interests you most about working at Baseten?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

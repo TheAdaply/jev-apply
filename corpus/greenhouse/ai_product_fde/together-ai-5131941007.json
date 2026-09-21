@@ -1,0 +1,259 @@
+{
+  "ats": "greenhouse",
+  "company": "together-ai",
+  "family": "ai_product_fde",
+  "title": "Forward Deployed Engineer (Inference & Post-Training)",
+  "location": "San Francisco",
+  "url": "https://job-boards.greenhouse.io/togetherai/jobs/5131941007",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you willing to work four days per week in our San Francisco office?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I am currently legally authorized to work in the country where the jobs is located.",
+        "No, I am not currently legally authorized to work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I will require immigration sponsorship now to legally work in the country where the job is located.",
+        "Yes, I will require immigration sponsorship in the future to legally work in the country where the job is located.",
+        "No, I do not and will not require immigration sponsorship to legally work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    },
+    {
+      "label": "How would you describe your gender identity? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "U.S. Standard Demographic Questions",
+      "options": [
+        "Man",
+        "Non-binary",
+        "Woman",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "U.S. Standard Demographic Questions",
+      "options": [
+        "Black or of African descent",
+        "East Asian",
+        "Hispanic, Latinx or of Spanish Origin",
+        "Indigenous, American Indian or Alaska Native",
+        "Middle Eastern or North African",
+        "Native Hawaiian or Pacific Islander",
+        "South Asian",
+        "Southeast Asian",
+        "White or European",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "How would you describe your sexual orientation? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "U.S. Standard Demographic Questions",
+      "options": [
+        "Asexual",
+        "Bisexual and/or pansexual",
+        "Gay",
+        "Heterosexual",
+        "Lesbian",
+        "Queer",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you identify as transgender? (select one)",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "U.S. Standard Demographic Questions",
+      "options": [
+        "Yes",
+        "No",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, or other) that substantially limits one or more of your major life activities, including mobility, communication (seeing, hearing, speaking), and learning? (select one)",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "U.S. Standard Demographic Questions",
+      "options": [
+        "Yes",
+        "No",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Are you a veteran or active member of the United States Armed Forces? (select one)",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "U.S. Standard Demographic Questions",
+      "options": [
+        "Yes, I am a veteran or active member",
+        "No, I am not a veteran or active member",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc",
+    "U.S. Standard Demographic Questions"
+  ],
+  "captured": "2026-09-22"
+}

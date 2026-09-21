@@ -1,0 +1,161 @@
+{
+  "ats": "ashby",
+  "company": "snowflake",
+  "family": "frontend",
+  "title": "Senior Frontend Engineer, AI Product -  Observe by Snowflake",
+  "location": "US-CA-Menlo Park",
+  "url": "https://jobs.ashbyhq.com/snowflake/76e65492-9ff5-4ca1-950a-3565f075f6cb",
+  "questions": [
+    {
+      "label": "Full Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "If you are a Snowflake employee, please enter your Snowflake email",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "Please select your location of residence. If you are a Snowflake Employee, please select your current work location",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile, if available",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you require company sponsorship now or in the future to maintain or extend your current work authorization status?",
+      "help": "This includes, but is not limited to, initial work permits (e.g., H-1B in the US, Highly Skilled Migrant in the Netherlands, or Blue Card in Poland/Germany, etc.) and any necessary change in current sponsorship.",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "In office attendance is an essential function for this role and necessary to enable effective teamwork and collaboration. Do you currently reside within commuting distance or are you open to relocation to the local Snowflake office(s) designated in this post?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Additional Attachments",
+      "help": "Cover Letter, Portfolio, Projects, etc",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Where have you most recently worked?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you worked at Snowflake in the past in a Full-time, Part-time, contractor or Intern capacity?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "For Snowflake to anticipate possible immigration timelines and obligations, could you confirm you are currently authorized to work in the country to which you are applying?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee or asylee) of the United States. Which of the following best describes your “U.S. person” status?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I am a U.S. person",
+        "I am a citizen of Cuba, Iran, North Korea, or Syria AND I am NOT a U.S. person",
+        "None of the above; I am a citizen of a different country"
+      ]
+    },
+    {
+      "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked at, or if currently working at PricewaterhouseCoopers (PwC), who is our independent auditor.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes - I have previously worked at, or is currently working at PwC",
+        "No - I have never been employed by PwC"
+      ]
+    },
+    {
+      "label": "Have you ever been directly employed by (1) any government or military entity, state-owned enterprise, or publicly-funded institution, or (2) a government contractor in a role that recommended Snowflake as part of Government procurement?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "In any materials you submit, you may redact or remove age-identifying information such as age, date of birth, or dates of school attendance or graduation. You will not be penalized for redacting or removing this information.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I Acknowledge"
+      ]
+    },
+    {
+      "label": "Snowflake will process your personal information in accordance with the Snowflake Candidate Privacy Notice.",
+      "help": "Snowflake Candidate Privacy Notice.",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I have read and agree to the Snowflake Candidate Privacy Notice."
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

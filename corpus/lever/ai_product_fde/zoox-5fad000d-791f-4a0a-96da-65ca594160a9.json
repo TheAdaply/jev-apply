@@ -1,0 +1,220 @@
+{
+  "ats": "lever",
+  "company": "zoox",
+  "family": "ai_product_fde",
+  "title": "Contract Student Worker - Forward Deployed Automation Engineer (40 hrs/wk)",
+  "location": "Seattle, WA",
+  "url": "https://jobs.lever.co/zoox/5fad000d-791f-4a0a-96da-65ca594160a9/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Are you currently enrolled in a 2-year or 4-year college or university program pursuing a degree or certificate in Software Engineering, Computer Science, Systems Engineering, Mechanical Engineering, Electrical Engineering, or a related field?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Co-Op Questions",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have a school schedule that allows you to work part-time from our Foster City office during normal business hours?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Co-Op Questions",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you require sponsorship, or will you require sponsorship in the future for employment authorization in the United States?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Co-Op Questions",
+      "options": []
+    },
+    {
+      "label": "Do you plan to continue working for other employers during your contract at Zoox?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Co-Op Questions",
+      "options": []
+    },
+    {
+      "label": "Are you currently conducting research related to the subject matter of this role?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Co-Op Questions",
+      "options": [
+        "Yes",
+        "No",
+        "Unsure"
+      ]
+    },
+    {
+      "label": "If yes or unsure, please describe.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Co-Op Questions",
+      "options": []
+    },
+    {
+      "label": "Do you currently receive any active funding (e.g., grants, sponsorships)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Co-Op Questions",
+      "options": [
+        "Yes",
+        "No",
+        "Unsure"
+      ]
+    },
+    {
+      "label": "If yes or unsure, please describe.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Co-Op Questions",
+      "options": []
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I am a veteran",
+        "I am not a veteran",
+        "Decline to self-identify"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Co-Op Questions",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

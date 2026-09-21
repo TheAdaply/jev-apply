@@ -1,0 +1,198 @@
+{
+  "ats": "greenhouse",
+  "company": "faire",
+  "family": "data_scientist",
+  "title": "Staff Engineer - Experimentation Platform",
+  "location": "Kitchener-Waterloo, ON; Toronto, ON",
+  "url": "https://boards.greenhouse.io/faire/jobs/8691459002?gh_jid=8691459002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please select your current province of residence. Select “Not in Canada” if you reside outside of Canada. This information helps us understand our talent pool and ensures we provide accurate resources throughout the hiring process.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Alberta",
+        "British Columbia",
+        "Manitoba",
+        "New Brunswick",
+        "Newfoundland and Labrador",
+        "Northwest Territories",
+        "Nova Scotia",
+        "Nunavut",
+        "Ontario",
+        "Prince Edward Island",
+        "Quebec",
+        "Saskatchewan",
+        "Yukon",
+        "Not in Canada"
+      ]
+    },
+    {
+      "label": "This role will be in-office on a hybrid schedule, can you commit to being in-office three days per week at the location where this position is posted?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Before seeing this job posting, how familiar were you with Faire as a company? (Your response will not impact your application)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Never heard of it before",
+        "Had heard of it but knew little about it",
+        "Somewhat familiar",
+        "Very familiar"
+      ]
+    },
+    {
+      "label": "How did you hear about Faire? (Select all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Answered “unaware” to previous question",
+        "Online advertisement (social media, display ads, etc.)",
+        "Billboard or outdoor advertising",
+        "Faire's website",
+        "Faire’s technical blogs (Faire.Tech, The Craft)",
+        "Someone I know personally (friend, family, former colleague)",
+        "Job posting on LinkedIn, Indeed, or other job board",
+        "LinkedIn post or content (not a job posting)",
+        "News article or media coverage",
+        "Industry event or conference",
+        "Other"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "Which categories describe you? Select all that apply to you:",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Canada Demographic Questions",
+      "options": [
+        "First Nations, Metis or Inuit",
+        "Black/of African origin",
+        "East Asian (for example - Chinese, Korean, Japanese)",
+        "Hispanic, Latinx or Spanish origin",
+        "Middle Eastern or North African",
+        "Native Hawaiian or Other Pacific Islander",
+        "South Asian (for example, Bangladeshi, Bhutanese, Indian)",
+        "Southeast Asian (for example - Filipino, Indonesian, Vietnamese)",
+        "Non-Hispanic, White or Caucasian",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "How do you currently describe your gender identity?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Canada Demographic Questions",
+      "options": [
+        "Man, male or masculine",
+        "Non-binary/third gender (For example - bigender, gender non-conforming, androgynous)",
+        "Transgender man, male, or masculine",
+        "Transgender woman, female or feminine",
+        "Woman, female or feminine",
+        "I prefer to self describe:",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Canada Demographic Questions"
+  ],
+  "captured": "2026-09-22"
+}

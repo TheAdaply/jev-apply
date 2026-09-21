@@ -1,0 +1,127 @@
+{
+  "ats": "ashby",
+  "company": "elevenlabs",
+  "family": "mobile",
+  "title": "Creative Strategist,  Mobile",
+  "location": "United States",
+  "url": "https://jobs.ashbyhq.com/elevenlabs/5da4bb46-0bac-4e35-8731-9e182ad02bee",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "Country you're currently residing in",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about ElevenLabs?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I'm a user",
+        "News article",
+        "Job board",
+        "Social media (LinkedIn, Instagram, X etc)",
+        "In person event",
+        "Referral",
+        "I was reached out to",
+        "Other (please specify)"
+      ]
+    },
+    {
+      "label": "If other, please specify below",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Link to your LinkedIn profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What makes you excited about the ElevenLabs mission?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Share links to the social accounts or platforms you have managed, and tell us your specific role on each.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is something about this role that people tend to underestimate, but that actually matters a lot?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What other brands or accounts in the AI creative space do social really well? Pick one or two and tell us what is good about what they do.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Look at our social accounts. Pick two from ElevenLabs or ElevenCreative across YouTube, TikTok, and X, and tell us what is working and what is not",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What type of content should we be doing more of that we are not doing today? Give an example.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

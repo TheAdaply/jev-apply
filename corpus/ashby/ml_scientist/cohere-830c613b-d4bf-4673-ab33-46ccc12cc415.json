@@ -1,0 +1,70 @@
+{
+  "ats": "ashby",
+  "company": "cohere",
+  "family": "ml_scientist",
+  "title": "Senior Research Scientist, Model Evaluation",
+  "location": "Toronto",
+  "url": "https://jobs.ashbyhq.com/cohere/830c613b-d4bf-4673-ab33-46ccc12cc415",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Tell us about your experience creating a new benchmark dataset: What was the purpose? How did you create the data and ensure its quality? How do you evaluate on this dataset?",
+      "help": "Note: We will value your response to this question as much as your resume!",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,245 @@
+{
+  "ats": "greenhouse",
+  "company": "anthropic",
+  "family": "research_engineer",
+  "title": "[Expression of Interest] Research Engineer / Scientist, Alignment - London",
+  "location": "London, UK",
+  "url": "https://job-boards.greenhouse.io/anthropic/jobs/4610158008",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Publications (e.g. Google Scholar) URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "Please ensure to provide either your LinkedIn profile or Resume, we require at least one of the two.",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "When is the earliest you would want to start working with us?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have any deadlines or timeline considerations we should be aware of?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you open to relocation for this role?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "What is the address from which you plan on working? If you would need to relocate, please type \"relocating\".",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you open to working in-person in one of our offices 25% of the time?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "AI Policy for Application",
+      "help": "We believe that AI will have a transformative impact on the world, and we&rsquo;re seeking exceptional candidates who collaborate thoughtfully with Claude to realize this vision. At the same time, we want to understand your unique skills, expertise, and perspective through our hiring process. We in…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "In a paragraph or two, why do you want to work on AI safety at Anthropic?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or will you in the future require employment visa sponsorship to work in the country in which the job you're applying for is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Given your understanding of our team’s priorities, what are three projects you’d be excited about working on at Anthropic that are aligned with those priorities? (1-2 sentences each)",
+      "help": "You can learn about the team's work here: http://alignment.anthropic.com/",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Share a link to the piece of work you've done that is most relevant to the Alignment Science team, along with a brief description of the work and its relevance.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What’s your ideal breakdown of your time in a working week, in terms of hours or % per week spent on meetings, coding, reading papers, etc.?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "In one paragraph, provide an example of something meaningful that you have done in line with your values. Examples could include past work, volunteering, civic engagement, community organizing, donations, family support, etc.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you ever interviewed at Anthropic before?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Team Matching",
+      "help": "Which teams or projects are you most interested in? (Note: if none of the teams you select are hiring, we won't proceed with your application at this time, although we may reach out if those teams open roles in the future.)",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Pre-training — The Pre-training team trains large language models that are used by our product, alignment, and interpretability teams. Some projects include figuring out the optimal dataset, architecture, hyper-parameters, and scaling and managing large training runs on our cluster.",
+        "AI Alignment Research — the Alignment team works to train more aligned (helpful, honest, and harmless) models and does “alignment science” to understand how alignment techniques work and try to extrapolate to uncover and address new failure modes.",
+        "Reinforcement Learning – Reinforcement Learning is used by a variety of different teams, both for alignment and to teach models to be more capable at specific tasks.",
+        "Platform – The Platform team builds shared infrastructure used by Anthropic's research and product teams. Areas of ownership include: the inference service that generates predictions from language models; extensive continuous integration and testing infrastructure; several very large supercomputing clusters and the associated tooling.",
+        "Interpretability — The Interpretability team investigates what’s going on inside large language models — in a sense, they are trying to reverse engineer the concepts and mechanics from the inscrutable learned weights of these systems. Their goal is to ensure that AI systems are safe by being able to assess whether they’re doing what we actually want, all the way down to the individual neurons.",
+        "Societal Impacts — Our Societal Impacts team designs and executes experiments that evaluate the capabilities and harms of the technologies we build. They also support the policy team with empirical evidence.",
+        "Product — The Product research team trains, evaluates, and improves upon Claude, integrating all of our research techniques to make our AI systems as safe and helpful as possible."
+      ]
+    },
+    {
+      "label": "(Optional) Personal Preferences",
+      "help": "How do you pronounce your name?",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Additional Information",
+      "help": "Add a cover letter or anything else you want to share.",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

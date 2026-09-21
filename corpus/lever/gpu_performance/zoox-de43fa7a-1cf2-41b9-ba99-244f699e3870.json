@@ -1,0 +1,202 @@
+{
+  "ats": "lever",
+  "company": "zoox",
+  "family": "gpu_performance",
+  "title": "Staff Software Engineer, HPC",
+  "location": "Foster City, CA",
+  "url": "https://jobs.lever.co/zoox/de43fa7a-1cf2-41b9-ba99-244f699e3870/apply",
+  "questions": [
+    {
+      "label": "Which location are you applying for?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Foster City, CA",
+        "Boston, MA",
+        "Seattle, WA"
+      ]
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "For the sole purpose of determining export licensing requirements, please list any countries of which you are a citizen or legal permanent resident, and when you obtained such status.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Export Control & Compliance",
+      "options": []
+    },
+    {
+      "label": "Do you require sponsorship, or will you require sponsorship in the future for employment authorization in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Sponsorship Question",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please select the applicable source.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "How did you hear about us?",
+      "options": [
+        "Zoox Careers Page",
+        "Employee Referral",
+        "On-campus / virtual event",
+        "Indeed",
+        "LinkedIn",
+        "Recruiter Outreach",
+        "Social Media",
+        "CVPR",
+        "SWE Conference",
+        "CES"
+      ]
+    },
+    {
+      "label": "If you attended an on-campus or virtual event, which did you attend?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "How did you hear about us?",
+      "options": []
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I am a veteran",
+        "I am not a veteran",
+        "Decline to self-identify"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Export Control & Compliance",
+    "Sponsorship Question",
+    "How did you hear about us?",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

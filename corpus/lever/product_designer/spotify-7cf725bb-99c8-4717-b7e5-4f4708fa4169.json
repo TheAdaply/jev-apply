@@ -1,0 +1,254 @@
+{
+  "ats": "lever",
+  "company": "spotify",
+  "family": "product_designer",
+  "title": "Senior Digital Learning Experience Designer, Learning & Inclusion",
+  "location": "London",
+  "url": "https://jobs.lever.co/spotify/7cf725bb-99c8-4717-b7e5-4f4708fa4169/apply",
+  "questions": [
+    {
+      "label": "Are you interested in working out of any of the following office locations? Our job description will have location eligibility for the role. If the role is remote eligible and you wish to be remote, please leave blank.",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "London",
+        "Stockholm"
+      ]
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Have you ever been previously employed by Spotify?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Previous Spotify Employment",
+      "options": [
+        "No",
+        "Yes - Intern",
+        "Yes - Full Time Employment"
+      ]
+    },
+    {
+      "label": "What best describes your gender?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Questions for Spotify",
+      "options": [
+        "Woman",
+        "Man",
+        "Non-binary",
+        "I use another term",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "What is your race/ethnicity?:",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Questions for Spotify",
+      "options": [
+        "American Indian or Alaska Native",
+        "Asian",
+        "Black or African American",
+        "Hispanic or Latino",
+        "Native Hawaiian or Other Pacific Islander",
+        "Two or More Races",
+        "White (Not Hispanic or Latino)",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "Are you a veteran/have you served in the military?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Questions for Spotify",
+      "options": [
+        "Yes",
+        "No",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "What best describes your gender?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Question for Spotify",
+      "options": [
+        "Woman",
+        "Man",
+        "Non-binary",
+        "I use another term",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "What gender do you identify with?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey for Spotify",
+      "options": [
+        "Woman",
+        "Man",
+        "Choose Not to Disclose "
+      ]
+    },
+    {
+      "label": "What best describes your gender?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Questions from Spotify",
+      "options": [
+        "Woman",
+        "Man",
+        "Non-binary",
+        "I use another term",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "What best describes your ethnicity?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Questions from Spotify",
+      "options": [
+        "Any other ethnic group",
+        "Arab",
+        "Asian/Asian British: Any other Asian background",
+        "Asian/Asian British: Bangladeshi ",
+        "Asian/Asian British: Chinese ",
+        "Asian/Asian British: Indian",
+        "Asian/Asian British: Pakistani ",
+        "Black/Black British: African",
+        "Black/Black British: Any other Black/ African / Caribbean background",
+        "Black/Black British: Caribbean",
+        "Mixed: Any other mixed background",
+        "Mixed: White and Asian",
+        "Mixed: White and Black African",
+        "Mixed: White and Black Caribbean",
+        "Prefer not to disclose",
+        "White: Any other White background",
+        "White: English/Welsh/Scottish/Northern Irish/British",
+        "White: Irish",
+        "White: Irish Traveller / Minkiers / Pavees (Previously known as Gypsy) 3"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Previous Spotify Employment",
+    "Demographic Questions for Spotify",
+    "Demographic Question for Spotify",
+    "Demographic Survey for Spotify",
+    "Demographic Questions from Spotify"
+  ],
+  "captured": "2026-09-22"
+}

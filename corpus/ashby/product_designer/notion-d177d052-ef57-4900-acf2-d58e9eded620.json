@@ -1,0 +1,116 @@
+{
+  "ats": "ashby",
+  "company": "notion",
+  "family": "product_designer",
+  "title": "Product Designer",
+  "location": "San Francisco, California",
+  "url": "https://jobs.ashbyhq.com/notion/d177d052-ef57-4900-acf2-d58e9eded620",
+  "questions": [
+    {
+      "label": "Full Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What pronouns would you like our team to use when addressing you?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/Him",
+        "She/Her",
+        "They/Them",
+        "Prefer not to say",
+        "Not represented here"
+      ]
+    },
+    {
+      "label": "Portfolio Link",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Portfolio Password",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "We work from our offices on Mondays, Tuesdays, and Thursdays (Anchor Days). If you need an accommodation, we’ll partner with you and explore reasonable options consistent with applicable law. Are you able to commit to working from one of our offices on Anchor Days each week?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or in the future require Notion to sponsor an immigration case in order to employ you?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this opportunity? (select all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "LinkedIn",
+        "Glassdoor",
+        "Notion Blog",
+        "Notion Employee",
+        "Notion Website",
+        "Billboard/Outdoor Ads",
+        "Conference or Meetup"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

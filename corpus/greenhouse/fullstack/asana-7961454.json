@@ -1,0 +1,217 @@
+{
+  "ats": "greenhouse",
+  "company": "asana",
+  "family": "fullstack",
+  "title": "Software Engineer, Product",
+  "location": "Vancouver, BC",
+  "url": "https://www.asana.com/jobs/apply/7961454?gh_jid=7961454",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Github Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "[Optional] Pronouns - how should we refer to you in the third person?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "she/her/hers",
+        "he/him/his",
+        "they/them/theirs",
+        "other (my preference is not reflected by the options above)"
+      ]
+    },
+    {
+      "label": "[Optional, if \"other\" is selected above] My pronouns are",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you now, or will you in the future, require immigration sponsorship for work authorization to work in this location?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Current Company",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Title",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Asana is seeking the below information for the exclusive and limited purpose of complying with U.S. export control laws given that the position for which you are applying may require access to technology subject to those laws. We will not use the information that you provide for any other purpose. Are you a citizen or legal permanent resident of Cuba, Iran, North Korea, Syria or Ukraine (Crimea region)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "[Optional] Preferred Full Name (The name that you would like to be referred to as. Please input your legal name in the first and last name fields above.)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you been employed, or otherwise engaged, by an Asana entity in the past? (Previous independent contractors, select \"Yes.\")",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you currently work for or have you ever worked for a U.S. government entity, either as a contractor or employee?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I do work/have worked for a U.S. government entity.",
+        "No, I have never."
+      ]
+    },
+    {
+      "label": "If you answered “Yes,” please list the U.S. government entity you worked for. If not applicable, type 'N/A.'",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Personal Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "By agreeing here: (1) I certify that the information I provided to Asana in connection with my application for employment is accurate and truthful; and (2) I acknowledge and agree that I have carefully read the mutual Applicant Arbitration Agreement set out below and agree to be bound by it",
+      "help": "Please review the Applicant Arbitration Agreement here.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "Gender Identity Options",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Demographics Form",
+      "options": [
+        "Female",
+        "Male",
+        "Other",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Voluntary Demographics Form"
+  ],
+  "captured": "2026-09-22"
+}

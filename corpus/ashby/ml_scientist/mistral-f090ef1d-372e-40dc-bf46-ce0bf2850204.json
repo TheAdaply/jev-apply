@@ -1,0 +1,95 @@
+{
+  "ats": "ashby",
+  "company": "mistral",
+  "family": "ml_scientist",
+  "title": "AI Scientist - Agentic Engineering",
+  "location": "Paris",
+  "url": "https://jobs.ashbyhq.com/mistral.ai/f090ef1d-372e-40dc-bf46-ce0bf2850204",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Current Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Anything you would like to share with us?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Personal Information",
+    "Websites"
+  ],
+  "captured": "2026-09-22"
+}

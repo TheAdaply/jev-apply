@@ -1,0 +1,161 @@
+{
+  "ats": "ashby",
+  "company": "mistral",
+  "family": "applied_scientist",
+  "title": "Applied Scientist, South Korea",
+  "location": "Seoul",
+  "url": "https://jobs.ashbyhq.com/mistral.ai/1722cba1-bc85-467a-994d-980905aca031",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Current Location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Do you have experience in model pre-training?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "Do you have experience in model post-training?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "If yes to the above, describe the nature of your work, and the techniques used.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "What is the largest scale (wrt. GPU nodes) that you have operated at?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "Do you have an understanding of deployment: MLOps and Software Development, in an industry setting?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "Are you comfortable working in customer-facing roles and presenting to senior stakeholders?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "Do you have experience building transformer models from scratch?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "Where do you see yourself in the next 2 years?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Role specific",
+      "options": []
+    },
+    {
+      "label": "Are you proficient in Korean?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Language proficiency",
+      "options": []
+    },
+    {
+      "label": "Are you proficient in English?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Language proficiency",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Personal Information",
+    "Websites",
+    "Role specific",
+    "Language proficiency"
+  ],
+  "captured": "2026-09-22"
+}

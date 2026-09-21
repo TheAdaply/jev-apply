@@ -1,0 +1,161 @@
+{
+  "ats": "ashby",
+  "company": "confluent",
+  "family": "backend",
+  "title": "Distributed Systems Software Engineer - WarpStream ",
+  "location": "Remote, United States",
+  "url": "https://jobs.ashbyhq.com/confluent/47920ccd-db54-4ed4-a865-70857e865fff",
+  "questions": [
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred FULL Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Legal FULL Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Mobile Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Alt. Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location - City, State",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location - Zip Code",
+      "help": "",
+      "type": "number",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Company",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the United States?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you now, or will you in the future, require sponsorship for employment visa status in the United States?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about Confluent?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Career Site",
+        "Employee Referral",
+        "Job Board",
+        "Job Fair",
+        "Previously Employed"
+      ]
+    },
+    {
+      "label": "Have you previously been employed at Confluent or one of our subsidiaries?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "Unsure"
+      ]
+    },
+    {
+      "label": "LinkedIn Profile URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Additional Links (optional)",
+      "options": []
+    },
+    {
+      "label": "GitHub Profile URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Additional Links (optional)",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Additional Links (optional)",
+      "options": []
+    },
+    {
+      "label": "Other",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Additional Links (optional)",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Additional Links (optional)"
+  ],
+  "captured": "2026-09-22"
+}

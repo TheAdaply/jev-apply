@@ -1,0 +1,82 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "ml_engineer",
+  "title": "Principal Software Engineer - AI Application",
+  "location": "China - Beijing",
+  "url": "https://jobs.lever.co/veeva/addd3224-747d-4e5c-8738-5defc47825bd/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Next Step Confirmation"
+  ],
+  "captured": "2026-09-22"
+}

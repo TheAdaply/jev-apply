@@ -1,0 +1,116 @@
+{
+  "ats": "greenhouse",
+  "company": "cloudflare",
+  "family": "systems_embedded_compilers",
+  "title": "Systems Engineer, Email Service",
+  "location": "Hybrid",
+  "url": "https://boards.greenhouse.io/cloudflare/jobs/8207509?gh_jid=8207509",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Is your current manager aware that you are interested in another role within Cloudflare?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you eligible to apply for this role?",
+      "help": "Check your eligibility here. If you are unsure, please reach out to your manager or aligned HRBP.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "Unsure"
+      ]
+    },
+    {
+      "label": "Have you had an exploratory conversation with the hiring manager of this position?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Why are you interested in this role and how does it fit with your long term career goals? (Please provide a detailed response)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "To be hired as an internal employee, you must apply with your @cloudflare email address. Did you apply with your @cloudflare email?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

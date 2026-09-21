@@ -1,0 +1,181 @@
+{
+  "ats": "greenhouse",
+  "company": "cloudflare",
+  "family": "product_manager",
+  "title": "Senior Product Manager - Application Protection & Governance",
+  "location": "Hybrid",
+  "url": "https://boards.greenhouse.io/cloudflare/jobs/8200670?gh_jid=8200670",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Legal Name (if different than above)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you available to work at our Lisbon office 2 days a week?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Would you like to include your LinkedIn profile, personal website or blog?",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please review and acknowledge Cloudflare's Candidate Privacy Policy (cloudflare.com/candidate-privacy-notice/).",
+      "help": "Candidate Privacy Policy",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Acknowledge/Confirm"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "DisabilityStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I do not want to answer",
+        "No, I do not have a disability and have not had one in the past",
+        "Yes, I have a disability, or have had one in the past"
+      ]
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,271 @@
+{
+  "ats": "lever",
+  "company": "pointclickcare",
+  "family": "applied_scientist",
+  "title": "Senior Applied Researcher AI/ML ( CAD)",
+  "location": "Remote, Canada",
+  "url": "https://jobs.lever.co/pointclickcare/f898bbb1-6d98-4708-9762-414799038ea4/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "How did you hear about us?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Source Information",
+      "options": []
+    },
+    {
+      "label": "Do you have a Master’s degree (or higher) in CS/Math/Physics/Engineering ?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": []
+    },
+    {
+      "label": "Have you played a hands-on role in at least two end‑to‑end production releases of ML/AI features within a commercial SaaS product, partnering with product and engineering?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": []
+    },
+    {
+      "label": "Do you have hands-on experience working with healthcare data (e.g., EHR/EMR, ADT, clinical notes, claims, HL7/FHIR)?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": []
+    },
+    {
+      "label": "Which have you worked with?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": [
+        "EHR/EMR structured data",
+        "ADT feeds",
+        "Clinical notes (unstructured)",
+        "HL7 v2",
+        "FHIR"
+      ]
+    },
+    {
+      "label": "Have you hands‑on fine‑tuned transformer‑based LLMs (not just prompt usage) using frameworks such as Hugging Face Transformers?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": []
+    },
+    {
+      "label": "Have you personally implemented parameter‑efficient fine‑tuning methods such as LoRA, QLoRA, or other PEFT techniques in production or advanced experimentation?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": []
+    },
+    {
+      "label": "Do you have experience with large datasets using big data frameworks? If so; which ones?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Sr Applied Researcher - AI/ML",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in Canada for our company?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Eligibility - Canada",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Would you require future sponsorship in order to work for our company in Canada?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Eligibility - Canada",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Gender Identity",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self-Identification Survey",
+      "options": [
+        "Female",
+        "Male ",
+        "Gender non-binary",
+        "Not Listed",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "Do you identify as a member of the LGBTQ+ Community?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self-Identification Survey",
+      "options": [
+        "Yes",
+        "No",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "Race/Ethnicity",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self-Identification Survey",
+      "options": [
+        "Hispanic or Latine: A person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin, regardless of race.",
+        "Native American/Alaskan Native (not Hispanic or Latino: A person having origins in any of the original peoples of North and South America (including Central America) and who maintain tribal affiliation or community attachment.",
+        "Indigenous Peoples (Canada)",
+        "Asian (not Hispanic or Latino): A person having origins in any of the original peoples of the Far East, Southeast Asia or the Indian subcontinent, including, for example, Cambodia, China, India, Japan, Korea, Malaysia, Pakistan, the Philippine Islands, Thailand, and Vietnam",
+        "Black or African American (not Hispanic or Latino): A person having origins in any of the black racial groups of Africa",
+        "Native Hawaiian or Other Pacific Islander (not Hispanic or Latino): A person having origins in any of the original peoples of Hawaii, Guam, Samoa or other Pacific Islands",
+        "White (not Hispanic or Latino): A person having origins in any of the original peoples of Europe, the Middle East, or North Africa",
+        "Two or more Races (not Hispanic or Latino)",
+        "Prefer not to disclose "
+      ]
+    },
+    {
+      "label": "Veteran Status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self-Identification Survey",
+      "options": [
+        "I am a veteran",
+        "I am not a veteran",
+        "Prefer not to disclose"
+      ]
+    },
+    {
+      "label": "Disability",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self-Identification Survey",
+      "options": [
+        "Yes, I Have A Disability, Or Have A History/Record Of Having A Disability",
+        "No, I Don’t Have A Disability, Or A History/Record Of Having A Disability",
+        "I Don’t Wish To Answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Source Information",
+    "Sr Applied Researcher - AI/ML",
+    "Work Eligibility - Canada",
+    "Voluntary Self-Identification Survey"
+  ],
+  "captured": "2026-09-22"
+}

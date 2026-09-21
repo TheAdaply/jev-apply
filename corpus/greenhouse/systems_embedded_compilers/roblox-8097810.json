@@ -1,0 +1,218 @@
+{
+  "ats": "greenhouse",
+  "company": "roblox",
+  "family": "systems_embedded_compilers",
+  "title": "Senior Software Engineer, Runtime",
+  "location": "San Mateo, CA, United States",
+  "url": "https://careers.roblox.com/jobs/8097810?gh_jid=8097810",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Legal Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "At the time of application, are you 18+ years of age?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you legally authorized to work in the US?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require sponsorship for work authorization?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "This role requires you to work a hybrid schedule (3 days in office) at our San Mateo, CA HQ. Will this schedule work for you and are you currently located or willing to relocate to San Francisco Bay Area for this job?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please review and acknowledge Roblox's Job Applicant Privacy Notice",
+      "help": "Roblox Job Applicant Privacy Notice",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I acknowledge that I have read and understood Roblox's Job Applicant Privacy Notice."
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "How would you describe your gender identity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Man",
+        "Non-binary",
+        "Woman",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Black or of African descent",
+        "East Asian",
+        "Hispanic, Latinx or of Spanish Origin",
+        "Indigenous, American Indian or Alaska Native",
+        "Middle Eastern or North African",
+        "Native Hawaiian or Pacific Islander",
+        "South Asian",
+        "Southeast Asian",
+        "White or European",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, other) that substantially limits 1 or more of your major life activities, including mobility, communication (seeing, hearing, speaking), and learning?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Yes",
+        "No",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Are you a veteran, active member or reservist of the United States Armed Forces?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Yes, I am a veteran, active member or reservist",
+        "No, I am not a veteran, active member or reservist",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "U.S. Demographic Questions"
+  ],
+  "captured": "2026-09-22"
+}

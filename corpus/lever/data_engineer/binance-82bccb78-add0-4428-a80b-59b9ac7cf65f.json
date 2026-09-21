@@ -1,0 +1,83 @@
+{
+  "ats": "lever",
+  "company": "binance",
+  "family": "data_engineer",
+  "title": "Financial Data Engineer, AI/LLM",
+  "location": "Asia",
+  "url": "https://jobs.lever.co/binance/82bccb78-add0-4428-a80b-59b9ac7cf65f/apply",
+  "questions": [
+    {
+      "label": "Which location are you applying for?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Asia",
+        "Taiwan, Taipei",
+        "Hong Kong"
+      ]
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn account or any other links URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links"
+  ],
+  "captured": "2026-09-22"
+}

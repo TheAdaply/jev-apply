@@ -1,0 +1,266 @@
+{
+  "ats": "greenhouse",
+  "company": "gitlab",
+  "family": "solutions_engineer",
+  "title": "Senior Customer Success Engineer, Japan",
+  "location": "Remote, Japan",
+  "url": "https://job-boards.greenhouse.io/gitlab/jobs/8808549002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What's the name you'd prefer us to use throughout the interview process?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please choose the country in which you are located.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Japan",
+        "Everywhere Else"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require sponsorship for a visa to remain in your current location?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "No",
+        "Yes, Netherlands Highly Skilled Migrant Visa",
+        "Yes, Ireland Highly Skilled Worker Visa",
+        "Yes, EU Blue Card",
+        "Yes, USMCA Professional (TN) Visa (USA)",
+        "Yes, F-1 Visa OPT (USA)",
+        "Yes, but not one of the visas listed here"
+      ]
+    },
+    {
+      "label": "How would you describe your Japanese language proficiency?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Native speaker",
+        "Business / professional fluency — I can conduct meetings, technical discussions, and written communication in Japanese confidently",
+        "Conversational — I can hold basic exchanges but not professional or technical discussions in Japanese",
+        "Beginner or limited proficiency",
+        "No Japanese proficiency"
+      ]
+    },
+    {
+      "label": "Are you currently based in Japan with full working rights?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes — I am based in Japan and have full working rights with no restrictions",
+        "I am based in Japan but my working rights are restricted or temporary",
+        "I am not currently based in Japan but I am willing to relocate",
+        "I am not based in Japan"
+      ]
+    },
+    {
+      "label": "Are you subject to any employment agreements and/or post-employment restrictions with your current employer or a past employer?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "It is important to us to create an accessible and inclusive interview experience. Please let us know if there are any adjustments we can make to assist you during the hiring and interview process.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Which metric is most useful for showing customer success value in a technical adoption discussion?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "A. Number of features the customer has technically enabled, regardless of usage depth",
+        "B. Improvement in delivery speed, reliability, risk reduction, or tool consolidation",
+        "C. Number of workshops and training sessions the customer has attended",
+        "D. Overall login and active user counts across the customer's teams"
+      ]
+    },
+    {
+      "label": "What is the best way to handle a question you do not know the answer to during a customer conversation?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "A. Acknowledge you're not certain, clarify what they're actually trying to achieve, and commit to a specific follow-up",
+        "B. Give your best technical guess based on similar situations.",
+        "C. Redirect to a colleague or documentation resource that's more likely to have the precise answer",
+        "D. Ask a clarifying question to buy time while you think through whether you actually know more than you think"
+      ]
+    },
+    {
+      "label": "Which description best matches your experience in customer-facing technical roles?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "A. I have mostly internal-only engineering experience with little or no customer interaction.",
+        "B. I have supported customers occasionally but not as a core part of my role.",
+        "C. I have regularly worked in a customer-facing technical role, helping customers adopt, troubleshoot, or improve platform usage.",
+        "D. I have led strategic customer engagements and acted as a technical advisor across multiple accounts."
+      ]
+    },
+    {
+      "label": "Your pipeline's total runtime has crept up over several months. Before changing anything, what's the first thing you should do?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "A. Add caching to the build step, since that's the most common fix for slow pipelines",
+        "B. Split the test suite across parallel jobs to cut the runtime down",
+        "C. Measure how much time each stage actually takes, since slowdowns are rarely one single cause",
+        "D. Upgrade to a runner with more CPU and memory"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "DisabilityStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I do not want to answer",
+        "No, I do not have a disability and have not had one in the past",
+        "Yes, I have a disability, or have had one in the past"
+      ]
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

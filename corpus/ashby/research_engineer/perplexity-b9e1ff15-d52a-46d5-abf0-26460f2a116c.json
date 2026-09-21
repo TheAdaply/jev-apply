@@ -1,0 +1,95 @@
+{
+  "ats": "ashby",
+  "company": "perplexity",
+  "family": "research_engineer",
+  "title": "Internship - Machine Learning Research Engineer",
+  "location": "Berlin",
+  "url": "https://jobs.ashbyhq.com/perplexity/b9e1ff15-d52a-46d5-abf0-26460f2a116c",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or in the future require sponsorship for employment visa status in the United Kingdom, Germany or Serbia?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you able to come into the office three days per week?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Tell us about a past project you've worked on?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Github/Project link?",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Shared URL",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Perplexity Exercise",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Perplexity Exercise"
+  ],
+  "captured": "2026-09-22"
+}

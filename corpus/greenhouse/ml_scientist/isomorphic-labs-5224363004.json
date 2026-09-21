@@ -1,0 +1,171 @@
+{
+  "ats": "greenhouse",
+  "company": "isomorphic-labs",
+  "family": "ml_scientist",
+  "title": "Research Scientist (Machine Learning), London",
+  "location": "London",
+  "url": "https://job-boards.greenhouse.io/isomorphiclabs/jobs/5224363004",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have a PhD in a relevant research area? (Please note that if your answer is no, we may reject you due to this being an important requirement)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "As an AI-first company, we embrace tools like Gemini. However, our interview process is designed to understand your unique expertise and problem-solving skills, as well as what motivates you. Therefore, we ask that you refrain from using any AI tools, transcription services, or other assistants during your interview and assessment process, unless you've made prior arrangements with our Talent team for specific needs or accommodations. (If you require any adjustments, please discuss this with the Talent team during your initial screening call.)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "By checking this box and proceeding with your application, you confirm that you have read and agreed to these terms and will not use any AI tools or assistants during the interview and assessment process."
+      ]
+    },
+    {
+      "label": "In which of our office locations would you prefer to be based? (Note that certain jobs may only be available in one location - please check the details before applying)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I'm already based in the UK and I'm happy to work in London",
+        "I'm already based in the US and I'm happy to work in Cambridge, MA",
+        "I'm already based in Switzerland and I'm happy to work in Lausanne",
+        "I would be willing to relocate and work in London (UK)",
+        "I would be willing to relocate and work in Cambridge, MA (US)",
+        "I would be willing to relocate and work in Lausanne (Switzerland)",
+        "I would be willing to relocate to any location",
+        "Working in Cambridge, MA (US), Lausanne (Switzerland) or London (UK) is not currently an option for me",
+        "Other (please provide more information in the 'Is there anything else you'd like us to know?' section)"
+      ]
+    },
+    {
+      "label": "What are your salary expectations (base / total package)? Please note that this is what you would be looking for in your next role, NOT your current package.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your current notice period?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Where did you hear about Iso?",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Press article / publication",
+        "DeepMind website",
+        "LinkedIn",
+        "Twitter",
+        "Glassdoor",
+        "Indeed",
+        "Other job board",
+        "Search engine",
+        "Conference/event (please let us know which one below)",
+        "Alphabet Grow (current employee of GDM)",
+        "Alphabet Grow (current employee of any other Bet)",
+        "Referred by an employee at Isomorphic Labs (please let us know who below)",
+        "Other"
+      ]
+    },
+    {
+      "label": "Where did you hear about Iso? (Additional info)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Is there anything else you'd like us to know?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,135 @@
+{
+  "ats": "ashby",
+  "company": "mistral",
+  "family": "applied_scientist",
+  "title": "Applied Scientist  (Internship)",
+  "location": "Paris",
+  "url": "https://jobs.ashbyhq.com/mistral.ai/de46ba8b-00cb-4618-83df-66e15a78434e",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Current Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Do you have the right to work in France or the UK for the full duration of the internship? Please specify which country and, if applicable, the type of work permit you hold.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Design Portfolio",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "How long are you available for the internship?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "When can you start your internship?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Are you available for a full time role after your internship?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Anything you would like to share with us?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Personal Information",
+    "Websites"
+  ],
+  "captured": "2026-09-22"
+}

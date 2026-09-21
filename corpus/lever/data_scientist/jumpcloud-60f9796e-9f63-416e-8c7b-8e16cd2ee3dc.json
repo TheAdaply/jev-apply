@@ -1,0 +1,210 @@
+{
+  "ats": "lever",
+  "company": "jumpcloud",
+  "family": "data_scientist",
+  "title": "Staff Data Scientist, Machine Learning - India",
+  "location": "Bangalore, India - Remote",
+  "url": "https://jobs.lever.co/jumpcloud/60f9796e-9f63-416e-8c7b-8e16cd2ee3dc/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Twitter URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Do you have consistent internet access?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Remote Work Requirements - JumpCloud allows you to work remotely in the Country listed on this role. In order to be successful in a remote environment, you will need a remote work environment with consistent internet, power and telephone access during your working hours.",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have consistent access to power/electricity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Remote Work Requirements - JumpCloud allows you to work remotely in the Country listed on this role. In order to be successful in a remote environment, you will need a remote work environment with consistent internet, power and telephone access during your working hours.",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have consistent phone/mobile/cellular access",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Remote Work Requirements - JumpCloud allows you to work remotely in the Country listed on this role. In order to be successful in a remote environment, you will need a remote work environment with consistent internet, power and telephone access during your working hours.",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have access to a remote work environment that will allow me to work effectively during my working hours. This includes attending meetings, communicating via Slack and email, as well as other activities that are required as part of this role.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Remote Work Requirements - JumpCloud allows you to work remotely in the Country listed on this role. In order to be successful in a remote environment, you will need a remote work environment with consistent internet, power and telephone access during your working hours.",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you currently live in India?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Location & Authorization - India",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you legally authorized to work in India WITHOUT sponsorship or an employment pass?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Location & Authorization - India",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you fluent and able to conduct business in the English Language (both spoken and written)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Language - English",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "What is your current notice period? We define notice period as the length of time for you to start your new role upon signing an offer letter.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Notice Period",
+      "options": [
+        "No Notice Period (able to start new role as soon as possible)",
+        "30 days (1 Month)",
+        "45 days",
+        "60 days (2 Months)",
+        "90 days+ (3+ Months)"
+      ]
+    },
+    {
+      "label": "I acknowledge that I do not have permission from JumpCloud or any individual JumpCloud employee to record or transcribe any part of the interview process and by extension to share that recording or transcription in any forum.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "No Recording or Transcribing Acknowledgement",
+      "options": [
+        "Yes, I acknowledge this.",
+        "No, I do not acknowledge this."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Remote Work Requirements - JumpCloud allows you to work remotely in the Country listed on this role. In order to be successful in a remote environment, you will need a remote work environment with consistent internet, power and telephone access during your working hours.",
+    "Location & Authorization - India",
+    "Language - English",
+    "Notice Period",
+    "No Recording or Transcribing Acknowledgement"
+  ],
+  "captured": "2026-09-22"
+}

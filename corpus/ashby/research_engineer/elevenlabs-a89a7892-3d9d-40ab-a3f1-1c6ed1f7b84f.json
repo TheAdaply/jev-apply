@@ -1,0 +1,119 @@
+{
+  "ats": "ashby",
+  "company": "elevenlabs",
+  "family": "research_engineer",
+  "title": "Research Engineer - Web Crawlers",
+  "location": "United Kingdom",
+  "url": "https://jobs.ashbyhq.com/elevenlabs/a89a7892-3d9d-40ab-a3f1-1c6ed1f7b84f",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "Country you're currently residing in",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about ElevenLabs?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I'm a user",
+        "News article",
+        "Job board",
+        "Social media (LinkedIn, Instagram, X etc)",
+        "In person event",
+        "Referral",
+        "I was reached out to",
+        "Other (please specify)"
+      ]
+    },
+    {
+      "label": "If other, please specify below",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Link to your Github profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Link to your LinkedIn profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why ElevenLabs, and why now?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What's the most impactful thing you've built? What was your specific contribution?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you know it worked? What did success actually look like?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you used ElevenLabs - even in a personal or side project? What did you build or explore?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

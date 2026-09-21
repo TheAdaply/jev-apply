@@ -1,0 +1,70 @@
+{
+  "ats": "ashby",
+  "company": "etched",
+  "family": "ai_product_fde",
+  "title": "Applied AI Engineer, Kernel Performance",
+  "location": "San Jose",
+  "url": "https://jobs.ashbyhq.com/etched/b09ced5f-c81a-4fbe-a85e-ed743c991e21",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this role?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What problem would you want to solve with unlimited compute? How would you do it? Why?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "If you joined Etched tomorrow with no predefined role, what would you build, fix, or accelerate in your first 6–12 months, why would it matter to Etched's mission, and what specific experience or evidence suggests you're the right person to do it?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is that role, what problem would you own, how would you measure success after one year, and why are you uniquely qualified to succeed?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

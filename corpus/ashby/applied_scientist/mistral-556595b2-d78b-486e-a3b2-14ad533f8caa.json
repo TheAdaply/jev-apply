@@ -1,0 +1,160 @@
+{
+  "ats": "ashby",
+  "company": "mistral",
+  "family": "applied_scientist",
+  "title": "Applied Scientist, AI4Engineering",
+  "location": "Paris",
+  "url": "https://jobs.ashbyhq.com/mistral.ai/556595b2-d78b-486e-a3b2-14ad533f8caa",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "Please submit your resume in English",
+      "type": "file",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Current Location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Preferred Office Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "What is your notice period / earliest start date?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "What are your salary expectations for this role (base pay and/or total compensation)?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Design Portfolio",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Websites",
+      "options": []
+    },
+    {
+      "label": "Do you have the authorization to work in the country you are applying to?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Role Specific",
+      "options": []
+    },
+    {
+      "label": "This role involves occasional travel, roughly once a month. Are you comfortable with this?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Role Specific",
+      "options": []
+    },
+    {
+      "label": "What spoken languages are you fluent in?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Role Specific",
+      "options": []
+    },
+    {
+      "label": "What’s your most complex project with LLM?",
+      "help": "Please provide context (scale of data, technical complexities, fine-tuning, ...) In case you have very few LLM experiment, please present a product engineering/AI project.",
+      "type": "textarea",
+      "required": true,
+      "section": "Role Specific",
+      "options": []
+    },
+    {
+      "label": "What should we know about you?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Role Specific",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Personal Information",
+    "Websites",
+    "Role Specific"
+  ],
+  "captured": "2026-09-22"
+}

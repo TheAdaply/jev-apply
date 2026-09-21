@@ -1,0 +1,195 @@
+{
+  "ats": "greenhouse",
+  "company": "scale-ai",
+  "family": "ml_engineer",
+  "title": "Machine Learning Engineer, Public Sector",
+  "location": "Denver, CO; Honolulu, HI; Washington, DC",
+  "url": "https://job-boards.greenhouse.io/scaleai/jobs/4631848005",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you able to be in office 1-2x per week?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have a security clearance?",
+      "help": "Please select the active US Federal Government security clearance you hold to the best of your knowledge. This will be verified later.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "TS/SCI w/ FSP",
+        "TS/SCI w/ CI Poly",
+        "TS/SCI (or equivalent)",
+        "TS (or equivalent)",
+        "Secret (or equivalent)",
+        "No - I am interested in obtaining one.",
+        "No - I am NOT interested in obtaining one."
+      ]
+    },
+    {
+      "label": "Are you a current or former civilian or military employee of the United States Government? (If yes, when/where were you last employed and what was your highest grade/rank and title?)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have any restrictions on post-government employment? (If yes, please describe.)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you currently bound by any agreements with a current or former employer that may restrict your ability to work for Scale AI or perform the duties of the position for which you are applying? This includes, but is not limited to, non-compete agreements, non-solicitation agreements, confidentiality or non-disclosure agreements, or any other contractual obligations that could limit your employment activities.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If yes, please provide further explanation below.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Who is your current or most recent employer?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your current or more recent job title?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

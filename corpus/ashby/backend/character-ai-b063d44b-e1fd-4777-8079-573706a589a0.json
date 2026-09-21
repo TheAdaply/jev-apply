@@ -1,0 +1,108 @@
+{
+  "ats": "ashby",
+  "company": "character-ai",
+  "family": "backend",
+  "title": "Software Engineer, Backend",
+  "location": "Redwood City, CA",
+  "url": "https://jobs.ashbyhq.com/character/b063d44b-e1fd-4777-8079-573706a589a0",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Linkedin Profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you open to working in a hybrid setup, with 3 days/week onsite at our Redwood City office?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "When could you start working?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you authorized to work lawfully in the US?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "Complicated - would want to discuss"
+      ]
+    },
+    {
+      "label": "How did you hear about Character AI?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Linkedin",
+        "Indeed",
+        "Glassdoor",
+        "Referral",
+        "Character Careers Page",
+        "Other"
+      ]
+    },
+    {
+      "label": "Why are you interested in working at Character AI?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "[Optional] What is one feature you would be excited to add or improve?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

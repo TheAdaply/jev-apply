@@ -1,0 +1,262 @@
+{
+  "ats": "greenhouse",
+  "company": "dropbox",
+  "family": "infra_sre",
+  "title": "Infrastructure Software Engineer, Metadata Services",
+  "location": "Remote - Poland",
+  "url": "https://jobs.dropbox.com/listing/8090048?gh_jid=8090048",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your legal first name?",
+      "help": "Please confirm your legal first name.",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Location",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Australia",
+        "Canada - Alberta",
+        "Canada - British Columbia",
+        "Canada - Ontario",
+        "Canada - Quebec",
+        "Canada - Saskatchewan",
+        "Canada - New Brunswick",
+        "Canada - Newfoundland and Labrador",
+        "Canada - Northwest Territories",
+        "Canada - Nova Scotia",
+        "Canada - Nunavut",
+        "Canada - Manitoba",
+        "Canada - Prince Edward Island",
+        "Canada - Yukon",
+        "United Kingdom",
+        "France",
+        "Germany",
+        "Ireland",
+        "Israel",
+        "Japan",
+        "Mexico",
+        "Netherlands",
+        "Poland",
+        "Singapore",
+        "Sweden",
+        "Switzerland",
+        "Taiwan",
+        "US - Alabama",
+        "US - Alaska",
+        "US - Arizona",
+        "US - Arkansas",
+        "US - California",
+        "US - Colorado",
+        "US - Connecticut",
+        "US - Delaware",
+        "US - Florida",
+        "US - Georgia",
+        "US - Hawaii",
+        "US - Idaho",
+        "US - Illinois",
+        "US - Indiana",
+        "US - Iowa",
+        "US - Kansas",
+        "US - Kentucky",
+        "US - Louisiana",
+        "US - Maine",
+        "US - Maryland",
+        "US - Massachusetts",
+        "US - Michigan",
+        "US - Minnesota",
+        "US - Mississippi",
+        "US - Missouri",
+        "US - Montana",
+        "US - Nebraska",
+        "US - Nevada",
+        "US - New Hampshire",
+        "US - New Jersey",
+        "US - New Mexico",
+        "US - New York",
+        "US - North Carolina",
+        "US - North Dakota",
+        "US - Ohio",
+        "US - Oklahoma",
+        "US - Oregon",
+        "US - Pennsylvania",
+        "US - Rhode Island",
+        "US - South Carolina",
+        "US - South Dakota",
+        "US - Tennessee",
+        "US - Texas",
+        "US - Utah",
+        "US - Vermont",
+        "US - Virginia",
+        "US - Washington",
+        "US - Washington, D.C",
+        "US - West Virginia",
+        "US - Wisconsin",
+        "Other Location"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require sponsorship for work authorization?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "No, I can work for any employer in the offer location without sponsorship",
+        "Yes, I require sponsorship for work authorization in the offer location"
+      ]
+    },
+    {
+      "label": "How did you hear about this role? (Please select all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "BuiltIn",
+        "Contacted by Recruiter",
+        "Dropbox Career Site",
+        "Dropbox Talent Community",
+        "Facebook",
+        "Glassdoor",
+        "Google Search",
+        "In Person Event",
+        "Indeed",
+        "InHerSight",
+        "Instagram",
+        "LinkedIn",
+        "Referral from Dropboxer",
+        "The Muse"
+      ]
+    },
+    {
+      "label": "Have you previously worked for Dropbox?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, former employee",
+        "Yes, former contingent worker or vendor",
+        "No, I have not previously worked for Dropbox"
+      ]
+    },
+    {
+      "label": "Do you have at least 5 years of full time relevant working experience?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please email me about future job openings",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location Cost Tier",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "High Cost",
+        "Mid Cost",
+        "Low Cost",
+        "Unknown"
+      ]
+    },
+    {
+      "label": "Fingerprint",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

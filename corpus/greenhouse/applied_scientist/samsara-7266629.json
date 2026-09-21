@@ -1,0 +1,304 @@
+{
+  "ats": "greenhouse",
+  "company": "samsara",
+  "family": "applied_scientist",
+  "title": "Tech Lead Applied Scientist",
+  "location": "Remote - US",
+  "url": "https://www.samsara.com/company/careers/roles/7266629?gh_jid=7266629",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "If you do not have a preferred name, please enter your legal name.",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred Last Name",
+      "help": "If you do not have a preferred name, please enter your legal name.",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or in the future require Samsara to commence (“sponsor”) an immigration case in order to employ you?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently legally authorized to work in the country in which this job is based (e.g. you are a citizen, you have a visa, etc.)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "At Samsara, we encourage employees to bring their whole selves to work (this includes applicants too!) Feel free to share your preferred name and pronouns (she/her, they/them, he/him, ze/zir etc.).",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Processing of Personal Data",
+      "help": "When you apply to a job on this site, the personal data contained in your application will be collected by Samsara Inc. and/or one of its subsidiaries (&ldquo;Samsara&rdquo;) using Greenhouse Software, Inc., a cloud services provider located in the United States of America (\"Greenhouse\"). Greenhous…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Acknowledge/Confirm"
+      ]
+    },
+    {
+      "label": "What is the zip code of your primary residence?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "AI Policy for Interviewers",
+      "help": "Our interview process is designed to assess a candidate&rsquo;s fundamental, non-AI-assisted skills. Please do not use any AI tools during any part of the interview process. Please indicate &ldquo;Yes&rdquo; if you have read and agree. Candidates found to be in violation of this policy may be immed…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Most Recent Employer",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this opportunity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Samsara Careers Site",
+        "LinkedIn Jobs",
+        "LinkedIn Post",
+        "LinkedIn InMail / Message from a Recruiter or Hiring Manager",
+        "Direct Email / Call/ Text from a Recruiter or Hiring Manager",
+        "Indeed / Glassdoor",
+        "Reddit Ad",
+        "BuiltIn",
+        "RepVue",
+        "Women in Sales Club",
+        "Wellfound",
+        "Just Join IT",
+        "Industry Conference or Event",
+        "Samsara Hosted Event",
+        "Instahyre",
+        "Naukri",
+        "University / Campus Recruiting",
+        "School Alumni Job Board or LinkedIn Group",
+        "Company Alumni Job Board or LinkedIn Group",
+        "Hardware FYI"
+      ]
+    },
+    {
+      "label": "Where have you learned about Samsara? Select all that apply.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "LinkedIn",
+        "Samsara blog or website",
+        "News or press coverage",
+        "Podcast",
+        "Industry event or conference",
+        "Word of mouth (friend, family, or colleague)",
+        "A current Samsara employee",
+        "Glassdoor or Blind",
+        "X / Twitter",
+        "Instagram",
+        "Facebook",
+        "YouTube",
+        "Tiktok",
+        "Other",
+        "I wasn't familiar with Samsara before applying"
+      ]
+    },
+    {
+      "label": "If you selected 'Other' for where you learned about Samsara, please share additional details.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you previously worked at Samsara?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, as a full-time employee",
+        "Yes, as a contractor",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "How do you identify? (gender identity)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "[Optional] Demographic Questions (US, EMEA, Mexico, Canada, India)",
+      "options": [
+        "Agender",
+        "Cis-man",
+        "Cis-woman",
+        "Gender Fluid",
+        "Genderqueer",
+        "Man",
+        "Non-Binary",
+        "Transgender",
+        "Trans non-binary",
+        "Woman",
+        "I prefer to self describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "How do you identify? (race/ethnicity)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "[Optional] Demographic Questions (US, EMEA, Mexico, Canada, India)",
+      "options": [
+        "Black / of African descent",
+        "East Asian (inclusive of Chinese, Japanese, Korean, Mongolian, Tibetan, and Taiwanese)",
+        "Latinx / Hispanic",
+        "Middle Eastern",
+        "Native American or Alaska Native",
+        "Pacific Islander or Native Hawaiian",
+        "South Asian (inclusive of Bangladeshi, Bhutanese, Indian, Nepali, Pakistani, and Sri Lankan)",
+        "Southeast Asian (inclusive of Burmese, Cambodian, Filipino, Hmong, Indonesian, Laotian, Malaysian, Mien, Singaporean, Thai, and Vietnamese)",
+        "Two or more races",
+        "White",
+        "I prefer to self describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "If you are based in the US, what is your veteran status?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "[Optional] Demographic Questions (US, EMEA, Mexico, Canada, India)",
+      "options": [
+        "I am a protected veteran",
+        "I am not a protected veteran",
+        "I prefer to self describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you have a physical or mental disability, impairment, or condition that substantially limits major life activity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "[Optional] Demographic Questions (US, EMEA, Mexico, Canada, India)",
+      "options": [
+        "Yes, I have a disability (or previously had a disability)",
+        "No, I don’t have a disability",
+        "I prefer to self describe",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "[Optional] Demographic Questions (US, EMEA, Mexico, Canada, India)"
+  ],
+  "captured": "2026-09-22"
+}

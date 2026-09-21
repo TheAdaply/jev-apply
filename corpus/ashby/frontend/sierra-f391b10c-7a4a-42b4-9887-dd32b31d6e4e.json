@@ -1,0 +1,148 @@
+{
+  "ats": "ashby",
+  "company": "sierra",
+  "family": "frontend",
+  "title": "Software Engineer, Frontend",
+  "location": "San Francisco, CA",
+  "url": "https://jobs.ashbyhq.com/sierra/f391b10c-7a4a-42b4-9887-dd32b31d6e4e",
+  "questions": [
+    {
+      "label": "Legal First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Legal Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First & Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What's your favorite junk food?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require visa sponsorship to work in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you able to work from San Francisco, CA?",
+      "help": "Sierra believes working alongside one another as a team is an important part of building great products and a great culture. We are primarily an in-person company based in San Francisco. Does that work for you?",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, and I currently live in the SF Bay Area.",
+        "Yes, and while I do not currently live in the SF Bay Area, I am open to relocation.",
+        "No or Other. Please add more details in the \"Anything else\" section below."
+      ]
+    },
+    {
+      "label": "We use Metaview, an AI notetaking tool, to streamline interviews by recoding and summarizing discussions, enabling interviewers to be fully present without manual notetaking. With your approval, it silently records notes during interviews. Can Metaview transcribe all your interviews?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "How did you hear about this opportunity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Blog or news article",
+        "Company website",
+        "Current employee",
+        "Event",
+        "LinkedIn",
+        "Other",
+        "Podcast",
+        "Search engine"
+      ]
+    },
+    {
+      "label": "Anything else? (Optional)",
+      "help": "Is there anything else we should know about your candidacy or interest in Sierra?",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,96 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "security",
+  "title": "Application Security Architect",
+  "location": "United Kingdom - Oxford",
+  "url": "https://jobs.lever.co/veeva/c232aa51-25de-4d8b-b827-2ed41be52a76/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Which country do you currently reside in?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Country of Residence: Application Security Architect -",
+      "options": [
+        "Spain",
+        "Portugal",
+        "UK",
+        "Other"
+      ]
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "- Country of Residence: Application Security Architect -",
+    "Next Step Confirmation"
+  ],
+  "captured": "2026-09-22"
+}

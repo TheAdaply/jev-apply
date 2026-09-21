@@ -1,0 +1,86 @@
+{
+  "ats": "ashby",
+  "company": "cognition",
+  "family": "devrel_techwriter",
+  "title": "Developer Community Manager",
+  "location": "San Francisco",
+  "url": "https://jobs.ashbyhq.com/cognition/b24559d8-c742-4da9-aa6c-581a00e56090",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Linkedin profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Is there anything else you'd like to add in support of your application?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Describe a program you were responsible for executing end to end. What were the core components, how did you coordinate across teams, and what did you personally own day to day?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you measure success for that program? What signals or metrics mattered most, and how did those results change what you did next?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you marketed to a technical audience before (e.g., engineers, platform teams, technical leaders)? Who was the audience, and how did you adapt your messaging, channels, or programs to resonate with them?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What excites you most about working at Cognition?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

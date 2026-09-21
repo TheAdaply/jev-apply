@@ -1,0 +1,325 @@
+{
+  "ats": "lever",
+  "company": "shield-ai",
+  "family": "ml_engineer",
+  "title": "Senior Engineer, Autonomy Software Integration & Test (R5225)",
+  "location": "Lviv",
+  "url": "https://jobs.lever.co/shieldai/fe446245-61e6-47b2-a6cc-beffb0bdb999/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Twitter URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Are you local to or willing to relocate?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Location Availability",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "What office(s) would you be willing to relocate to? (Select all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Work Location Availability",
+      "options": [
+        "San Diego, California",
+        "Dallas, Texas",
+        "Washington, DC",
+        "Boston, MA",
+        "International",
+        "San Francisco, California"
+      ]
+    },
+    {
+      "label": "If you selected international, what location(s)?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Work Location Availability",
+      "options": []
+    },
+    {
+      "label": "Please select all languages that you are at minimum business conversational or fluent in",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "What languages are you fluent in?",
+      "options": [
+        "English",
+        "Thai",
+        "Mandarin",
+        "Korean",
+        "German",
+        "Ukranian",
+        "French",
+        "Spanish"
+      ]
+    },
+    {
+      "label": "Shield AI provides technology, services, and support to the United States military and allied forces with their various missions. If selected for employment with Shield AI, your contributions will directly relate to and/or support these missions. Are there any reasons why you would not be able to fully contribute in support of the U.S. military and allied forces?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Mission",
+      "options": [
+        "Yes",
+        "No",
+        "Other"
+      ]
+    },
+    {
+      "label": "(Optional) If you selected other or would like to expand on the above, feel free to do so below:",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Mission",
+      "options": []
+    },
+    {
+      "label": "This position may require access to information and technology that is subject to export controls, such as EAR. Are you any of the following?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Export Control Requirements",
+      "options": [
+        "A United States Citizen",
+        "A lawful permanent resident of the United States (i.e. Greencard holder)",
+        "A protected individual",
+        "Other"
+      ]
+    },
+    {
+      "label": "If you selected \"A protected Individual\" OR \"Other\" to the above question, please explain further.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Export Control Requirements",
+      "options": []
+    },
+    {
+      "label": "Are you a transitioning service member?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Fellowship question/Transitioning Service Member",
+      "options": [
+        "No",
+        "Yes"
+      ]
+    },
+    {
+      "label": "If yes, what partnership program are you working with?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Fellowship question/Transitioning Service Member",
+      "options": [
+        "Hiring our Heroes",
+        "NextOp",
+        "Skillbridge general (no program)"
+      ]
+    },
+    {
+      "label": "If other, please provide further details",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Fellowship question/Transitioning Service Member",
+      "options": []
+    },
+    {
+      "label": "When are you available to start your fellowship?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Fellowship question/Transitioning Service Member",
+      "options": []
+    },
+    {
+      "label": "When are you available for full time work?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Fellowship question/Transitioning Service Member",
+      "options": []
+    },
+    {
+      "label": "What full time job(s) are you applying for?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Fellowship question/Transitioning Service Member",
+      "options": []
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I identify as one or more of the classifications of protected veteran listed above",
+        "I am not a protected veteran",
+        "I decline to self-identify for protected veteran status"
+      ]
+    },
+    {
+      "label": "Disability status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Yes, I have a disability, or have had one in the past",
+        "No, I do not have a disability and have not had one in the past",
+        "I do not want to answer"
+      ]
+    },
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "EEO",
+      "options": []
+    },
+    {
+      "label": "Date",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "EEO",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Work Location Availability",
+    "What languages are you fluent in?",
+    "Mission",
+    "Export Control Requirements",
+    "Fellowship question/Transitioning Service Member",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

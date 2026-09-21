@@ -1,0 +1,370 @@
+# jev-apply — extra boards for the question-bank corpus (docs/PLAN.md §2.7, scripts/canon-scan.mjs).
+#
+# private/companies-seed.yml is an AI/infra tracking list: it has no product managers, product
+# designers, mobile engineers, analytics engineers or devrel/technical writers to speak of, and the
+# question bank needs ≥20 real forms per family. These are large Greenhouse / Ashby / Lever users
+# that do post those roles. They are corpus sources only — the discovery pipeline (§2.5) reads
+# companies-seed.yml, not this file.
+#
+# Resolved live on 2026-09-22, same probe as the seed, one request per candidate slug:
+#   greenhouse  GET https://boards-api.greenhouse.io/v1/boards/<token>/jobs   -> 200 + jobs[]
+#   ashby       GET https://api.ashbyhq.com/posting-api/job-board/<org>       -> 200 + jobs[]
+#   lever       GET https://api.lever.co/v0/postings/<site>?mode=json         -> 200 + [ ]
+# `jobs_at_check` is that response's posting count; `families` is the four families the board
+# contributes most postings to, per src/canon/families.mjs.
+#
+# Probed and NOT included: canva, doordash, atlassian, deel, grammarly, hashicorp, klarna, retool,
+# revolut, snyk, unity (no public Greenhouse/Ashby/Lever board answered for any slug candidate).
+# Rippling is excluded by instruction (its own ATS is not in the v1 provider set).
+checked: 2026-09-22
+companies:
+  - name: Stripe
+    provider: greenhouse
+    token: stripe
+    careers_url: https://job-boards.greenhouse.io/stripe
+    jobs_at_check: 670
+    families: [solutions_engineer, product_manager, backend, security]
+    enabled: true
+  - name: Airbnb
+    provider: greenhouse
+    token: airbnb
+    careers_url: https://job-boards.greenhouse.io/airbnb
+    jobs_at_check: 156
+    families: [ml_engineer, analytics_engineer, product_manager, data_scientist]
+    enabled: true
+  - name: Figma
+    provider: greenhouse
+    token: figma
+    careers_url: https://job-boards.greenhouse.io/figma
+    jobs_at_check: 155
+    families: [product_designer, solutions_engineer, ml_engineer, product_manager]
+    enabled: true
+  - name: Brex
+    provider: greenhouse
+    token: brex
+    careers_url: https://job-boards.greenhouse.io/brex
+    jobs_at_check: 253
+    families: [product_manager, product_designer, fullstack, security]
+    enabled: true
+  - name: Coinbase
+    provider: greenhouse
+    token: coinbase
+    careers_url: https://job-boards.greenhouse.io/coinbase
+    jobs_at_check: 217
+    families: [infra_sre, product_manager, ml_engineer, security]
+    enabled: true
+  - name: Datadog
+    provider: greenhouse
+    token: datadog
+    careers_url: https://job-boards.greenhouse.io/datadog
+    jobs_at_check: 449
+    families: [solutions_engineer, product_manager, security, applied_scientist]
+    enabled: true
+  - name: Cloudflare
+    provider: greenhouse
+    token: cloudflare
+    careers_url: https://job-boards.greenhouse.io/cloudflare
+    jobs_at_check: 388
+    families: [solutions_engineer, systems_embedded_compilers, security, ai_product_fde]
+    enabled: true
+  - name: Dropbox
+    provider: greenhouse
+    token: dropbox
+    careers_url: https://job-boards.greenhouse.io/dropbox
+    jobs_at_check: 44
+    families: [infra_sre, solutions_engineer, data_engineer]
+    enabled: true
+  - name: Discord
+    provider: greenhouse
+    token: discord
+    careers_url: https://job-boards.greenhouse.io/discord
+    jobs_at_check: 49
+    families: [fullstack, security, product_designer, data_scientist]
+    enabled: true
+  - name: Duolingo
+    provider: greenhouse
+    token: duolingo
+    careers_url: https://job-boards.greenhouse.io/duolingo
+    jobs_at_check: 81
+    families: [product_manager, mobile, data_scientist, product_designer]
+    enabled: true
+  - name: Reddit
+    provider: greenhouse
+    token: reddit
+    careers_url: https://job-boards.greenhouse.io/reddit
+    jobs_at_check: 155
+    families: [ml_engineer, data_scientist, product_manager, frontend]
+    enabled: true
+  - name: Robinhood
+    provider: greenhouse
+    token: robinhood
+    careers_url: https://job-boards.greenhouse.io/robinhood
+    jobs_at_check: 159
+    families: [mobile, infra_sre, security, product_manager]
+    enabled: true
+  - name: Gusto
+    provider: greenhouse
+    token: gusto
+    careers_url: https://job-boards.greenhouse.io/gusto
+    jobs_at_check: 92
+    families: [product_designer, product_manager, ml_engineer, data_scientist]
+    enabled: true
+  - name: Affirm
+    provider: greenhouse
+    token: affirm
+    careers_url: https://job-boards.greenhouse.io/affirm
+    jobs_at_check: 199
+    families: [backend, fullstack, product_manager, analytics_engineer]
+    enabled: true
+  - name: Instacart
+    provider: greenhouse
+    token: instacart
+    careers_url: https://job-boards.greenhouse.io/instacart
+    jobs_at_check: 110
+    families: [product_manager, ml_engineer, product_designer, analytics_engineer]
+    enabled: true
+  - name: Lyft
+    provider: greenhouse
+    token: lyft
+    careers_url: https://job-boards.greenhouse.io/lyft
+    jobs_at_check: 178
+    families: [data_scientist, product_manager, backend, analytics_engineer]
+    enabled: true
+  - name: Pinterest
+    provider: greenhouse
+    token: pinterest
+    careers_url: https://job-boards.greenhouse.io/pinterest
+    jobs_at_check: 161
+    families: [ml_engineer, data_scientist, product_manager, product_designer]
+    enabled: true
+  - name: Twilio
+    provider: greenhouse
+    token: twilio
+    careers_url: https://job-boards.greenhouse.io/twilio
+    jobs_at_check: 142
+    families: [solutions_engineer, infra_sre, product_manager, security]
+    enabled: true
+  - name: Asana
+    provider: greenhouse
+    token: asana
+    careers_url: https://job-boards.greenhouse.io/asana
+    jobs_at_check: 103
+    families: [solutions_engineer, product_manager, infra_sre, security]
+    enabled: true
+  - name: Elastic
+    provider: greenhouse
+    token: elastic
+    careers_url: https://job-boards.greenhouse.io/elastic
+    jobs_at_check: 367
+    families: [product_manager, security, solutions_engineer, infra_sre]
+    enabled: true
+  - name: Faire
+    provider: greenhouse
+    token: faire
+    careers_url: https://job-boards.greenhouse.io/faire
+    jobs_at_check: 73
+    families: [ml_scientist, fullstack, analytics_engineer, security]
+    enabled: true
+  - name: Flexport
+    provider: greenhouse
+    token: flexport
+    careers_url: https://job-boards.greenhouse.io/flexport
+    jobs_at_check: 195
+    families: [security, product_manager, ai_product_fde, systems_embedded_compilers]
+    enabled: true
+  - name: GitLab
+    provider: greenhouse
+    token: gitlab
+    careers_url: https://job-boards.greenhouse.io/gitlab
+    jobs_at_check: 203
+    families: [backend, solutions_engineer, security, infra_sre]
+    enabled: true
+  - name: Grafana Labs
+    provider: greenhouse
+    token: grafanalabs
+    careers_url: https://job-boards.greenhouse.io/grafanalabs
+    jobs_at_check: 137
+    families: [backend, solutions_engineer, infra_sre, frontend]
+    enabled: true
+  - name: MongoDB
+    provider: greenhouse
+    token: mongodb
+    careers_url: https://job-boards.greenhouse.io/mongodb
+    jobs_at_check: 400
+    families: [solutions_engineer, infra_sre, product_manager, backend]
+    enabled: true
+  - name: Monzo
+    provider: greenhouse
+    token: monzo
+    careers_url: https://job-boards.greenhouse.io/monzo
+    jobs_at_check: 68
+    families: [backend, data_scientist, ml_scientist, product_designer]
+    enabled: true
+  - name: Okta
+    provider: greenhouse
+    token: okta
+    careers_url: https://job-boards.greenhouse.io/okta
+    jobs_at_check: 330
+    families: [infra_sre, solutions_engineer, product_manager, ml_engineer]
+    enabled: true
+  - name: Remote
+    provider: greenhouse
+    token: remotecom
+    careers_url: https://job-boards.greenhouse.io/remotecom
+    jobs_at_check: 177
+    families: [product_manager, infra_sre, product_designer]
+    enabled: true
+  - name: Roblox
+    provider: greenhouse
+    token: roblox
+    careers_url: https://job-boards.greenhouse.io/roblox
+    jobs_at_check: 250
+    families: [security, ml_engineer, infra_sre, product_manager]
+    enabled: true
+  - name: Samsara
+    provider: greenhouse
+    token: samsara
+    careers_url: https://job-boards.greenhouse.io/samsara
+    jobs_at_check: 265
+    families: [solutions_engineer, security, data_engineer, ml_engineer]
+    enabled: true
+  - name: Webflow
+    provider: greenhouse
+    token: webflow
+    careers_url: https://job-boards.greenhouse.io/webflow
+    jobs_at_check: 27
+    families: [solutions_engineer, infra_sre, devrel_techwriter, ai_product_fde]
+    enabled: true
+  - name: Wise
+    provider: greenhouse
+    token: wise
+    careers_url: https://job-boards.greenhouse.io/wise
+    jobs_at_check: 17
+    families: []
+    enabled: true
+  - name: Notion
+    provider: ashby
+    org: notion
+    careers_url: https://jobs.ashbyhq.com/notion
+    jobs_at_check: 128
+    families: [solutions_engineer, ai_product_fde, security, product_designer]
+    enabled: true
+  - name: Ramp
+    provider: ashby
+    org: ramp
+    careers_url: https://jobs.ashbyhq.com/ramp
+    jobs_at_check: 150
+    families: [product_manager, security, ai_product_fde, solutions_engineer]
+    enabled: true
+  - name: Linear
+    provider: ashby
+    org: linear
+    careers_url: https://jobs.ashbyhq.com/linear
+    jobs_at_check: 31
+    families: [fullstack, product_designer, product_manager, devrel_techwriter]
+    enabled: true
+  - name: Plaid
+    provider: ashby
+    org: plaid
+    careers_url: https://jobs.ashbyhq.com/plaid
+    jobs_at_check: 118
+    families: [product_manager, ml_engineer, backend, fullstack]
+    enabled: true
+  - name: 1Password
+    provider: ashby
+    org: 1password
+    careers_url: https://jobs.ashbyhq.com/1password
+    jobs_at_check: 63
+    families: [security, solutions_engineer, product_manager, fullstack]
+    enabled: true
+  - name: Vanta
+    provider: ashby
+    org: vanta
+    careers_url: https://jobs.ashbyhq.com/vanta
+    jobs_at_check: 90
+    families: [fullstack, product_designer, solutions_engineer, ml_engineer]
+    enabled: true
+  - name: Miro
+    provider: ashby
+    org: miro
+    careers_url: https://jobs.ashbyhq.com/miro
+    jobs_at_check: 28
+    families: [solutions_engineer, security, ai_product_fde]
+    enabled: true
+  - name: Zapier
+    provider: ashby
+    org: zapier
+    careers_url: https://jobs.ashbyhq.com/zapier
+    jobs_at_check: 8
+    families: [backend, analytics_engineer, solutions_engineer, product_designer]
+    enabled: true
+  - name: Shield AI
+    provider: lever
+    site: shieldai
+    careers_url: https://jobs.lever.co/shieldai
+    jobs_at_check: 508
+    families: [ml_engineer, infra_sre, solutions_engineer, systems_embedded_compilers]
+    enabled: true
+  - name: Palantir
+    provider: lever
+    site: palantir
+    careers_url: https://jobs.lever.co/palantir
+    jobs_at_check: 312
+    families: [ai_product_fde, infra_sre, security, backend]
+    enabled: true
+  - name: Binance
+    provider: lever
+    site: binance
+    careers_url: https://jobs.lever.co/binance
+    jobs_at_check: 311
+    families: [product_manager, data_scientist, backend, analytics_engineer]
+    enabled: true
+  - name: Zoox
+    provider: lever
+    site: zoox
+    careers_url: https://jobs.lever.co/zoox
+    jobs_at_check: 234
+    families: [systems_embedded_compilers, ml_engineer, infra_sre, data_scientist]
+    enabled: true
+  - name: Veeva
+    provider: lever
+    site: veeva
+    careers_url: https://jobs.lever.co/veeva
+    jobs_at_check: 924
+    families: [product_manager, analytics_engineer, infra_sre, solutions_engineer]
+    enabled: true
+  - name: Gopuff
+    provider: lever
+    site: gopuff
+    careers_url: https://jobs.lever.co/gopuff
+    jobs_at_check: 789
+    families: [analytics_engineer, data_engineer]
+    enabled: true
+  - name: PointClickCare
+    provider: lever
+    site: pointclickcare
+    careers_url: https://jobs.lever.co/pointclickcare
+    jobs_at_check: 87
+    families: [product_manager, ml_engineer, infra_sre, data_engineer]
+    enabled: true
+  - name: Spotify
+    provider: lever
+    site: spotify
+    careers_url: https://jobs.lever.co/spotify
+    jobs_at_check: 75
+    families: [ml_engineer, product_manager, ml_scientist, data_scientist]
+    enabled: true
+  - name: Match Group
+    provider: lever
+    site: matchgroup
+    careers_url: https://jobs.lever.co/matchgroup
+    jobs_at_check: 70
+    families: [product_manager, backend, mobile, analytics_engineer]
+    enabled: true
+  - name: JumpCloud
+    provider: lever
+    site: jumpcloud
+    careers_url: https://jobs.lever.co/jumpcloud
+    jobs_at_check: 24
+    families: [solutions_engineer, data_scientist]
+    enabled: true

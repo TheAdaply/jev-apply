@@ -1,0 +1,128 @@
+{
+  "ats": "greenhouse",
+  "company": "cloudflare",
+  "family": "solutions_engineer",
+  "title": "Principal Solutions Architect - SAARC",
+  "location": "Hybrid",
+  "url": "https://boards.greenhouse.io/cloudflare/jobs/8219990?gh_jid=8219990",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Legal Name (if different than above)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Would you like to include your LinkedIn profile, personal website or blog?",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you currently live or are you willing to relocate to the job’s location?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I currently live in this job's location.",
+        "I am willing to relocate to this job's location.",
+        "I do not live and not willing to relocate to this job's location."
+      ]
+    },
+    {
+      "label": "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please review and acknowledge Cloudflare's Candidate Privacy Policy (cloudflare.com/candidate-privacy-notice/).",
+      "help": "Candidate Privacy Policy",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Acknowledge/Confirm"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

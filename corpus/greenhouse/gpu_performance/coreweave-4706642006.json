@@ -1,0 +1,248 @@
+{
+  "ats": "greenhouse",
+  "company": "coreweave",
+  "family": "gpu_performance",
+  "title": "Finance Manager - GPU Capacity Planning",
+  "location": "Livingston, NJ / New York, NY / Sunnyvale, CA / San Francisco, CA / Bellevue, WA",
+  "url": "https://coreweave.com/careers/job?4706642006&board=coreweave&gh_jid=4706642006",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred Last Name (if different from legal last name)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Where are you currently located? (city, state)",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you comfortable interviewing for the salary outlined in the job description ?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have the right to work in the country you are applying to?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Current Company",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you now or will you in the future require sponsorship to work in the country you are applying to?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Legal Address",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you open to working 3 days from one of our office hubs in NYC, NJ, CA, WA?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you a former CoreWeave employee?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you now or have you ever been employed by CoreWeave?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please indicate whether you are a “U.S. person”. U.S. person is defined as a (i) U.S. citizen or national; (ii) U.S. lawful permanent resident; (iii) refugee under 8 U.S.C. § 1157; or (iv) asylee under 8 U.S.C. § 1158.",
+      "help": "Note: This information is required and only used by CoreWeave to ensure compliance with U.S. export control laws and regulations.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you now or will you in the future require sponsorship to work in the United States? (e.g. H1-B, H1B1, TN, E3, CPT, OPT/STEM OPT, H4, J2, or other visa type)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

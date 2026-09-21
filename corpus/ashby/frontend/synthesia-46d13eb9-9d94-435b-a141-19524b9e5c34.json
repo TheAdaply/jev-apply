@@ -1,0 +1,94 @@
+{
+  "ats": "ashby",
+  "company": "synthesia",
+  "family": "frontend",
+  "title": "Senior Frontend Engineer, Marketing Website",
+  "location": "London",
+  "url": "https://jobs.ashbyhq.com/synthesia/46d13eb9-9d94-435b-a141-19524b9e5c34",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Linkedin Profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorised to work in the country you wish to work in without the need for visa sponsorship?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Do you require ongoing employer support to maintain your right to work (e.g., visa renewals or work permit sponsorship)?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Do you have prior experience working on marketing websites?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    },
+    {
+      "label": "Do you have hands on experience with Sanity CMS?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Default Application Form",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Default Application Form"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,136 @@
+{
+  "ats": "ashby",
+  "company": "mistral",
+  "family": "applied_scientist",
+  "title": "Applied Scientist",
+  "location": "Palo Alto",
+  "url": "https://jobs.ashbyhq.com/mistral.ai/5d15e1fe-789d-451d-8521-568906620c21",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Additional information",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Design Portfolio",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "This position is based in our Palo Alto, San Francisco, or New York office. We offer visa transfers and relocation assistance. Please confirm your situation:",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Location (Palo Alto or NYC)",
+      "options": []
+    },
+    {
+      "label": "Have you run training jobs over multiple GPU nodes, if so what parallelism techniques have you used? - If there are certain frameworks to do this, which ones?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Applied Science US",
+      "options": []
+    },
+    {
+      "label": "Have you done supervised fine-tuning work? If so, can you describe the nature of it?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Applied Science US",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location (Palo Alto or NYC)",
+    "Applied Science US"
+  ],
+  "captured": "2026-09-22"
+}

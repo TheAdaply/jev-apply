@@ -1,0 +1,294 @@
+{
+  "ats": "greenhouse",
+  "company": "instacart",
+  "family": "devrel_techwriter",
+  "title": "Senior Software Engineer II, Developer Experience",
+  "location": "Canada - Remote (ON, AB, BC, or NS Only)",
+  "url": "https://instacart.careers/job/?gh_jid=8204016",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you currently, or have you previously, worked for Instacart?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile:",
+      "help": "Provide link to your LinkedIn Profile. If none, specify N/A.",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website(s)",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally entitled to work in Canada?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you authorized to work in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Which state or province do you currently live in?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "(US) Alabama",
+        "(US) Alaska",
+        "(US) Arizona",
+        "(US) Arkansas",
+        "(US) California",
+        "(US) Colorado",
+        "(US) Connecticut",
+        "(US) Delaware",
+        "(US) Florida",
+        "(US) Georgia",
+        "(US) Hawaii",
+        "(US) Idaho",
+        "(US) Illinois",
+        "(US) Indiana",
+        "(US) Iowa",
+        "(US) Kansas",
+        "(US) Kentucky",
+        "(US) Louisiana",
+        "(US) Maine",
+        "(US) Maryland",
+        "(US) Massachusetts",
+        "(US) Michigan",
+        "(US) Minnesota",
+        "(US) Mississippi",
+        "(US) Missouri",
+        "(US) Montana",
+        "(US) Nebraska",
+        "(US) Nevada",
+        "(US) New Hampshire",
+        "(US) New Jersey",
+        "(US) New Mexico",
+        "(US) New York",
+        "(US) North Carolina",
+        "(US) North Dakota",
+        "(US) Ohio",
+        "(US) Oklahoma",
+        "(US) Oregon",
+        "(US) Pennsylvania",
+        "(US) Rhode Island",
+        "(US) South Carolina",
+        "(US) South Dakota",
+        "(US) Tennessee",
+        "(US) Texas",
+        "(US) Utah",
+        "(US) Vermont",
+        "(US) Virginia",
+        "(US) Washington",
+        "(US) Washington, D.C.",
+        "(US) West Virginia",
+        "(US) Wisconsin",
+        "(US) Wyoming",
+        "(CAN) Alberta",
+        "(CAN) British Columbia",
+        "(CAN) Manitoba",
+        "(CAN) New Brunswick",
+        "(CAN) Newfoundland and Labrador",
+        "(CAN) Nova Scotia",
+        "(CAN) Ontario",
+        "(CAN) Prince Edward Island",
+        "(CAN) Quebec",
+        "(CAN) Saskatchewan"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require immigration sponsorship to work for Instacart?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "What is your gender or gender identity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self ID Questionnaire (Canada)",
+      "options": [
+        "Woman",
+        "Man",
+        "Non-Conforming/Non-Binary/Third Gender",
+        "Not Listed",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you identify as a member of the 2SLGBTQIA+ community?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self ID Questionnaire (Canada)",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Please indicate which best describes your race/ethnicity/national heritage and/or cultural background. Check all that apply.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Voluntary Self ID Questionnaire (Canada)",
+      "options": [
+        "White / Caucasian (A person having origins in any of the original peoples of Europe, the Middle East, or North Africa)",
+        "Hispanic or Latinx (A person of Cuban, Mexican, Puerto Rican, South or Central American or other Spanish culture or origin regardless of race)",
+        "Black or African Heritage (A person of African, Caribbean, West Indian descent)",
+        "Asian or Asian-American (A person having origins in any of the original peoples of Asia and the Indian subcontinent including all 48 Asian countries - ie. Cambodia, China, India, Japan, Korea, Malaysia, Pakistan, the Philippine Islands, Thailand, Vietnam)",
+        "Native Hawaiian or other Pacific Islander (A person having origins in any of the original peoples of Hawaii, Guam, Samoa, or other Pacific Islands)",
+        "Indigenous Peoples (A person having origins in any of the original peoples origin including First Nations, Inuit, Métis)",
+        "Non-Canadian Indigenous Peoples (A person from United States, Australia, Central/South America)",
+        "A race, ethnicity, or origin not shown",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you identify as a Person of Colour?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self ID Questionnaire (Canada)",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Disability Status",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self ID Questionnaire (Canada)",
+      "options": [
+        "Yes, I have a disability, or have a history/record of having a disability",
+        "No, I don't have a disability, or a history/record of having a disability",
+        "I am unsure of my disability status",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Are you a Canadian Armed Forces Veteran/Reservist or the spouse of a Canadian Armed Forces Veteran/Reservist?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self ID Questionnaire (Canada)",
+      "options": [
+        "Yes - I am a Canadian Armed Forces Veteran/Reservist",
+        "Yes - I am the spouse of a Canadian Armed Forces Veteran/Reservist",
+        "Yes - I am both the spouse and a Canada Armed Forces Veteran/Reservist",
+        "Yes - I am veteran or spouse of a veteran (non-Canadian Armed Services)",
+        "No",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Voluntary Self ID Questionnaire (Canada)"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,193 @@
+{
+  "ats": "greenhouse",
+  "company": "airbnb",
+  "family": "mobile",
+  "title": "Mobile Software Engineer, Quality Platform",
+  "location": "Brazil",
+  "url": "https://careers.airbnb.com/positions/8189374?gh_jid=8189374",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Aviso de Privacidade de Dados do Airbnb (Airbnb Data Privacy Notice) - Brazil",
+      "help": "O Airbnb est&aacute; comprometido em criar um ambiente de trabalho diversificado. Nesse sentido, para medir nossos esfor&ccedil;os, convidamos os candidatos a identificarem o seu g&ecirc;nero, etnia, e se s&atilde;o portadores de defici&ecirc;ncia. Respostas a essas perguntas s&atilde;o totalmente…",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Aceito os termos do Aviso de Privacidade de Dados do Airbnb. (I accept the terms of the Airbnb Data Privacy Notice.)"
+      ]
+    },
+    {
+      "label": "O gênero com o qual você se identifica (The gender you identify with) - Brazil",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Feminino (Female)",
+        "Masculino (Male)",
+        "Não-binário (non-binary)",
+        "Prefiro não responder (Decline to self-identify)"
+      ]
+    },
+    {
+      "label": "O grupo étnico-racial com o qual você se identifica. Você se declara uma pessoa: (The ethnic-racial group you identify with. You declare yourself as:) - Brazil",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Branca (White)",
+        "Parda (Brown)",
+        "Preta (Black)",
+        "Amarela",
+        "Indígena (Indigenous)",
+        "Outro (Other)",
+        "Prefiro não responder (Decline to self-identify)"
+      ]
+    },
+    {
+      "label": "Se você é portador(a) de deficiência (Do you have a disability?) - Brazil",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Sim, sou portador(a) de deficiência (Yes, I have a disability)",
+        "Não, não sou portador(a) de deficiência (No, i do not have a disability)",
+        "Prefiro não responder (Decline to self-identify)"
+      ]
+    },
+    {
+      "label": "Are you legally authorized to work in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I am currently legally authorized to work in the country where the job is located.",
+        "No, I am not currently legally authorized to work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I will require immigration sponsorship now to legally work in the country where the job is located.",
+        "Yes, I will require immigration sponsorship in the future to legally work in the country where the job is located.",
+        "No, I do not and will not require immigration sponsorship to legally work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Are you currently subject to any non-compete or non-solicitation agreement that would impact your ability to work at Airbnb or prevent you from accepting a job offer from Airbnb?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently or have you ever worked for Airbnb in any capacity? This could include, but is not limited to, a full-time employee, intern, apprentice, or contingent worker.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Candidate AI Usage Attestation:",
+      "help": "By submitting this application, I agree and understand that the use of generative artificial intelligence (&ldquo;AI&rdquo;) tools, for example, ChatGPT, Gemini, and GitHub Copilot (&ldquo;AI Tools&rdquo;) is strictly prohibited during the interview process, unless Airbnb explicitly permits their u…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I agree"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

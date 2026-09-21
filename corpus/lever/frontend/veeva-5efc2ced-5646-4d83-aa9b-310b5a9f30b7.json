@@ -1,0 +1,156 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "frontend",
+  "title": "Technical Consultant - Front-end Development",
+  "location": "New Jersey - Princeton",
+  "url": "https://jobs.lever.co/veeva/5efc2ced-5646-4d83-aa9b-310b5a9f30b7/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Do you now, or in the future require sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "United States",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have the unrestricted right to work in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "United States",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "What are your salary expectations?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Salary",
+      "options": []
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I am a veteran",
+        "I am not a veteran",
+        "Decline to self-identify"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "United States",
+    "Salary",
+    "Next Step Confirmation",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

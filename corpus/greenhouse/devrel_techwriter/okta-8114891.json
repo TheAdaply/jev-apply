@@ -1,0 +1,220 @@
+{
+  "ats": "greenhouse",
+  "company": "okta",
+  "family": "devrel_techwriter",
+  "title": "Senior Developer Advocate (Auth0)",
+  "location": "New York, New York",
+  "url": "https://www.okta.com/company/careers/opportunity/8114891?gh_jid=8114891",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country you reside?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require Visa Sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "To the best of your knowledge, do you have any family members / relatives or personal relationships at Okta or at any suppliers, partners, or vendors that have a business relationship with Okta? (For purposes of this question, a “family member / relative or personal relationship” is defined as close personal friends (including sexual and/or romantic relationships), close relatives (spouse, partner, children, cousins, aunts, uncles, nieces, nephews, grandparents or grandchildren), someone who lives in your household, or anyone else with whom you have a close enough personal relationship or connection that it could improperly bias your conduct or decision making or be perceived to be capable of impacting your conduct or decision making.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If yes, please identify name of person / vendor and describe relationship / association:",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have any outside business activity(ies) (advisory, consulting, or board roles, or side businesses) that you would continue engaging in or plan to engage in if you joined Okta in this role?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If yes, please describe:",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you been employed by Okta, Inc. or any of its subsidiaries in the past?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "I acknowledge and agree to the processing of my personal data in accordance with Okta's privacy policy and personnel privacy policy (see below).",
+      "help": "Okta may use AI with this application. If you prefer to opt-out of ADMT/AEDT, please do not apply here; instead submit an ADMT/AEDT Opt Out form here. Personnel Notice (California residents, click here)",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I acknowledge"
+      ]
+    },
+    {
+      "label": "By checking this box, you consent to Okta using your data to evaluate your candidacy for this role and any other current or future roles that may be a fit for your profile. You may request the removal of your data at any time by contacting greenhouse@okta.com.",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Yes"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

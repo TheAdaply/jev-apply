@@ -1,0 +1,138 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "infra_sre",
+  "title": "Senior Software Engineer - SRE",
+  "location": "Germany - Berlin",
+  "url": "https://jobs.lever.co/veeva/fd166377-9045-47d4-92b3-a5c55577e0d0/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Why are you interested in Veeva?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Questions: Engineering",
+      "options": []
+    },
+    {
+      "label": "How do your skills align with the job?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Questions: Engineering",
+      "options": []
+    },
+    {
+      "label": "What are your salary expectations?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Salary",
+      "options": []
+    },
+    {
+      "label": "Please describe your current legal right to work in the country where this role is based. If you would require sponsorship or additional work authorization, please include details:",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Europe - Work Authorization",
+      "options": []
+    },
+    {
+      "label": "Which timezone are you currently located in?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Timezone: EU",
+      "options": []
+    },
+    {
+      "label": "Are you able and willing to work a schedule of Monday - Friday, 6AM - 2PM CET?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Senior Software Engineer - SRE -",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Additional Questions: Engineering",
+    "Salary",
+    "Europe - Work Authorization",
+    "Timezone: EU",
+    "- Senior Software Engineer - SRE -",
+    "Next Step Confirmation"
+  ],
+  "captured": "2026-09-22"
+}

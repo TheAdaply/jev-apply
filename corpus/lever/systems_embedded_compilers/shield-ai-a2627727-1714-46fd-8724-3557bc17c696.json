@@ -1,0 +1,206 @@
+{
+  "ats": "lever",
+  "company": "shield-ai",
+  "family": "systems_embedded_compilers",
+  "title": "Senior Software Engineer, Embedded Linux Platform (R5718)",
+  "location": "Melbourne",
+  "url": "https://jobs.lever.co/shieldai/a2627727-1714-46fd-8724-3557bc17c696/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Twitter URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Do you have the ability to work in Australia without the need for sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "AU - Visa Status",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "How many years experience do you have in this space?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "AU - Experience",
+      "options": []
+    },
+    {
+      "label": "We are based in Port Melbourne, VIC and work on a hybrid model. Will this present any challenges for you?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "AU - Location",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I identify as one or more of the classifications of protected veteran listed above",
+        "I am not a protected veteran",
+        "I decline to self-identify for protected veteran status"
+      ]
+    },
+    {
+      "label": "Disability status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Yes, I have a disability, or have had one in the past",
+        "No, I do not have a disability and have not had one in the past",
+        "I do not want to answer"
+      ]
+    },
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "EEO",
+      "options": []
+    },
+    {
+      "label": "Date",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "EEO",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "AU - Visa Status",
+    "AU - Experience",
+    "AU - Location",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

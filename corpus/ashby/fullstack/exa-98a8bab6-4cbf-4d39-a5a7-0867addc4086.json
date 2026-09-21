@@ -1,0 +1,132 @@
+{
+  "ats": "ashby",
+  "company": "exa",
+  "family": "fullstack",
+  "title": "Software Engineer, Full Stack",
+  "location": "San Francisco, California",
+  "url": "https://jobs.ashbyhq.com/exa/98a8bab6-4cbf-4d39-a5a7-0867addc4086",
+  "questions": [
+    {
+      "label": "Full Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "Earliest month you'd be able to join",
+      "help": "We're growing really fast so the earlier the better!",
+      "type": "text",
+      "required": true,
+      "section": "Personal Information",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Github",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other Links",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Are you based in San Francisco or open to relocating?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Location",
+      "options": [
+        "San Francisco based",
+        "Open to relocating"
+      ]
+    },
+    {
+      "label": "Do you require Visa sponsorship to work in your selected location? If so, which one? And when does your Visa expire?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "Why are you interested in working at Exa? (can be short)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Information",
+      "options": []
+    },
+    {
+      "label": "What's something you worked on that you were proud of?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Information",
+      "options": []
+    },
+    {
+      "label": "What motivates you?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Information",
+      "options": []
+    },
+    {
+      "label": "How did you hear about Exa?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Additional Information",
+      "options": []
+    },
+    {
+      "label": "Are you applying to work on something specific at Exa? (1 sentence, leave blank if you're open to anything)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Additional Information",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Personal Information",
+    "Links",
+    "Location",
+    "Additional Information"
+  ],
+  "captured": "2026-09-22"
+}

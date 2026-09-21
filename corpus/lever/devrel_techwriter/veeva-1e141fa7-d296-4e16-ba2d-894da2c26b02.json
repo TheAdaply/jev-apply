@@ -1,0 +1,224 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "devrel_techwriter",
+  "title": "Technical Curriculum Developer - AI Agents - Remote",
+  "location": "Massachusetts - Boston",
+  "url": "https://jobs.lever.co/veeva/1e141fa7-d296-4e16-ba2d-894da2c26b02/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Do you have the unrestricted right to work in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Additional Questions: US",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you now, or in the future require sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Additional Questions: US",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Have you personally built and deployed a working AI agent using a framework or SDK (e.g., LangChain, LangGraph, Claude Agent SDK, OpenAI Assistants/Agents API, or similar)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If yes, briefly describe what it did and what you built it with.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": []
+    },
+    {
+      "label": "Have you used AI coding tools (e.g., Claude Code, Gemini CLI, Cursor, GitHub Copilot, v0, or similar \"vibe coding\" tools) to build a working project — an app, script, integration, or prototype — from scratch?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If yes, briefly describe what you built.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": []
+    },
+    {
+      "label": "Have you built hands-on labs, sandbox environments, or working code samples as part of a training or enablement program — not just slides or documentation?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If yes, briefly describe the training you built and the intended audience of the training.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": []
+    },
+    {
+      "label": "Can you share a link to a GitHub repo, portfolio, or writeup showing something you've built (an agent, an app, a training lab, etc.)?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": []
+    },
+    {
+      "label": "Can you read, understand, and debug Java code without relying on an AI tool to do it for you?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Technical Curriculum Developer - AI Agents -",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I am a veteran",
+        "I am not a veteran",
+        "Decline to self-identify"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Additional Questions: US",
+    "- Technical Curriculum Developer - AI Agents -",
+    "Next Step Confirmation",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

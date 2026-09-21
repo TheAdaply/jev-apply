@@ -1,0 +1,250 @@
+{
+  "ats": "greenhouse",
+  "company": "lyft",
+  "family": "applied_scientist",
+  "title": "Staff Applied Scientist",
+  "location": "San Francisco, CA",
+  "url": "https://app.careerpuck.com/job-board/lyft/job/8649343002?gh_jid=8649343002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please enter your relevant employment and military service above using the + Add Another Employment link.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Thank you"
+      ]
+    },
+    {
+      "label": "May we contact your current employer?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Can you perform these essential functions of the job with reasonable accommodation?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please describe any need for a reasonable accommodation for this hiring process (no documentation required).",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Work Authorization",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I am authorized to work for any employer in the country in which this position is based.",
+        "I require/will require Lyft's sponsorship to obtain work authorization in the country in which this position is based (e.g. H-1B, TN, etc.)",
+        "My status to work in the country in which this position is based is unknown."
+      ]
+    },
+    {
+      "label": "Please review the linked document:",
+      "help": "Lyft Candidate Privacy Policy (United States)",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I acknowledge that I have read and understood the terms of the Lyft Candidate Privacy Notice."
+      ]
+    },
+    {
+      "label": "Please share your gender pronouns.",
+      "help": "Lyft is committed to maintaining the same safe and inclusive environment for candidates as for our team members. Addressing you by the correct pronoun is an important part of this commitment.",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "She / Her",
+        "He / Him",
+        "They / Them",
+        "Ae / Aer",
+        "Ey / Em",
+        "Fae / Faer",
+        "Ne / Nem",
+        "Per / Per",
+        "Ve / Vir",
+        "Xe / Xem",
+        "Xie / Hir",
+        "Yo / Yo",
+        "Ze / Hir",
+        "Ze / Zir",
+        "Other"
+      ]
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you been employed by Lyft, or any subsidiary, affiliate, or business unit of Lyft, in the past (whether on a full-time or part-time basis)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Zip / postal code",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "This position is based in the United States. Do you currently reside in commutable proximity to a Lyft Office located in San Francisco or are you open to relocating?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I am willing to relocate before starting employment.",
+        "I am not willing to relocate before starting employment.",
+        "I already reside near a Lyft office and I am able to work at a Lyft On-site Office."
+      ]
+    },
+    {
+      "label": "I certify that the facts set forth in this Application for Employment are true and complete to the best of my knowledge. I understand that if I am employed, false statements, omissions or misrepresentations may result in my dismissal. I authorize the Employer to make an investigation of any of the facts set forth in this application and release the Employer from any liability. The employer may contact any provided references.",
+      "help": "Please enter your full name and today's date to signify your electronic signature for this statement.",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "DisabilityStatus",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I do not want to answer",
+        "No, I do not have a disability and have not had one in the past",
+        "Yes, I have a disability, or have had one in the past"
+      ]
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

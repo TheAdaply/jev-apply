@@ -1,0 +1,235 @@
+{
+  "ats": "greenhouse",
+  "company": "discord",
+  "family": "security",
+  "title": "Senior Platform Security Engineer ",
+  "location": "San Francisco Bay Area",
+  "url": "https://job-boards.greenhouse.io/discord/jobs/8769799002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why do you want to work at Discord?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the United States for our Company?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently located in the US?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently based in or willing to relocate to the Bay Area for this position?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Male",
+        "Female",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Race and Ethnicity",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "American Indian or Alaska Native",
+        "I don't wish to answer",
+        "Asian",
+        "Black or African American",
+        "Hispanic or Latino",
+        "Native Hawaiian or Other Pacific Islander",
+        "Two or More Races",
+        "White"
+      ]
+    },
+    {
+      "label": "Veteran Status",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "I am not a protected veteran",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Disability Status",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Yes, I have a disability, or have had one in the past",
+        "No, I do not have a disability and have not had one in the past",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Gender Identity (optional)",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Man",
+        "Woman",
+        "Non-binary or third gender",
+        "Genderqueer",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Race or Ethnicity (optional)",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Black or of African descent",
+        "East Asian",
+        "Hispanic, Latine or of Spanish Origin",
+        "Indigenous, American Indian or Alaska Native",
+        "Middle Eastern or North African Native",
+        "Hawaiian or Pacific Islander",
+        "South Asian",
+        "Southeast Asian",
+        "White or European",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "I consider myself a member of the LGBTQ+ community. (optional)",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Voluntary Self Identification",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Voluntary Self Identification"
+  ],
+  "captured": "2026-09-22"
+}

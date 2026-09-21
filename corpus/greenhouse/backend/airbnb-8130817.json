@@ -1,0 +1,215 @@
+{
+  "ats": "greenhouse",
+  "company": "airbnb",
+  "family": "backend",
+  "title": "Staff Software Engineer, Passport & Commerce (Backend)",
+  "location": "United States",
+  "url": "https://careers.airbnb.com/positions/8130817?gh_jid=8130817",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Company Website (Airbnb Careers)",
+        "Third-party website or search engine",
+        "Social media (Facebook, LinkedIn, Twitter, Instagram)",
+        "Airbnb Tech blog post",
+        "Airbnb.io",
+        "Airbnb Open Source",
+        "Event (Tech Talk, Meetup, conference)",
+        "Airbnb Employee",
+        "Friend, family, colleague",
+        "Other"
+      ]
+    },
+    {
+      "label": "U.S. Equal Opportunity Employment Information (Completion is voluntary)",
+      "help": "Airbnb values diversity, inclusion & belonging for all, and is proud to be an Equal Employment Opportunity employer. It's important to us that our workplace empowers people of all backgrounds, identities, and experiences to feel respected, valued and able to contribute at the highest level. Self-id…",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "I decline to answer the following questions."
+      ]
+    },
+    {
+      "label": "Gender:",
+      "help": "Please identify your gender.",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Male",
+        "Female",
+        "Other",
+        "Decline To Self Identify"
+      ]
+    },
+    {
+      "label": "Race:",
+      "help": "Please identify your race. Race & Ethnicity Definitions: Hispanic or Latino: A person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin regardless of race. White (Not Hispanic or Latino): A person having origins in any of the original peoples of Europe,…",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "American Indian or Alaskan Native",
+        "Asian",
+        "Black or African American",
+        "Hispanic or Latino",
+        "White",
+        "Native Hawaiian or Other Pacific Islander",
+        "Two or More Races",
+        "Decline to Self Identify"
+      ]
+    },
+    {
+      "label": "Veteran Status:",
+      "help": "Please identify your veteran status.",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "I am a protected veteran",
+        "I am not a protected veteran",
+        "Decline to Self Identify"
+      ]
+    },
+    {
+      "label": "Are you legally authorized to work in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I am currently legally authorized to work in the country where the job is located.",
+        "No, I am not currently legally authorized to work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I will require immigration sponsorship now to legally work in the country where the job is located.",
+        "Yes, I will require immigration sponsorship in the future to legally work in the country where the job is located.",
+        "No, I do not and will not require immigration sponsorship to legally work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Airbnb Candidate Privacy Policy",
+      "help": "I acknowledge that I have read and understood the Airbnb Candidate Privacy Policy.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I acknowledge that I have read and understood the Airbnb Candidate Privacy Policy."
+      ]
+    },
+    {
+      "label": "Are you currently subject to any non-compete or non-solicitation agreement that would impact your ability to work at Airbnb or prevent you from accepting a job offer from Airbnb?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently or have you ever worked for Airbnb in any capacity? This could include, but is not limited to, a full-time employee, intern, apprentice, or contingent worker.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Candidate AI Usage Attestation:",
+      "help": "By submitting this application, I agree and understand that the use of generative artificial intelligence (&ldquo;AI&rdquo;) tools, for example, ChatGPT, Gemini, and GitHub Copilot (&ldquo;AI Tools&rdquo;) is strictly prohibited during the interview process, unless Airbnb explicitly permits their u…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I agree"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,175 @@
+{
+  "ats": "greenhouse",
+  "company": "xai",
+  "family": "ml_engineer",
+  "title": "Software Engineer - Training/Inference (C++)",
+  "location": "Palo Alto, CA",
+  "url": "https://job-boards.greenhouse.io/xai/jobs/4533894007",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full Legal Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full Legal Name in Native Language (e.g. Chinese Characters, Cyrillic, Farsi etc)",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Company",
+      "help": "If you are currently employed in the field, please tell us the name of your employer.",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current title",
+      "help": "If you are currently employed in the field, please tell us your role including your seniority level (e.g. Software Engineer II).",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "If you have a public LinkedIn profile, please provide its URL.",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "If you have a Google Scholar page, please provide its URL.",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "X Profile",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Your Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "If working in the US, will you now, or in the future, require sponsorship for employment visa status (e.g., H-1B visa) to legally work in the US?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please indicate your SpaceXAI employment history.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter",
+        "I am a current or former SpaceX, SpaceXAI, xAI, X, or Twitter Intern",
+        "I am a current SpaceX employee",
+        "I am a current SpaceXAI employee",
+        "I am a former SpaceX, SpaceXAI, xAI, X, or Twitter employee",
+        "I am currently working or have worked at a SpaceX, SpaceXAI, xAI, X, or Twitter facility for another employer (i.e. contracted by a third-party employer)"
+      ]
+    },
+    {
+      "label": "What exceptional work have you done?",
+      "help": "In 100 words or less, tell us about a piece of work you are most proud of.",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about us?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Company careers page / website",
+        "LinkedIn",
+        "Indeed",
+        "Glassdoor",
+        "Google search (or other search engine)",
+        "Employee referral",
+        "Friend, family, or personal network",
+        "Recruiter or staffing agency",
+        "X (Twitter)",
+        "Other social media",
+        "University / school (career services, professor, Handshake, etc.)",
+        "Job fair, conference, or event",
+        "Previously employed with the company",
+        "Other"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,155 @@
+{
+  "ats": "lever",
+  "company": "match-group",
+  "family": "product_manager",
+  "title": "Product Manager（プロダクトマネージャー）",
+  "location": "Tokyo",
+  "url": "https://jobs.lever.co/matchgroup/dc1c554b-58ab-425d-880d-4d304ee20fc8/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "How did you apply for this job?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "APAC - Job Source",
+      "options": [
+        "Referral",
+        "LinkedIn",
+        "Social Media (X, Instagram, Facebook, etc.)",
+        "Job Board (Lapras, Indeed, Wantedly, etc.)",
+        "Pairs Engineering Blog",
+        "Pairs Career Site",
+        "Careers at Match Group",
+        "Recruiting Agency",
+        "Other"
+      ]
+    },
+    {
+      "label": "If you selected other, please specify here.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "APAC - Job Source",
+      "options": []
+    },
+    {
+      "label": "What gender do you identify as?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "Female",
+        "Male",
+        "Prefer not to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "APAC - Job Source",
+    "Demographic Survey"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,115 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "solutions_engineer",
+  "title": "IT Consultant - Solutions Architect - Veeva Promomats (Remote)",
+  "location": "Hungary - Budapest",
+  "url": "https://jobs.lever.co/veeva/12194e83-3c4a-4a9d-a398-ce906a8063ce/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "What is your current residency and relocation status regarding Hungary?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Location/Residency: Hungary -",
+      "options": [
+        "I am already based in Hungary.",
+        "I live outside of Hungary, but I am willing to relocate.",
+        "I live outside of Hungary and I am not willing to relocate."
+      ]
+    },
+    {
+      "label": "Do you have a current legal right to work in the country where this role is based?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Europe: Work Authorization",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If you would require sponsorship or additional work authorization, please include details.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Europe: Work Authorization",
+      "options": []
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "- Location/Residency: Hungary -",
+    "Europe: Work Authorization",
+    "Next Step Confirmation"
+  ],
+  "captured": "2026-09-22"
+}

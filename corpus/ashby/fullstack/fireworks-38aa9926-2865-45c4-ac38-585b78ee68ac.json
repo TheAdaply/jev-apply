@@ -1,0 +1,143 @@
+{
+  "ats": "ashby",
+  "company": "fireworks",
+  "family": "fullstack",
+  "title": "Member of Technical Staff- Full Stack ",
+  "location": "San Mateo",
+  "url": "https://jobs.ashbyhq.com/fireworks/38aa9926-2865-45c4-ac38-585b78ee68ac",
+  "questions": [
+    {
+      "label": "Legal Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred Name (if applicable)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you authorized to work in the country where the job is located?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or in the future require visa sponsorship to work in the country where this position is located?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Where are you currently located?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Which office location(s) are you interested in?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "London, UK",
+        "New York, NY",
+        "Remote, US",
+        "San Mateo, CA",
+        "Singapore"
+      ]
+    },
+    {
+      "label": "Are you open to a hybrid schedule with in-office days on Monday, Wednesday, and Friday?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why are you interested in Fireworks AI?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "If offered a position, what is your ideal start-date?",
+      "help": "",
+      "type": "date",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have any initial compensation expectations?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Interview Recording Consent",
+      "help": "About Interview Recording To keep your interview experience seamless and distraction-free, we use an AI Notetaker to record and transcribe our interviews. This helps interviewers focus fully on the conversation and ensures your responses are captured accurately. The recording will only be used inte…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I consent to be recorded",
+        "Opt out of recording"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

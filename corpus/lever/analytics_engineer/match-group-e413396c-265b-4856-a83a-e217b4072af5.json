@@ -1,0 +1,149 @@
+{
+  "ats": "lever",
+  "company": "match-group",
+  "family": "analytics_engineer",
+  "title": "Senior Data & Analytics Engineer (Azar)",
+  "location": "Seoul, South Korea",
+  "url": "https://jobs.lever.co/matchgroup/e413396c-265b-4856-a83a-e217b4072af5/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "What is your current work authorization status in South Korea?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "HPCNT - Korea Visa",
+      "options": [
+        "South Korean Citizen (대한민국 국적자)",
+        "Foreigner with a valid work visa (유효한 취업 비자를 보유한 외국인)",
+        "Foreigner requiring visa sponsorship (비자 스폰서십이 필요한 외국인)"
+      ]
+    },
+    {
+      "label": "[Only for Visa Holders] If you hold a visa, please specify your Visa Type and Expiration Date. ((If you are a Korean Citizen or require sponsorship, please write \"N/A\"). Expected Answer Format: Example: F-4 Visa / Dec 31, 2028. If not applicable: N/A)",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "HPCNT - Korea Visa",
+      "options": []
+    },
+    {
+      "label": "What gender do you identify as?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "Female",
+        "Male",
+        "Prefer not to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "HPCNT - Korea Visa",
+    "Demographic Survey"
+  ],
+  "captured": "2026-09-22"
+}

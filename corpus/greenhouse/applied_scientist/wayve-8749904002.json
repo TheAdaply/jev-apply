@@ -1,0 +1,179 @@
+{
+  "ats": "greenhouse",
+  "company": "wayve",
+  "family": "applied_scientist",
+  "title": "Applied Scientist/Machine Learning Engineer Gaia",
+  "location": "London; Sunnyvale",
+  "url": "https://wayve.firststage.co/jobs?gh_jid=8749904002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your current LinkedIn public profile URL",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Can you commit to a minimum of 2 days a week in our Kings Cross office?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Learn more about how we handle your data for recruiting purposes in our privacy notice",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Acknowledged"
+      ]
+    },
+    {
+      "label": "What is your gender identity?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Wayve UK Demographic Questions",
+      "options": [
+        "Man",
+        "Woman",
+        "Non Binary",
+        "Prefer not to say",
+        "Prefer to self describe"
+      ]
+    },
+    {
+      "label": "Which age group do you belong to?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Wayve UK Demographic Questions",
+      "options": [
+        "18-24",
+        "25-34",
+        "35-44",
+        "45-54",
+        "55 -64",
+        "65 or older",
+        "Prefer not to say"
+      ]
+    },
+    {
+      "label": "What is your ethnicity?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Wayve UK Demographic Questions",
+      "options": [
+        "White",
+        "Asian or Asian British",
+        "Black, Black British, Caribbean or African",
+        "Mixed or multiple ethnic groups",
+        "Other ethnic group",
+        "Prefer not to say",
+        "Prefer to self describe"
+      ]
+    },
+    {
+      "label": "Do you consider yourself to have a disability or long-term health condition?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Wayve UK Demographic Questions",
+      "options": [
+        "Yes",
+        "No",
+        "Prefer not to say"
+      ]
+    },
+    {
+      "label": "What is your sexual orientation?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Wayve UK Demographic Questions",
+      "options": [
+        "Heterosexual or Straight",
+        "Lesbian",
+        "Gay",
+        "Bisexual",
+        "Queer",
+        "Prefer to self describe -",
+        "Prefer not to say"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Wayve UK Demographic Questions"
+  ],
+  "captured": "2026-09-22"
+}

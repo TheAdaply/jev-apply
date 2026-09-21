@@ -1,0 +1,145 @@
+{
+  "ats": "ashby",
+  "company": "harvey",
+  "family": "product_manager",
+  "title": "Senior Product Operations Manager, Evaluation Quality",
+  "location": "San Francisco",
+  "url": "https://jobs.ashbyhq.com/harvey/f0e4e24a-2a7a-4fc4-8872-9a8a762fecf5",
+  "questions": [
+    {
+      "label": "Legal First and Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Preferred Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Current or Most Recent Employer",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "University or School Attended",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country where this role is located, for any employer?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Work Eligibility",
+      "options": []
+    },
+    {
+      "label": "Will you now or will you in the future require employment visa sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Eligibility",
+      "options": [
+        "Yes, I will require Harvey to sponsor my employment",
+        "No, I do not require sponsorship to work in the country where this role is located"
+      ]
+    },
+    {
+      "label": "This role is tied to the office location listed in the job posting. Team members are expected to work from the office 3 days per week as part of Harvey’s hybrid work model. Are you currently based in the listed location and able to work in person 3 days per week?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Role Location & Work Model",
+      "options": [
+        "Yes, I’m based in this location and able to work from the office 3 days per week",
+        "No, I’m not based in this location but willing to relocate",
+        "No, I’m only able to work remotely",
+        "Other (optional context)"
+      ]
+    },
+    {
+      "label": "If you selected “Other,” please provide additional details.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Role Location & Work Model",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Resume & Professional Links",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Resume & Professional Links",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Basic Information",
+    "Work Eligibility",
+    "Role Location & Work Model",
+    "Resume & Professional Links"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,207 @@
+{
+  "ats": "greenhouse",
+  "company": "affirm",
+  "family": "infra_sre",
+  "title": "Senior Site Reliability Engineer (SRE & Platform Reliability)",
+  "location": "Remote Poland",
+  "url": "https://job-boards.greenhouse.io/affirm/jobs/7822393003",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current Company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "We collect this information to create an inclusive experience for candidates. Your voluntary response to this question will have no impact on your candidacy at Affirm.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "He/him/his",
+        "She/her/hers",
+        "They/them/theirs",
+        "My pronouns are not listed",
+        "I prefer not to say",
+        "I prefer to self describe"
+      ]
+    },
+    {
+      "label": "Do you now or in the future require sponsorship for employment visa status in Poland?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you an EU citizen (a citizen of European Union Member State)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "How did you first learn about Affirm as an employer?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Affirm blog",
+        "Affirm Recruiting Team reached out",
+        "Affirm’s Career Site",
+        "AfroTech",
+        "Alumni Forum",
+        "Built In",
+        "Facebook",
+        "Glassdoor",
+        "I have used Affirm as a product",
+        "I know someone that works at Affirm",
+        "Include.io",
+        "Indeed",
+        "Infoshare",
+        "Instagram",
+        "LinkedIn",
+        "Nextplay",
+        "POCIT",
+        "SheTO",
+        "The Muse",
+        "Twitter",
+        "Other"
+      ]
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Other Links",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Portfolio",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Name Pronunciation",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you previously been employed at Affirm for any length of time?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I have not previously been employed at Affirm",
+        "I have been employed at Affirm as a full-time employee",
+        "I have been employed at Affirm as a part-time employee",
+        "I have been employed at Affirm as an intern",
+        "I have been employed at Affirm as a contractor"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

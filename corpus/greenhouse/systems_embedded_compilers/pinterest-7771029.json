@@ -1,0 +1,237 @@
+{
+  "ats": "greenhouse",
+  "company": "pinterest",
+  "family": "systems_embedded_compilers",
+  "title": "Staff Systems Engineer, Oracle EBS, Integration",
+  "location": "San Francisco, CA, US; Remote, US",
+  "url": "https://www.pinterestcareers.com/jobs/?gh_jid=7771029",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Work Experience: Current/Previous Employer",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Education: Last University Attended",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you first hear about this opportunity?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "LinkedIn",
+        "Glassdoor",
+        "Twitter",
+        "Instagram",
+        "Pinterest-hosted Recruiting Event",
+        "Current Pinterest Employee",
+        "Google Search",
+        "Other"
+      ]
+    },
+    {
+      "label": "What U.S State do you currently reside in?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Alaska",
+        "Arizona",
+        "Arkansas",
+        "California",
+        "Colorado",
+        "Connecticut",
+        "Delaware",
+        "District of Columbia",
+        "Florida",
+        "Georgia",
+        "Hawaii",
+        "Idaho",
+        "Illinois",
+        "Indiana",
+        "Iowa",
+        "Kansas",
+        "Kentucky",
+        "Louisiana",
+        "Maine",
+        "Maryland",
+        "Massachusetts",
+        "Michigan",
+        "Minnesota",
+        "Mississippi",
+        "Missouri",
+        "Nebraska",
+        "Nevada",
+        "New Hampshire",
+        "New Jersey",
+        "New Mexico",
+        "New York",
+        "North Carolina",
+        "Ohio",
+        "Oklahoma",
+        "Oregon",
+        "Pennsylvania",
+        "Rhode Island",
+        "South Carolina",
+        "Tennessee",
+        "Texas",
+        "Utah",
+        "Vermont",
+        "Virginia",
+        "Washington",
+        "Wisconsin",
+        "N/A - I do not reside in the above states"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require employer sponsorship or other employer assistance to obtain, extend, or maintain authorization to work in the country in which you are applying for a position?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If you do require employee sponsorship or assistance for work authorization, please list the type of support you may require.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country in which you are applying for a position?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "US Standard Question Set w/ OFCCP",
+      "options": [
+        "Male",
+        "Female",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Race/Ethnicity",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "US Standard Question Set w/ OFCCP",
+      "options": [
+        "American Indian or Alaskan Native",
+        "Asian",
+        "Black or African American",
+        "Hispanic or Latino",
+        "White",
+        "Native American or Other Pacific Islander",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Veteran Status",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "US Standard Question Set w/ OFCCP",
+      "options": [
+        "I am not a protected veteran",
+        "I identify as one or more of the classifications of protected veteran listed above",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "US Standard Question Set w/ OFCCP"
+  ],
+  "captured": "2026-09-22"
+}

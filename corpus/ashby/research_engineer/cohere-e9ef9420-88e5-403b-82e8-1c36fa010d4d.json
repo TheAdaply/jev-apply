@@ -1,0 +1,62 @@
+{
+  "ats": "ashby",
+  "company": "cohere",
+  "family": "research_engineer",
+  "title": "Member of Technical Staff, Integration/RL Team (Research Engineer)",
+  "location": "Paris",
+  "url": "https://jobs.ashbyhq.com/cohere/e9ef9420-88e5-403b-82e8-1c36fa010d4d",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "Please Note: We have offices in London, Paris, Toronto, San Francisco, New York but we are also remote-friendly! Applicants for this role may work anywhere between UTC−06:00 and UTC+01:00.",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why you?",
+      "help": "We care more about your answer here than your resume.",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

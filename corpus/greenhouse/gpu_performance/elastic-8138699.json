@@ -1,0 +1,178 @@
+{
+  "ats": "greenhouse",
+  "company": "elastic",
+  "family": "gpu_performance",
+  "title": "Principal Software Engineer - Performance Tuning - Elasticsearch",
+  "location": "Poland",
+  "url": "https://jobs.elastic.co/jobs?gh_jid=8138699&gh_jid=8138699",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your experience engineering performance-critical software or optimizing complex systems? Please focus on the engineering work you’ve done yourself, such as designing for low latency, implementing algorithmic or hardware-aware optimizations, optimizing memory/concurrency models, or building custom performance analysis tools/harnesses, rather than simply configuring existing monitoring or running off-the-shelf profiling tools. Please also highlight any experience you have with deep system analysis (e.g., JVM internals, distributed data store internals, or lock-free concurrency) or strategies you’ve used to ensure system predictability and scalability at scale.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Professional Profile (LinkedIn, Github, Website, etc)",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you require Elastic's sponsorship to continue or extend your work authorization status?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "In what countries do you have the unrestricted right to work?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Gender Pronouns (She/Her/Hers, He/Him/His, They/Them/Theirs, etc.)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you located in one of the following countries or regions: Belarus, Cuba, Iran, North Korea (DPRK), Syria, or Russia, including the Ukrainian territories annexed by Russia (The Crimea region of Ukraine, The Donetsk People's Republic (DNR), The Luhansk People's Republic (LNR), Kherson or Zaporizhzhia)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Is your most recent country of citizenship one of the following countries: Cuba, Iran, North Korea (DPRK), or Syria?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Is your most recent legal permanent residency in one of the following countries: Cuba, Iran, North Korea (DPRK), or Syria?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "By selecting 'I acknowledge' and submitting this application, you confirm that you have read Elastic's Candidate Privacy Statement and understand how your data will be processed to evaluate your candidacy. In jurisdictions where consent is legally required, your submission constitutes express consent to the processing of your personal data for recruitment purposes.",
+      "help": "Candidate Privacy Statement",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I acknowledge"
+      ]
+    },
+    {
+      "label": "How should we communicate with you?",
+      "help": "Select all that apply.",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Email",
+        "Phone Call",
+        "Text Message",
+        "WhatsApp"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

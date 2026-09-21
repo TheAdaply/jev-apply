@@ -1,0 +1,70 @@
+{
+  "ats": "ashby",
+  "company": "d-matrix",
+  "family": "gpu_performance",
+  "title": "Sr. Staff Power Performance Architect",
+  "location": "Santa Clara",
+  "url": "https://jobs.ashbyhq.com/d-matrix/b11415bd-b6bc-4c9c-aa8c-f057f437fb7b",
+  "questions": [
+    {
+      "label": "Full Legal Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Social Network and Web Links",
+      "help": "Provide us with links to see some of your work (Git/ Dribble/ Behance/ Pinterest/ Blog/ Medium)",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the United States?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you now or in the future require sponsorship for an immigration-related employment benefit?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

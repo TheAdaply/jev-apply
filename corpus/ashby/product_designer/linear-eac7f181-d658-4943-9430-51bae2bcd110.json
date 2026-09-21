@@ -1,0 +1,113 @@
+{
+  "ats": "ashby",
+  "company": "linear",
+  "family": "product_designer",
+  "title": "Mobile Product Designer",
+  "location": "North America",
+  "url": "https://jobs.ashbyhq.com/linear/eac7f181-d658-4943-9430-51bae2bcd110",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover letter",
+      "help": "Tell us why you want to join our team!",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website/Portfolio",
+      "help": "Please provide the link to your portfolio website.",
+      "type": "url",
+      "required": true,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "Please provide the link to your LinkedIn profile.",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "X",
+      "help": "Please provide the link to your X profile.",
+      "type": "text",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "What country are you based in?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "What draws you to mobile design work?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Tell us more",
+      "options": []
+    },
+    {
+      "label": "What are you extremely good at? What could you teach the broader design team?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Tell us more",
+      "options": []
+    },
+    {
+      "label": "What's the first area of our mobile apps that you'd be excited to tackle?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Tell us more",
+      "options": []
+    },
+    {
+      "label": "Has someone at Linear referred you for this role? If so, please include their name here:",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Tell us more",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Location",
+    "Tell us more"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,204 @@
+{
+  "ats": "greenhouse",
+  "company": "flexport",
+  "family": "systems_embedded_compilers",
+  "title": "Senior IT Systems Engineer ",
+  "location": "San Francisco, California, United States",
+  "url": "https://job-boards.greenhouse.io/flexport/jobs/8213953",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you first hear about Flexport?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Campus",
+        "Career Platform (LinkedIn, Glassdoor, BuiltIn, etc.)",
+        "I am a current Flexport contractor",
+        "Event (Tech Talks at Sea, Conference, Meetup, etc.)",
+        "Flexport Blog",
+        "Flexport Employee",
+        "Media (Article, Ad, Podcast, Youtube, Flexport content, etc.)",
+        "Social Media (e.g. Facebook, X, Instagram, etc.)",
+        "Other"
+      ]
+    },
+    {
+      "label": "Let us know which specific channel/event/medium/etc you heard about us:",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or in the future require Flexport to commence (\"sponsor\") an immigration case in order to employ you (for example, H-1B or other employment-based immigration case)? This is sometimes called \"sponsorship\" for an employment-based visa status.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you authorized to work lawfully in the United States for Flexport?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Have you previously been employed by Flexport or any of its entities; or by an agency representing Flexport?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Which of the following best describes your hands-on professional IT experience?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "3+ years of enterprise experience troubleshooting multi-platform OS (macOS/Windows), administering SaaS/cloud services, and supporting corporate users.",
+        "1 to 2 years of entry-level helpdesk or desktop support experience.",
+        "Technical support experience limited to personal, academic, or non-corporate environments.",
+        "No formal IT experience."
+      ]
+    },
+    {
+      "label": "Current / Most Recent Company",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current / Most Recent Title",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "This position is based in-person in our San Francisco office. Are you currently located within commuting distance of San Francisco, or willing to relocate prior to your start date?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "I identify my gender as",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Demographic Questions",
+      "options": [
+        "Male",
+        "Female",
+        "Other",
+        "Prefer not to say"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Demographic Questions",
+      "options": [
+        "American Indian or Alaskan Native",
+        "Asian",
+        "Black of African American",
+        "Hispanic or Latino",
+        "White",
+        "Native Hawaiian or Other Pacific Islander",
+        "Two or more races",
+        "Prefer not to say"
+      ]
+    },
+    {
+      "label": "Veteran Status",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Voluntary Demographic Questions",
+      "options": [
+        "I am not a protected veteran",
+        "I identify as one or more of the classifications of a protected veteran",
+        "Prefer not to say"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Voluntary Demographic Questions"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,397 @@
+{
+  "ats": "greenhouse",
+  "company": "datadog",
+  "family": "applied_scientist",
+  "title": "Applied Science Intern",
+  "location": "Paris, France",
+  "url": "https://careers.datadoghq.com/detail/8181440/?gh_jid=8181440",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please share the full name of your major/final year specialization(s) as it would appear on your diploma.",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have any specific academic requirements for your internship?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "International internship",
+        "Master's thesis",
+        "Specific internship focus",
+        "Other (please specify at the top of your CV)",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you available for a 6-month internship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "When are you available to start an internship?",
+      "help": "Please note we are unable to offer any other dates.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "February 8, 2027 - August 6, 2027",
+        "February 22, 2027 - August 20, 2027",
+        "March 8, 2027 - September 3, 2027",
+        "April 19, 2027 - October 15, 2027",
+        "May 10, 2027 - November 12, 2027",
+        "May 24, 2027 - November 19, 2027"
+      ]
+    },
+    {
+      "label": "Are you in your final year of study and applying for an end-of-study internship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "Not sure"
+      ]
+    },
+    {
+      "label": "If you were offered full-time employment with Datadog, when would you be able to start?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+        "Other"
+      ]
+    },
+    {
+      "label": "Are you available to relocate for this internship position and full-time if you are offered a permanent contract?",
+      "help": "This job requires you to be in the office 3 days a week. All open locations for this role are listed at the top of this page. For accommodations, find the link in the recruiter's email signature.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No",
+        "Not applicable"
+      ]
+    },
+    {
+      "label": "Are you legally authorised to work full-time in the country where this job is based?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, no restriction.",
+        "Yes, but I will need sponsorship in the future.",
+        "No, I need sponsorship now."
+      ]
+    },
+    {
+      "label": "Please select all the languages you speak fluently.",
+      "help": "Select all languages you speak and write at a B2 level or higher according to the Common European Framework of Reference for Languages (CEFR).",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Arabic",
+        "Bahasa Indonesia",
+        "Bulgarian",
+        "Cantonese",
+        "Croatian",
+        "Czech",
+        "Danish",
+        "Dutch",
+        "English",
+        "Estonian",
+        "Finnish",
+        "French",
+        "German",
+        "Greek",
+        "Hebrew",
+        "Hindi",
+        "Hungarian",
+        "Italian",
+        "Japanese",
+        "Korean",
+        "Latvian",
+        "Lithuanian",
+        "Malay",
+        "Mandarin",
+        "Norwegian",
+        "Polish",
+        "Portuguese",
+        "Portuguese (Brazilian)",
+        "Romanian",
+        "Russian",
+        "Slovak",
+        "Slovenian",
+        "Spanish",
+        "Swedish",
+        "Tagalog",
+        "Thai",
+        "Turkish",
+        "Ukrainian",
+        "Vietnamese"
+      ]
+    },
+    {
+      "label": "Which scripting / programming languages do you have experience with?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        ".net",
+        "C",
+        "C#",
+        "C++",
+        "Go",
+        "Golang",
+        "Java",
+        "Javascript",
+        "MATLAB",
+        "node.js",
+        "Objective-C",
+        "Perl",
+        "PHP",
+        "Python",
+        "R",
+        "Ruby",
+        "Ruby on rails",
+        "Rust",
+        "Scala",
+        "Shell",
+        "SQL, PL/SQL",
+        "Swift",
+        "Typescript"
+      ]
+    },
+    {
+      "label": "Tell us why you are interested in building an applied AI career at Datadog.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "When considering an internship at Datadog, what are the most important factors to you?",
+      "help": "Please choose up to three.",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Career growth",
+        "Challenging technical work",
+        "Company culture",
+        "Company reputation and stability",
+        "Company size",
+        "Compensation and benefits package",
+        "Diversity, equity, and inclusion",
+        "Impact of work",
+        "Location",
+        "Mentorship and support",
+        "Work-life balance"
+      ]
+    },
+    {
+      "label": "Are you currently in process with other companies that would require us to be time sensitive?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this opportunity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Advisor or Faculty referral",
+        "AfroTech",
+        "Angelist",
+        "Attended a talk or conference",
+        "Blind App",
+        "Break Through Tech",
+        "BuiltIn Boston",
+        "BuiltIn NYC",
+        "ColorStack",
+        "Campus Event",
+        "Carnegie Mellon University department or mailing list",
+        "Datadog Employee",
+        "Datadog's Careers Page",
+        "Event",
+        "Flexjobs",
+        "Girls Who Code",
+        "Github",
+        "Glassdoor",
+        "Hacker News",
+        "Hired",
+        "Hiretual",
+        "I love Datadog's product!",
+        "Instagram",
+        "JobTeaser",
+        "LinkedIn (Datadog Page)",
+        "LinkedIn (Job Posting)",
+        "MLT (Management Leadership for Tomorrow)",
+        "Rewriting the Code",
+        "School job board",
+        "SHPE (Society of Hispanic Professional Engineers)",
+        "The Muse",
+        "Thrive",
+        "Underdog",
+        "Welcome to the Jungle",
+        "Other"
+      ]
+    },
+    {
+      "label": "If you selected Datadog employee in the question above, please add their name below.",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "I certify that the information provided in this application is true and correct to the best of my knowledge. I understand that any false statements or omissions may result in disqualification from employment consideration or, if employed, in termination.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "I understand my application will be processed in accordance with Datadog’s Candidate Privacy Policy.",
+      "help": "Read our Applicant and Candidate Privacy Policy.",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Voluntary Self-Identification of Gender:",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification of Gender",
+      "options": [
+        "Female",
+        "Male",
+        "Non-binary/third gender",
+        "Prefer to self describe as",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Voluntary Self-Identification of Gender"
+  ],
+  "captured": "2026-09-22"
+}

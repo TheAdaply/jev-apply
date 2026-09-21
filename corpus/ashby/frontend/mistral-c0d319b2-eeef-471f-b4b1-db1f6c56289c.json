@@ -1,0 +1,140 @@
+{
+  "ats": "ashby",
+  "company": "mistral",
+  "family": "frontend",
+  "title": "Software Engineer,  Frontend",
+  "location": "Paris",
+  "url": "https://jobs.ashbyhq.com/mistral.ai/c0d319b2-eeef-471f-b4b1-db1f6c56289c",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Additional information",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Google Scholar",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Design Portfolio",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "This role requires ~3 days/month in our Paris office. Can you meet this requirement?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Software Engineer Product, TypeScript - Relocation",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Can you please share your CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "CV",
+      "options": []
+    },
+    {
+      "label": "Anything you would like to share with us?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Comments?",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Software Engineer Product, TypeScript - Relocation",
+    "CV",
+    "Comments?"
+  ],
+  "captured": "2026-09-22"
+}

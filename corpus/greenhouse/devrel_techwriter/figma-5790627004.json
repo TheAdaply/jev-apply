@@ -1,0 +1,259 @@
+{
+  "ats": "greenhouse",
+  "company": "figma",
+  "family": "devrel_techwriter",
+  "title": "Software Engineer - Developer Experience",
+  "location": "San Francisco, CA • New York, NY • United States",
+  "url": "https://boards.greenhouse.io/figma/jobs/5790627004?gh_jid=5790627004",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Other Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why do you want to join Figma?",
+      "help": "Please share 3-4 sentences on why you want to join Figma",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "If you'd like to, please let us know your pronouns.",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "she/her/hers",
+        "he/him/his",
+        "they/them/theirs",
+        "self-describe"
+      ]
+    },
+    {
+      "label": "Additional Information",
+      "help": "Add a cover letter or anything else you'd like to share",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "From where do you intend to work?",
+      "help": "Please list city and state. (ie: San Francisco, CA)",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you authorized to work in the country for which you applied?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Have you ever worked for Figma before, as an employee or a contractor/consultant?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "How many years of professional experience do you have in this type of role (excluding internships)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "0–2 years",
+        "3–4 years",
+        "5–10 years",
+        "10+ years"
+      ]
+    },
+    {
+      "label": "Have you worked as a full-time software engineer in a professional setting (excluding internships)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Have you built and maintained user-facing web applications in a professional setting?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Which of the following best describes your primary technical expertise?",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Frontend",
+        "Backend",
+        "Full-Stack",
+        "Mobile",
+        "Infrastructure",
+        "ML/AI",
+        "Data Engineering",
+        "C++",
+        "Other"
+      ]
+    },
+    {
+      "label": "Which programming languages do you regularly use in a professional setting?",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "JavaScript/TypeScript",
+        "Python",
+        "Go",
+        "C++",
+        "Java",
+        "Ruby",
+        "Swift",
+        "Kotlin",
+        "Other"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,165 @@
+{
+  "ats": "lever",
+  "company": "veeva",
+  "family": "backend",
+  "title": "Senior Software Engineer - Backend",
+  "location": "Canada - Toronto",
+  "url": "https://jobs.lever.co/veeva/17138dc6-1759-4d6c-bf5e-207debd3a070/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in Canada for any employer (on a full-time basis)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Engineering - Canada",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you require work permit sponsorship in Canada?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Engineering - Canada",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have any impediments to travelling internationally?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Engineering - Canada",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently living in the US or Canada?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Engineering - Canada",
+      "options": [
+        "US",
+        "Canada",
+        "Other"
+      ]
+    },
+    {
+      "label": "What are your salary expectations?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Engineering - Canada",
+      "options": []
+    },
+    {
+      "label": "Why are you interested in Veeva?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Questions: Engineering",
+      "options": []
+    },
+    {
+      "label": "How do your skills align with the job?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Additional Questions: Engineering",
+      "options": []
+    },
+    {
+      "label": "Do you have 5+ years of deep expertise in Python?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "- Senior Software Engineer - Ostro -",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Stay Connected | To ensure you receive status updates and interview invitations, please add no-reply@hire.lever.co to your safe sender list and check your spam/junk folders regularly.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Next Step Confirmation",
+      "options": [
+        "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Engineering - Canada",
+    "Additional Questions: Engineering",
+    "- Senior Software Engineer - Ostro -",
+    "Next Step Confirmation"
+  ],
+  "captured": "2026-09-22"
+}

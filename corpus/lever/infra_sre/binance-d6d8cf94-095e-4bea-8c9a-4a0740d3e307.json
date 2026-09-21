@@ -1,0 +1,83 @@
+{
+  "ats": "lever",
+  "company": "binance",
+  "family": "infra_sre",
+  "title": "Senior Infrastructure Engineer — IDC / Bare-Metal Kubernetes",
+  "location": "Asia",
+  "url": "https://jobs.lever.co/binance/d6d8cf94-095e-4bea-8c9a-4a0740d3e307/apply",
+  "questions": [
+    {
+      "label": "Which location are you applying for?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Asia",
+        "Japan, Tokyo",
+        "Hong Kong"
+      ]
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn account or any other links URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links"
+  ],
+  "captured": "2026-09-22"
+}

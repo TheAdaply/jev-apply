@@ -1,0 +1,146 @@
+{
+  "ats": "ashby",
+  "company": "harvey",
+  "family": "backend",
+  "title": "Staff Software Engineer, Backend",
+  "location": "Bengaluru",
+  "url": "https://jobs.ashbyhq.com/harvey/bd54cfd8-933d-46a8-9796-e249b82cef7f",
+  "questions": [
+    {
+      "label": "Legal First and Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Preferred Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Current or Most Recent Employer",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "University or School Attended",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Basic Information",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country where this role is located, for any employer?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Work Eligibility",
+      "options": []
+    },
+    {
+      "label": "Will you now or will you in the future require employment visa sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Eligibility",
+      "options": [
+        "Yes, I will require Harvey to sponsor my employment",
+        "No, I do not require sponsorship to work in the country where this role is located"
+      ]
+    },
+    {
+      "label": "By checking this box, I confirm that I have read and understood Harvey's Applicant Privacy Notice - India, and expressly consent to the collection, use, disclosure, transfer, and other processing of my personal data as described in that notice.",
+      "help": "Harvey Applicant Privacy Notice - India",
+      "type": "multi_select",
+      "required": true,
+      "section": "Work Eligibility",
+      "options": [
+        "I consent"
+      ]
+    },
+    {
+      "label": "Harvey follows a hybrid in-office model — we’re in the office three days a week, which gives us the best of both worlds: focused collaboration and flexibility. Are you excited and able to join us in person on those days?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Harvey Hybrid Policy",
+      "options": [
+        "Yes, I’m able to work from the office 3 days a week",
+        "I may need flexibility and would like to discuss",
+        "No, I’m only able to work remotely"
+      ]
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Resume & Professional Links",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Resume & Professional Links",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Basic Information",
+    "Work Eligibility",
+    "Harvey Hybrid Policy",
+    "Resume & Professional Links"
+  ],
+  "captured": "2026-09-22"
+}

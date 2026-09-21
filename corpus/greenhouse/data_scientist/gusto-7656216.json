@@ -1,0 +1,282 @@
+{
+  "ats": "greenhouse",
+  "company": "gusto",
+  "family": "data_scientist",
+  "title": "Data Scientist, Risk ",
+  "location": "San Francisco, CA - Hybrid",
+  "url": "https://job-boards.greenhouse.io/gusto/jobs/7656216",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Zip Code / Postal Code (Non-U.S. based candidates, please enter \"00000\")",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this opportunity? (select all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "LinkedIn",
+        "Glassdoor",
+        "Indeed",
+        "Facebook",
+        "Built In Colorado",
+        "News Article",
+        "Conference or Meetup",
+        "Company Blog",
+        "Company Employee",
+        "Company Website",
+        "Billboard/Outdoor Ads"
+      ]
+    },
+    {
+      "label": "Are you legally authorized to work in the country where you are applying?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require visa sponsorship for employment?",
+      "help": "If you&rsquo;ll require this employer to commence, i.e., &ldquo;sponsor,&rdquo; an immigration or work permit case in order to employ you, either now or at some point in the future, then you should answer yes. An example of an immigration or work permit case that may require sponsorship now or in t…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently based in San Francisco?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "This is a hybrid role based in San Francisco. Gusto's hybrid work scheduled requires Gusties based in these locations to be in office on Tuesdays and Wednesdays, and working from home all other days of the week. Please confirm your current long-term location and ability to work in this hybrid schedule (yes/no)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes - San Francisco",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have experience in Risk data science and/or with risk-related modeling?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "How would you describe your gender identity (please select one)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Female",
+        "Male",
+        "Non-binary / third gender (Inclusive of bigender, agender, androgynous, gender fluid, gender non-conforming, two-spirit)",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "I identify as transgender (please select one):",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Yes",
+        "No",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "I identify my sexual orientation as (please select one):",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Asexual",
+        "Bisexual, pansexual and/or queer",
+        "Gay and/or lesbian",
+        "Heterosexual",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "I identify my race/ethnicity as (mark all that apply):",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Alaskan Native / American Indian / Indigenous American / Native American",
+        "Black / of African or African-American descent",
+        "East Asian (inclusive of Chinese, Japanese, Korean, Mongolian, Tibetan, and Taiwanese)",
+        "Latino/a/x/Hispanic (inclusive of the United States of America, South America, Central America, and the Caribbean)",
+        "Latino/a/x/Hispanic (inclusive of Canada, South America, Central America, and the Caribbean)",
+        "Middle Eastern",
+        "Pacific Islander or Native Hawaiian",
+        "South Asian (inclusive of Afghani, Bangladeshi, Bhutanese, Indian, Nepali, Pakistani, and Sri Lankan)",
+        "Southeast Asian (inclusive of Burmese, Cambodian, Filipino, Hmong, Indonesian, Laotian, Malaysian, Mien, Singaporean, Thai, and Vietnamese)",
+        "White",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Veteran Status (please select one):",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Yes, I am a veteran",
+        "No, I am not a veteran",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "I have a disability (please select one):",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Yes",
+        "No",
+        "I prefer to self-describe",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "I identify as a first-generation professional (please select one):",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Voluntary Self-Identification",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Voluntary Self-Identification"
+  ],
+  "captured": "2026-09-22"
+}

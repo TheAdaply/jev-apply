@@ -1,0 +1,82 @@
+{
+  "ats": "ashby",
+  "company": "cerebras",
+  "family": "fullstack",
+  "title": "Full Stack Engineer - Console Team",
+  "location": "Sunnyvale, CA",
+  "url": "https://jobs.ashbyhq.com/cerebras/79eec4ee-8c02-407a-899c-3848f7c2a8b8",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Applicant Profile",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Applicant Profile",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Applicant Profile",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Applicant Profile",
+      "options": []
+    },
+    {
+      "label": "Open to relocation if necessary:",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Applicant Profile",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Applicant Profile",
+      "options": []
+    },
+    {
+      "label": "Cerebras products, software, source code, technology, and/or services are subject to the U.S. Export Administration Regulations (EAR). Access to controlled source code and technology by our employees may require prior authorization. Cerebras can be required to perform an export compliance assessment to review if an individual is a U.S. person, or may require a license from the U.S. Government in order to release source code and technology to employees who are not U.S. persons. In order to comply with these regulations (and for no other reason), we are asking you to confirm citizenship and permanent residency as defined below. Please check the field that applies to you:",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Applicant Profile",
+      "options": [
+        "I am a U.S. person – this includes any individual who is a citizen of the United States, a permanent resident alien of the United States, or a protected individual as defined by 8 U.S.C. 1324b(a)(3).",
+        "I am not a U.S. person, and I am not a current citizen or permanent resident of Cuba, Iran, North Korea, or Syria.",
+        "I am not a U.S. person, and I am a current citizen or permanent resident of Cuba, Iran, North Korea, or Syria."
+      ]
+    },
+    {
+      "label": "Transcript",
+      "help": "Please upload your official or unofficial transcript here.",
+      "type": "file",
+      "required": false,
+      "section": "Applicant Profile",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Applicant Profile"
+  ],
+  "captured": "2026-09-22"
+}

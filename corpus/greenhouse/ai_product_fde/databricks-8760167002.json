@@ -1,0 +1,241 @@
+{
+  "ats": "greenhouse",
+  "company": "databricks",
+  "family": "ai_product_fde",
+  "title": "AI Engineer – Forward Deployed Engineering (AI FDE), U.S. Public Sector (Federal Focus)",
+  "location": "Maryland; Virginia; Washington, D.C.",
+  "url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8760167002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Due to federal contract requirements and the need for immediate client-site access, this role requires U.S. citizenship and either: - An active U.S. Government Secret security clearance or higher; or - A previously held clearance that has recently lapsed but may be eligible for reinstatement or reactivation with our support. Do you currently hold an active Secret clearance or higher, or have you previously held one that may be eligible for reinstatement?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Describe a production ML or GenAI system where you did model-level work (training, fine-tuning, optimization, or evaluation) on a transformer-based model (GPT, Llama, Claude, Mistral, Gemma, or similar).",
+      "help": "- Business use case and impact (who used it, what changed, quantify if possible) - Model architecture and why you chose it if you selected from alternatives, name them and explain the trade-off - The specific technique(s) you personally applied: LoRA/PEFT, quantization, custom loss functions, reran…",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Over the past 18 months, what percentage of your work has involved:",
+      "help": "- Model-level GenAI/LLM work (training, fine-tuning, optimization, custom architectures): ___% - Application-level GenAI work (RAG internals chunking, reranking, embeddings/vector DB, prompt engineering, API integration): ___% - Classical ML (non-LLM models): ___% - Other (data engineering, infrast…",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Describe your experience working directly with enterprise customers on ML/AI solutions:",
+      "help": "- What was the customers business problem, and how did you scope the technical solution with them? - What specific technical recommendations did you make (model architecture, training approach, evaluation strategy, deployment model)? - How did you explain complex ML concepts to non-technical stakeh…",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you willing and able to travel to customer sites approximately once every 4–8 weeks, as business needs require?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "LinkedIn Profile URL",
+      "help": "Please provide the URL to your LinkedIn profile",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the country in which you are applying?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you now or will you in the future need sponsorship for employment visa status in the country in which you are applying?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please confirm whether any of the below applies to you. Select all that apply. Note: This information will only be used to ensure compliance with U.S. sanctions and export controls.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Citizen or permanent resident of Cuba, Iran, North Korea, or Syria",
+        "Ordinarily a resident of Cuba, Iran, North Korea, Syria or the Crimea, Donetsk, Luhansk, Zaporizhzhia, or Kherson regions of Ukraine",
+        "Ordinarily a resident of Russia or Belarus and not willing to relocate for a Databricks role",
+        "None of the above"
+      ]
+    },
+    {
+      "label": "If you selected a response to the prior question other than “none of the above,” please confirm whether any of the following also applies to you. Select all that apply.",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "U.S. citizen",
+        "U.S. non-citizen national",
+        "U.S. permanent resident (Green Card holder)",
+        "Individual granted asylum in the U.S.",
+        "Individual granted refugee status in the U.S.",
+        "Individual granted citizenship in a country other than Cuba, Iran, North Korea, or Syria",
+        "Individual granted permanent residency in a country other than Cuba, Iran, North Korea, or Syria",
+        "None of these apply to me",
+        "Not applicable (i.e., I selected “none of the above” for the prior question)"
+      ]
+    },
+    {
+      "label": "Do you currently or have you previously worked for Databricks in the past?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "No",
+        "Yes - I currently work at Databricks",
+        "Yes - Previous Full-Time Employee",
+        "Yes - Previous Contractor",
+        "Yes - Previous Intern"
+      ]
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

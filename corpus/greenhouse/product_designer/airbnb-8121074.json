@@ -1,0 +1,173 @@
+{
+  "ats": "greenhouse",
+  "company": "airbnb",
+  "family": "product_designer",
+  "title": "Staff Experience Designer, International",
+  "location": "Singapore",
+  "url": "https://careers.airbnb.com/positions/8121074?gh_jid=8121074",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why have you chosen to apply to Airbnb?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please share the design portfolio link (password) (If your resume already includes a link to your portfolio and the password, please enter “Submitted\")",
+      "help": "Airbnb asks you to submit a portfolio in advance to better understand your experience, problem-solving approach, individual contributions, and impact.",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you based in Singapore?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you classified by the Singaporean Government as a:",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Singapore Citizen",
+        "Singapore Permanent Resident (PR)",
+        "Foreigner with Dependant Pass",
+        "Foreigner with a Singapore employment pass (EP, PEP or SP)",
+        "Foreigner with no Singapore employment pass"
+      ]
+    },
+    {
+      "label": "Consent to Privacy Notice (Singapore)",
+      "help": "I acknowledge that I am applying for employment with Airbnb Singapore Private Limited (&ldquo;Airbnb Singapore&rdquo;) and I acknowledge that I have read and understood the Singapore Applicant Personal Data Notice (&ldquo;Notice&rdquo;), and consent to the collection, use and disclosure of my perso…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I acknowledge and consent to the above.",
+        "No, I do not consent to the above."
+      ]
+    },
+    {
+      "label": "Gender:",
+      "help": "I consent to the collection, use and disclosure of personal data relating to my gender by Airbnb in order for Airbnb to measure its efforts to create a diverse workplace. I understand that it is entirely voluntary for me to provide this information, and declining to provide Airbnb with consent to c…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Male",
+        "Female",
+        "Other",
+        "Decline to Self Identify"
+      ]
+    },
+    {
+      "label": "Are you legally authorized to work in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I am currently legally authorized to work in the country where the job is located.",
+        "No, I am not currently legally authorized to work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I will require immigration sponsorship now to legally work in the country where the job is located.",
+        "Yes, I will require immigration sponsorship in the future to legally work in the country where the job is located.",
+        "No, I do not and will not require immigration sponsorship to legally work in the country where the job is located."
+      ]
+    },
+    {
+      "label": "Are you currently subject to any non-compete or non-solicitation agreement that would impact your ability to work at Airbnb or prevent you from accepting a job offer from Airbnb?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you currently or have you ever worked for Airbnb in any capacity? This could include, but is not limited to, a full-time employee, intern, apprentice, or contingent worker.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location"
+  ],
+  "captured": "2026-09-22"
+}

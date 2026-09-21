@@ -1,0 +1,241 @@
+{
+  "ats": "lever",
+  "company": "match-group",
+  "family": "product_designer",
+  "title": "Senior UX Researcher, Interaction",
+  "location": "New York, New York",
+  "url": "https://jobs.lever.co/matchgroup/e198b3f0-e8b0-4b31-898c-db115eeb9c88/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Will you require a reasonable accommodation to complete the hiring process which may include technical testing, virtual and in-person style interviews?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Accommodations Request",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Are you located in the NYC area?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Hinge - Location",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If you answered no to the above question, are you open to relocating?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Hinge - Location",
+      "options": [
+        "Yes",
+        "No",
+        "I'm already in NYC"
+      ]
+    },
+    {
+      "label": "Are you willing to come into the NYC office during the week (3 days) according to our hybrid policy?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Hinge - Location",
+      "options": [
+        "Yes",
+        "No, I need to work remotely."
+      ]
+    },
+    {
+      "label": "Are you authorized to work in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Visa - US",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Will you now or in the future require our company to file a petition or application for employment - based immigration status on your behalf to begin or continue employment with our company? If you currently have nonimmigrant status, for example F-1 or H-1, your answer to this question should be \"yes.\"",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Visa - US",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "What are your pronouns?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Pronouns",
+      "options": []
+    },
+    {
+      "label": "I identify my ethnicity as",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "African American/Black",
+        "East Asian (Chinese, Japanese, Korean, Mongolian, Tibetan, Taiwanese, etc.)",
+        "Hispanic, Latinx, or Spanish origin",
+        "Middle Eastern or North African",
+        "Native American/Alaska Native/First Nations",
+        "Pacific Islander or Native Hawaiian",
+        "South Asian (Bangladeshi, Bhutanese, Indian, Nepali, Pakistani, Sri Lankan)",
+        "Southeast Asian (Burmese, Cambodian, Filipino, Hmong, Indonesia, Laotian, Malaysian, Mien, Singaporean, Thai, Vietnamese)",
+        "White/Caucasian",
+        "Bi-Racial/Mixed Race - Having 2 or more racial/ethnic groups",
+        "Another race, ethnicity, or origin",
+        "I prefer not to disclose"
+      ]
+    },
+    {
+      "label": "What gender do you most closely identify as?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "Female",
+        "Male",
+        "Non-binary",
+        "I prefer not to disclose"
+      ]
+    },
+    {
+      "label": "Do you identify as part of the LGBTQIA+ community?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "Yes",
+        "No",
+        "I prefer not to disclose"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Accommodations Request",
+    "Hinge - Location",
+    "Visa - US",
+    "Pronouns",
+    "Demographic Survey"
+  ],
+  "captured": "2026-09-22"
+}

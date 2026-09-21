@@ -1,0 +1,169 @@
+{
+  "ats": "ashby",
+  "company": "deepl",
+  "family": "fullstack",
+  "title": "Senior Software Engineer | Enterprise | Full-Stack",
+  "location": "London",
+  "url": "https://jobs.ashbyhq.com/deepl/74e68989-6a77-4499-ba3e-a5ad4275c9c1",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Respect is important to us at DeepL! Which pronouns should we use to refer to you?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your preferred Name?",
+      "help": "We want to ensure we address you correctly and create a respectful experience from our very first conversation. Please share the name you'd like us to use throughout the hiring process. It's perfectly fine if this differs from your legal name",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you willing to relocate? And if you are looking to relocate, which of our entities are you interested in working from?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "United Kingdom",
+        "Germany",
+        "Netherlands",
+        "Poland",
+        "I am not willing to relocate."
+      ]
+    },
+    {
+      "label": "Do you require any support in obtaining or updating a visa/work permit for the country you are currently in, or your target relocation country?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your current notice period? How soon after the successful process would you be able to start at DeepL?",
+      "help": "(e.g. 3 months notice, available immediately, 2 weeks...)",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your earliest possible/desired start date?",
+      "help": "",
+      "type": "date",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your annual salary expectation?",
+      "help": "Please provide the OTE in case you work in a commission-/bonus based role.",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Would you like to provide any additional context or details for your salary expectation?",
+      "help": "(e.g., preferred compensation structure, minimum required salary, total compensation expectations)",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Would you like us to keep your application details on file for two years, even if you were unsuccessful for the role you applied for, so that we can consider you for future opportunities with our company? We value your talent and would like to stay in touch! Of course, you can withdraw your consent at any time.",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What is your current city and country of residence?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "This role typically involves commuting to the office up to twice per week, with some flexibility based on business needs. Are you comfortable with this expectation, or would you require any special accommodations (e.g., a remote exception)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "No concerns, I can commit to commuting up to twice per week.",
+        "I would require a remote exception or special accommodation."
+      ]
+    },
+    {
+      "label": "Please select the office(s) you are closest to and/or would be able to commute to",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Cologne",
+        "Berlin",
+        "Munich",
+        "London",
+        "Austin",
+        "New York",
+        "Tokyo",
+        "Amsterdam",
+        "None of the above / I'm not near any listed offices"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

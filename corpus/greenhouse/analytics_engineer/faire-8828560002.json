@@ -1,0 +1,274 @@
+{
+  "ats": "greenhouse",
+  "company": "faire",
+  "family": "analytics_engineer",
+  "title": "Senior Finance Analytics Engineer",
+  "location": "New York City, NY; San Francisco, CA",
+  "url": "https://boards.greenhouse.io/faire/jobs/8828560002?gh_jid=8828560002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Preferred First Name",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please select your current state of residence. Select “Not in the US” if you reside outside the United States. This information helps us understand our talent pool and ensures we provide accurate resources throughout the hiring process.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Alabama",
+        "Alaska",
+        "Arizona",
+        "Arkansas",
+        "California",
+        "Colorado",
+        "Connecticut",
+        "Delaware",
+        "Florida",
+        "Georgia",
+        "Hawaii",
+        "Idaho",
+        "Illinois",
+        "Indiana",
+        "Iowa",
+        "Kansas",
+        "Kentucky",
+        "Louisiana",
+        "Maine",
+        "Maryland",
+        "Massachusetts",
+        "Michigan",
+        "Minnesota",
+        "Mississippi",
+        "Missouri",
+        "Montana",
+        "Nebraska",
+        "Nevada",
+        "New Hampshire",
+        "New Jersey",
+        "New Mexico",
+        "New York",
+        "North Carolina",
+        "North Dakota",
+        "Ohio",
+        "Oklahoma",
+        "Oregon",
+        "Pennsylvania",
+        "Rhode Island",
+        "South Carolina",
+        "South Dakota",
+        "Tennessee",
+        "Texas",
+        "Utah",
+        "Vermont",
+        "Virginia",
+        "Washington",
+        "West Virginia",
+        "Wisconsin",
+        "Wyoming",
+        "Not in the US"
+      ]
+    },
+    {
+      "label": "This role will be in-office on a hybrid schedule, can you commit to being in-office three days per week at the location where this position is posted?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Before seeing this job posting, how familiar were you with Faire as a company? (Your response will not impact your application)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Never heard of it before",
+        "Had heard of it but knew little about it",
+        "Somewhat familiar",
+        "Very familiar"
+      ]
+    },
+    {
+      "label": "How did you hear about Faire? (Select all that apply)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Answered “unaware” to previous question",
+        "Online advertisement (social media, display ads, etc.)",
+        "Billboard or outdoor advertising",
+        "Faire's website",
+        "Faire’s technical blogs (Faire.Tech, The Craft)",
+        "Someone I know personally (friend, family, former colleague)",
+        "Job posting on LinkedIn, Indeed, or other job board",
+        "LinkedIn post or content (not a job posting)",
+        "News article or media coverage",
+        "Industry event or conference",
+        "Other"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "Do you consider yourself a member of the LGBTQIA+ community?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Which categories describe you? Select all that apply to you:",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "American Indian or Alaska Native",
+        "Black/of African origin",
+        "East Asian (For example - Chinese, Japanese, Korean)",
+        "Hispanic, Latinx or Spanish origin",
+        "Middle Eastern or North African",
+        "Native Hawaiian or Other Pacific Islander",
+        "South Asian (For example - Bangladeshi, Bhutanese, Indian)",
+        "Southeast Asian (For example - Filipino, Indonesian, Vietnamese)",
+        "Non-Hispanic White or Caucasian",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "How do you currently describe your gender identity?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Man, male or masculine",
+        "Non-binary/third gender (For example - bigender, gender non-conforming, androgynous)",
+        "Transgender man, male, or masculine",
+        "Transgender woman, female or feminine",
+        "Woman, female or feminine",
+        "I prefer to self describe:",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Do you identify as a military veteran or service member?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    },
+    {
+      "label": "Are you a person living with a disability?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "U.S. Demographic Questions",
+      "options": [
+        "Blindness",
+        "Chronic illness or pain",
+        "Deaf or hard of hearing",
+        "Wheelchair user",
+        "None of these apply",
+        "Other, please specify..."
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "U.S. Demographic Questions"
+  ],
+  "captured": "2026-09-22"
+}

@@ -1,0 +1,199 @@
+{
+  "ats": "greenhouse",
+  "company": "cloudflare",
+  "family": "devrel_techwriter",
+  "title": "VoidZero Developer Relations Engineer",
+  "location": "Hybrid",
+  "url": "https://boards.greenhouse.io/cloudflare/jobs/8190563?gh_jid=8190563",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Legal Name (if different than above)",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Would you like to include your LinkedIn profile, personal website or blog?",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this job?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you currently based in Singapore, Sydney, Tokyo, Seoul, Lisbon, or London?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I am based in Singapore",
+        "I am based in Sydney",
+        "I am based in Tokyo",
+        "I am based in Seoul",
+        "I am based in Lisbon",
+        "I am based in London",
+        "I am based outside of these locations"
+      ]
+    },
+    {
+      "label": "If you live outside of these locations, are you willing to relocate there?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes, I would require relocation assistance to Singapore",
+        "Yes, I would require relocation assistance to Sydney",
+        "Yes, I would require relocation assistance to Tokyo",
+        "Yes, I would require relocation assistance to Seoul",
+        "Yes, I would require relocation assistance to Lisbon",
+        "Yes, I would require relocation assistance to London",
+        "No, I already live here, and do not require relocation assistance",
+        "No, I am not willing to relocate"
+      ]
+    },
+    {
+      "label": "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please review and acknowledge Cloudflare's Candidate Privacy Policy (cloudflare.com/candidate-privacy-notice/).",
+      "help": "Candidate Privacy Policy",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Acknowledge/Confirm"
+      ]
+    },
+    {
+      "label": "Is there anything else you would like to add?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Location",
+      "options": []
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Location",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

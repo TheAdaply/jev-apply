@@ -1,0 +1,109 @@
+{
+  "ats": "ashby",
+  "company": "lambda",
+  "family": "product_manager",
+  "title": "Senior Director, Product Management - Platform",
+  "location": "Bellevue Office",
+  "url": "https://jobs.ashbyhq.com/lambda/d3cbe760-3c91-4cb1-accf-dca60f0406aa",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone Number",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Most Recent Company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Interview Recording Consent",
+      "help": "About Interview Recording To keep your interview experience seamless and distraction-free, we use an AI notetaker provided by Ashby, Inc. to record and transcribe our interviews. This helps interviewers focus fully on the conversation and ensures your responses are captured accurately. The recordin…",
+      "type": "single_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "Yes, I consent to be recorded",
+        "Opt out of recording"
+      ]
+    },
+    {
+      "label": "Location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you legally authorized to work in the United States?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Lambda may agree to sponsor individuals to obtain work authorization (such as H-1B, TN or O-1 visa status). Will you now or in the future require sponsorship from Lambda to maintain your work authorization in the U.S.?",
+      "help": "",
+      "type": "boolean",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Which Lambda office location(s) are you willing & able to work out of 4 days per week? (Lambda’s designated work from home day is currently Tuesday)",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "San Francisco",
+        "Bellevue",
+        "None of the above"
+      ]
+    }
+  ],
+  "sections": [
+    "Application"
+  ],
+  "captured": "2026-09-22"
+}

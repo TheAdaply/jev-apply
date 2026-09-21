@@ -1,0 +1,294 @@
+{
+  "ats": "greenhouse",
+  "company": "anthropic",
+  "family": "ml_scientist",
+  "title": "Research Scientist, Interpretability",
+  "location": "San Francisco, CA",
+  "url": "https://job-boards.greenhouse.io/anthropic/jobs/4980427008",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "(Optional) Personal Preferences",
+      "help": "How do you pronounce your name?",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Publications (e.g. Google Scholar) URL",
+      "help": "Please link to your publications/research outputs, e.g. Google Scholar or Semantic Scholar (if you don't have any, please apply to our Research Engineer posting instead)",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you open to working in-person in one of our offices 25% of the time?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "When is the earliest you would want to start working with us?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Do you have any deadlines or timeline considerations we should be aware of?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "AI Policy for Application",
+      "help": "We believe that AI will have a transformative impact on the world, and we&rsquo;re seeking exceptional candidates who collaborate thoughtfully with Claude to realize this vision. At the same time, we want to understand your unique skills, expertise, and perspective through our hiring process. We in…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Why Anthropic?",
+      "help": "Why do you want to work at Anthropic? (We value this response highly - great answers are often 200-400 words.)",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Why do you want to work on the Anthropic interpretability team? (We value this response highly - great answers are often 200-400 words. We like to see deeper and more specific engagement with Anthropic and our interpretability agenda than simply interest in AI or LLMs.)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please briefly describe the technical achievement you’re most proud of, including what you did, how you collaborated with others (if relevant), and its significance or impact.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Please share a link to the piece of work you've done that is most relevant to the interpretability team, along with a brief description of the work and its relevance.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What’s your ideal breakdown of your time in a working week, in terms of hours or % per week spent on research discussions and meetings, coding and code review, reading papers, etc.?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Will you now or will you in the future require employment visa sponsorship to work in the country in which the job you're applying for is located?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Additional Information",
+      "help": "Add a cover letter or anything else you want to share.",
+      "type": "textarea",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "Please ensure to provide either your LinkedIn profile or Resume, we require at least one of the two.",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you open to relocation for this role?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "What is the address from which you plan on working? If you would need to relocate, please type \"relocating\".",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you ever interviewed at Anthropic before?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you require visa sponsorship?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please read the arbitration agreement below",
+      "help": "Agreement to Arbitrate I understand and agree that both Anthropic and I waive our respective rights to trial by jury in connection with any claims covered by this agreement to arbitrate. Instead, any disputes arising out of or related to my application for employment with Anthropic shall be settled…",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I will read the arbitration agreement below."
+      ]
+    },
+    {
+      "label": "Agreement to Arbitrate",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "I understand and agree to the terms of the Agreement to Arbitrate set forth above."
+      ]
+    },
+    {
+      "label": "VeteranStatus",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "I don't wish to answer",
+        "I identify as one or more of the classifications of a protected veteran",
+        "I am not a protected veteran"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Two or More Races",
+        "Native Hawaiian or Other Pacific Islander",
+        "White",
+        "Hispanic or Latino",
+        "Black or African American",
+        "Asian",
+        "American Indian or Alaskan Native"
+      ]
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Compliance: eeoc",
+      "options": [
+        "Decline To Self Identify",
+        "Female",
+        "Male"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Compliance: eeoc"
+  ],
+  "captured": "2026-09-22"
+}

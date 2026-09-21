@@ -1,0 +1,243 @@
+{
+  "ats": "lever",
+  "company": "match-group",
+  "family": "ml_engineer",
+  "title": "Machine Learning Engineer (Match Group AI)",
+  "location": "Seoul, South Korea",
+  "url": "https://jobs.lever.co/matchgroup/2196948b-9338-4943-acba-cb529335ed16/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Please describe the channel through which you came across the job opportunity and decided to apply. (i.e. referral, Linkedin, tech blog, article, etc.)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "HPCNT - Application Source",
+      "options": []
+    },
+    {
+      "label": "현재 학/석/박사 재학 중일 경우, 예상 졸업 시점과 Full-time 근무 가능 시점을 기재해주세요.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "HPCNT - MLE",
+      "options": []
+    },
+    {
+      "label": "[필수] 병역특례 지원일 경우, 해당하는 항목을 선택해주세요. (관계 없을 시 \"해당 없음\" 선택)",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "HPCNT - Military Service Exception",
+      "options": [
+        "해당 없음(복무 만료, 비대상 etc.)",
+        "전문연구요원 현역 신규편입",
+        "전문연구요원 현역 전직",
+        "전문연구요원 보충역 신규편입",
+        "전문연구요원 보충역 전직"
+      ]
+    },
+    {
+      "label": "[병역특례 해당시] 복무 만료 예정일/졸업 예정일/졸업까지 잔여 학점&학기 기재",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "HPCNT - Military Service Exception",
+      "options": []
+    },
+    {
+      "label": "본인의 영어 커뮤니케이션 수준(서면/회화)에 대하여 각각 말씀 부탁드립니다. (업무에 영어를 이용한 경험이 있다면 함께 기재해주세요.)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "HPCNT - English Proficiency",
+      "options": []
+    },
+    {
+      "label": "What is your current work authorization status in South Korea?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "HPCNT - Korea Visa",
+      "options": [
+        "South Korean Citizen (대한민국 국적자)",
+        "Foreigner with a valid work visa (유효한 취업 비자를 보유한 외국인)",
+        "Foreigner requiring visa sponsorship (비자 스폰서십이 필요한 외국인)"
+      ]
+    },
+    {
+      "label": "[Only for Visa Holders] If you hold a visa, please specify your Visa Type and Expiration Date. ((If you are a Korean Citizen or require sponsorship, please write \"N/A\"). Expected Answer Format: Example: F-4 Visa / Dec 31, 2028. If not applicable: N/A)",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "HPCNT - Korea Visa",
+      "options": []
+    },
+    {
+      "label": "If you have applied for both the MG AI and HYPERCONNECT AI positions, please indicate your preferred position in order of priority. (If this does not apply to you, please write “Not applicable.”)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "HPCNT AI & MG AI - Priority Confirmation",
+      "options": []
+    },
+    {
+      "label": "Please indicate your level of professional proficiency in Korean written.",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Experience - Korean Proficiency",
+      "options": [
+        "None",
+        "Conversational/Basic",
+        "Fluent",
+        "Native"
+      ]
+    },
+    {
+      "label": "Please indicate your level of professional proficiency in Korean spoken..",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Experience - Korean Proficiency",
+      "options": [
+        "None",
+        "Conversational/Basic",
+        "Fluent",
+        "Native"
+      ]
+    },
+    {
+      "label": "Please provide any details of your experience.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Experience - Korean Proficiency",
+      "options": []
+    },
+    {
+      "label": "What gender do you identify as?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "Female",
+        "Male",
+        "Prefer not to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "HPCNT - Application Source",
+    "HPCNT - MLE",
+    "HPCNT - Military Service Exception",
+    "HPCNT - English Proficiency",
+    "HPCNT - Korea Visa",
+    "HPCNT AI & MG AI - Priority Confirmation",
+    "Experience - Korean Proficiency",
+    "Demographic Survey"
+  ],
+  "captured": "2026-09-22"
+}

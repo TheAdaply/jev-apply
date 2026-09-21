@@ -1,0 +1,194 @@
+{
+  "ats": "lever",
+  "company": "zoox",
+  "family": "gpu_performance",
+  "title": "Software Engineer, ML Performance Optimization",
+  "location": "Foster City, CA",
+  "url": "https://jobs.lever.co/zoox/bc11276c-8db7-426e-9d00-d41c2097723a/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "What is your preferred first name and last name? If your legal first and last name is your preferred name, you do not need to respond.",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "A few more questions...",
+      "options": []
+    },
+    {
+      "label": "Export Control and Compliance: For the sole purpose of determining export licensing requirements, please list any countries of which you are a citizen or legal permanent resident, and when you obtained such status.",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "A few more questions...",
+      "options": []
+    },
+    {
+      "label": "Sponsorship: Do you require sponsorship, or will you require sponsorship in the future for employment authorization in the United States?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "A few more questions...",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "How did you hear about us?",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "A few more questions...",
+      "options": [
+        "Zoox Ads / Social Media",
+        "LinkedIn",
+        "Event, Media Interview, or other PR",
+        "Recruiter Outreach",
+        "Employee Referral",
+        "CVPR Conference",
+        "SHPE Conference",
+        "Other"
+      ]
+    },
+    {
+      "label": "If you attended an on-campus or virtual event, which did you attend?",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "A few more questions...",
+      "options": []
+    },
+    {
+      "label": "Gender",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Male",
+        "Female",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Race",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "Hispanic or Latino",
+        "White (Not Hispanic or Latino)",
+        "Black or African American (Not Hispanic or Latino)",
+        "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+        "Asian (Not Hispanic or Latino)",
+        "American Indian or Alaska Native (Not Hispanic or Latino)",
+        "Two or More Races (Not Hispanic or Latino)",
+        "Decline to self-identify"
+      ]
+    },
+    {
+      "label": "Veteran status",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "EEO",
+      "options": [
+        "I am a veteran",
+        "I am not a veteran",
+        "Decline to self-identify"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "A few more questions...",
+    "EEO"
+  ],
+  "captured": "2026-09-22"
+}

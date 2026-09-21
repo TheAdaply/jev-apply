@@ -1,0 +1,145 @@
+{
+  "ats": "ashby",
+  "company": "anyscale",
+  "family": "devrel_techwriter",
+  "title": "Software Engineer, ML Developer Experience",
+  "location": "San Francisco",
+  "url": "https://jobs.ashbyhq.com/anyscale/81c3c26a-71e3-4c4c-a88e-88c538a169be",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone number",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Additional information",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Twitter",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "GitHub",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Portfolio",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Other",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Are you okay with a hybrid in-office schedule of Mon, Tue, and Thu?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Location",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If you’re currently located outside of the SF Bay area, are you open to relocate?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Work Location",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Would you require visa sponsorship to work in the country in which this position is based?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Work Authorization",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Work Location",
+    "Work Authorization"
+  ],
+  "captured": "2026-09-22"
+}

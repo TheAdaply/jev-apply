@@ -1,0 +1,178 @@
+{
+  "ats": "greenhouse",
+  "company": "graphcore",
+  "family": "research_engineer",
+  "title": "AI Research Engineer",
+  "location": "Bristol, UK",
+  "url": "https://job-boards.greenhouse.io/graphcore/jobs/8632582002",
+  "questions": [
+    {
+      "label": "First Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Last Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Cover Letter",
+      "help": "",
+      "type": "file",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Have you added your full legal name and surname (including any middle names)?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Do you have the legal right to work in the UK?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "Please select your right to work status",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Application",
+      "options": [
+        "British or Irish Citizen",
+        "EU Pre-Settled Status",
+        "EU Settled Status",
+        "Indefinite leave to remain (ILR)",
+        "Skilled worker or Tier 2 (General) Visa",
+        "Global Talent Visa",
+        "Family or Spouse Visa",
+        "Tier 4 (General) Student Visa",
+        "Graduate Visa",
+        "Other"
+      ]
+    },
+    {
+      "label": "LinkedIn Profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "How did you hear about this role?",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "If you're happy, please share a link to your GitHub profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "I identify my gender as",
+      "help": "",
+      "type": "multi_select",
+      "required": true,
+      "section": "UK Demographic Data",
+      "options": [
+        "Man",
+        "Woman",
+        "Non-binary",
+        "I don't wish to answer",
+        "Other - Prefer to self-describe"
+      ]
+    },
+    {
+      "label": "What is your ethnicity?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "UK Demographic Data",
+      "options": [
+        "Arab",
+        "Asian (Indian, Pakistani, Bangladeshi, Chinese, Any other Asian background)",
+        "Black (Black British, Caribbean, African, Any other Black background)",
+        "Mixed (White and Black Caribbean, White and Black African, White and Asian, Any other mixed or multiple ethnic background)",
+        "White (English, Welsh, Scottish, Northern Irish, Irish, Roma, European, Any other white background)",
+        "I don't wish to answer",
+        "Other - Prefer to self-describe"
+      ]
+    },
+    {
+      "label": "Do you consider yourself to have a disability?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "UK Demographic Data",
+      "options": [
+        "Yes",
+        "No",
+        "I don't wish to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "UK Demographic Data"
+  ],
+  "captured": "2026-09-22"
+}

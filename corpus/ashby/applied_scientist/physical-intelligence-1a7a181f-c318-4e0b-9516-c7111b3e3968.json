@@ -1,0 +1,38 @@
+{
+  "ats": "ashby",
+  "company": "physical-intelligence",
+  "family": "applied_scientist",
+  "title": "Applied Researcher",
+  "location": "San Francisco",
+  "url": "https://jobs.ashbyhq.com/physicalintelligence/1a7a181f-c318-4e0b-9516-c7111b3e3968",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Applied Researcher",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Applied Researcher",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Applied Researcher",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Applied Researcher"
+  ],
+  "captured": "2026-09-22"
+}

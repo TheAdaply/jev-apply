@@ -1,0 +1,87 @@
+{
+  "ats": "ashby",
+  "company": "elevenlabs",
+  "family": "product_designer",
+  "title": "Product Designer",
+  "location": "London",
+  "url": "https://jobs.ashbyhq.com/elevenlabs/89da00ec-11b0-4359-913b-c3a89c1013bc",
+  "questions": [
+    {
+      "label": "Name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Location",
+      "help": "Country you're currently residing in",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Resume",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Link to your portfolio",
+      "help": "",
+      "type": "url",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Link to your Linkedin profile",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Link to your relevant socials (X, instagram, etc.)",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "What makes you excited about the ElevenLabs mission?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "What you're looking for",
+      "options": []
+    },
+    {
+      "label": "Tell us about a product that you think is expertly designed and why?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "What you're looking for",
+      "options": []
+    }
+  ],
+  "sections": [
+    "Application",
+    "What you're looking for"
+  ],
+  "captured": "2026-09-22"
+}

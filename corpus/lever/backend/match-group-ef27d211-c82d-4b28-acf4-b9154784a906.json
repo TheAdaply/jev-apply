@@ -1,0 +1,181 @@
+{
+  "ats": "lever",
+  "company": "match-group",
+  "family": "backend",
+  "title": "Senior Software Engineer, Backend — Seoul Studios (Tinder Seoul)",
+  "location": "Seoul, South Korea",
+  "url": "https://jobs.lever.co/matchgroup/ef27d211-c82d-4b28-acf4-b9154784a906/apply",
+  "questions": [
+    {
+      "label": "Resume/CV",
+      "help": "",
+      "type": "file",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Full name",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Pronouns",
+      "help": "",
+      "type": "multi_select",
+      "required": false,
+      "section": "Application",
+      "options": [
+        "He/him",
+        "She/her",
+        "They/them",
+        "Xe/xem",
+        "Ze/hir",
+        "Ey/em",
+        "Hir/hir",
+        "Fae/faer",
+        "Hu/hu",
+        "Use name only",
+        "Custom"
+      ]
+    },
+    {
+      "label": "Email",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Phone",
+      "help": "",
+      "type": "phone",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current location",
+      "help": "",
+      "type": "text",
+      "required": true,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "Current company",
+      "help": "",
+      "type": "text",
+      "required": false,
+      "section": "Application",
+      "options": []
+    },
+    {
+      "label": "LinkedIn URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "GitHub URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Portfolio URL",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Other website",
+      "help": "",
+      "type": "url",
+      "required": false,
+      "section": "Links",
+      "options": []
+    },
+    {
+      "label": "Do you now or will you in the future require sponsorship to work in Korea?",
+      "help": "",
+      "type": "single_select",
+      "required": true,
+      "section": "Salary & Visa - South Korea",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "label": "If non-Korean, what is your current Korea Visa & Expiration Date?",
+      "help": "",
+      "type": "textarea",
+      "required": false,
+      "section": "Salary & Visa - South Korea",
+      "options": []
+    },
+    {
+      "label": "What is your current salary compensation (please explain your salary breakdown)?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Salary & Visa - South Korea",
+      "options": []
+    },
+    {
+      "label": "What is your salary expectation for this position? Minimum and ideal?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Salary & Visa - South Korea",
+      "options": []
+    },
+    {
+      "label": "What is your notice period?",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "Salary & Visa - South Korea",
+      "options": []
+    },
+    {
+      "label": "본인의 영어 커뮤니케이션 수준(서면/회화)에 대하여 각각 말씀 부탁드립니다. (업무에 영어를 이용한 경험이 있다면 함께 기재해주세요.)",
+      "help": "",
+      "type": "textarea",
+      "required": true,
+      "section": "HPCNT - English Proficiency",
+      "options": []
+    },
+    {
+      "label": "What gender do you identify as?",
+      "help": "",
+      "type": "single_select",
+      "required": false,
+      "section": "Demographic Survey",
+      "options": [
+        "Female",
+        "Male",
+        "Prefer not to answer"
+      ]
+    }
+  ],
+  "sections": [
+    "Application",
+    "Links",
+    "Salary & Visa - South Korea",
+    "HPCNT - English Proficiency",
+    "Demographic Survey"
+  ],
+  "captured": "2026-09-22"
+}

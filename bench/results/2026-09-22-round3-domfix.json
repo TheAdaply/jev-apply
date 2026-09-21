@@ -1,0 +1,2641 @@
+{
+  "run": "2026-09-22-round3-domfix",
+  "started": "2026-09-22T20:55:50.616Z",
+  "finished": "2026-09-22T20:58:39.551Z",
+  "ms": 168935,
+  "harness": {
+    "postings_file": "/tmp/jev-bench/round3-subset.yml",
+    "postings_source": "yaml",
+    "home": "/tmp/jev-bench",
+    "cdp_port": 9224,
+    "jev_model": "jev-1.13.0",
+    "openai_model": "gpt-5.4",
+    "pricing": {
+      "jev": {
+        "input_per_mtok": 0.042,
+        "output_per_mtok": 0
+      },
+      "openai": {
+        "gpt-5.4": {
+          "input_per_mtok": 2.5,
+          "output_per_mtok": 15
+        },
+        "gpt-5.4-mini": {
+          "input_per_mtok": 0.75,
+          "output_per_mtok": 4.5
+        }
+      }
+    },
+    "profile": "synthetic (src/bench/synthetic.mjs)",
+    "exercise_controls": true,
+    "answers_seeded": {
+      "ran": true,
+      "cached": false,
+      "families": [
+        "devrel_techwriter",
+        "frontend",
+        "product_manager",
+        "security"
+      ],
+      "status": "needs_user",
+      "coverage_line": "answers ready for 63% of questions seen in 500 real forms; 74 narratives to review",
+      "missing": [
+        "q.auth.nationality needs f.citizenship",
+        "q.legal.previously_applied needs pipeline"
+      ],
+      "not_written": 1,
+      "rows": 122,
+      "constants": 21,
+      "rules": 12,
+      "policies": 13,
+      "narratives": 76
+    },
+    "canon_questions": 292
+  },
+  "totals": {
+    "postings": 5,
+    "by_status": {
+      "ready_to_submit": 1,
+      "needs_user": 4
+    },
+    "fields": 97,
+    "filled": 60,
+    "asks": 18,
+    "failed": 0,
+    "writes": 61,
+    "ms": 81787,
+    "jev_requests": 14,
+    "jev_tokens": 186154,
+    "openai_calls": 0,
+    "openai_tokens": 0,
+    "usd": 0.006406,
+    "usd_unreported": 0,
+    "eeo_writes": 0,
+    "exercise_ms": 40252,
+    "exercise_jev_requests": 7,
+    "exercise_usd": 0.000133,
+    "asks_answerable": 11,
+    "asks_mapped": 13
+  },
+  "comparison": null,
+  "postings": [
+    {
+      "n": 1,
+      "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8195695",
+      "company": "cloudflare",
+      "ats": "greenhouse",
+      "family": "security",
+      "controls": [
+        {
+          "control": "text",
+          "attempts": 6,
+          "ok": 6,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 692,
+          "ms": [
+            691,
+            824,
+            613,
+            692,
+            767,
+            550
+          ]
+        },
+        {
+          "control": "react_select",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1180,
+          "ms": [
+            1180
+          ],
+          "strategies": {
+            "exact": 1
+          }
+        },
+        {
+          "control": "checkbox",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 553,
+          "ms": [
+            553
+          ],
+          "strategies": {
+            "option": 1
+          }
+        },
+        {
+          "control": "tel",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 740,
+          "ms": [
+            740
+          ],
+          "strategies": {
+            "fill": 1
+          }
+        },
+        {
+          "control": "file",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1740,
+          "ms": [
+            1740
+          ]
+        },
+        {
+          "control": "location",
+          "attempts": 2,
+          "ok": 2,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1966,
+          "ms": [
+            1954,
+            1977
+          ],
+          "replanned_from_schema": 1,
+          "strategies": {
+            "exact": 1,
+            "location:exact": 1
+          }
+        }
+      ],
+      "notes": "The single-checkbox case: `question_69128550[]` is a `multi_value_multi_select` with exactly one option (\"Please review and acknowledge Cloudflare's Candidate Privacy Policy\"), so the FormPlan selector matches a one-box group and `setCheckbox` takes its *boolean* branch, not its group branch — a distinct code path from row 9's 11-box group. Required, so a miss blocks the verify step. Note \"How did you hear about this job?\" here is a free-text field, not a select: a \"how did you hear\" question that must NOT be answered by option matching.",
+      "slug": "cloudflare-8195695",
+      "status": "ready_to_submit",
+      "title": "Senior Engineering Director, Security Products",
+      "ms": 15935,
+      "usage": {
+        "ms_total": 15453,
+        "ms_schema": 629,
+        "ms_plan": 1869,
+        "ms_browser": 12862,
+        "jev": {
+          "requests": 2,
+          "input_tokens": 6334,
+          "output_tokens": 1179,
+          "usd": 0.000266
+        },
+        "openai": {
+          "calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "usd": 0
+        },
+        "usd_total": 0.000266
+      },
+      "fields": {
+        "total": 17,
+        "filled": 12,
+        "check": 0,
+        "ask": 0,
+        "skipped": 5,
+        "draft": 0,
+        "failed": 0,
+        "from": "decisions"
+      },
+      "failures": [],
+      "asks": [],
+      "screenshots": [],
+      "probes": [],
+      "writes": 12,
+      "eeo_writes": 0,
+      "ms_execute": 15453,
+      "expected_controls": [
+        "text",
+        "tel",
+        "tel_country",
+        "file",
+        "react_select",
+        "location",
+        "checkbox_single",
+        "multi_select",
+        "eeo"
+      ],
+      "exercised": {
+        "ran": true,
+        "rows": 1,
+        "attempted": 0,
+        "ok": 0,
+        "fail": 0,
+        "declined": 1,
+        "ms": 490,
+        "jev": {
+          "requests": 0,
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "usd": 0,
+        "controls": [],
+        "skipped": {
+          "file_upload_is_the_runners_own": 1
+        },
+        "as_planned": {},
+        "detail": [
+          {
+            "qid": "cover_letter",
+            "label": "Cover Letter",
+            "control": "file",
+            "was": "skip",
+            "exercised": false,
+            "why": "file_upload_is_the_runners_own"
+          }
+        ]
+      },
+      "tab_closed": true
+    },
+    {
+      "n": 2,
+      "url": "https://jobs.ashbyhq.com/1password/c6fc16b0-bb5b-48f1-994d-d69e07846bc8/application",
+      "company": "1password",
+      "ats": "ashby",
+      "family": "product_manager",
+      "controls": [
+        {
+          "control": "text",
+          "attempts": 9,
+          "ok": 9,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 684,
+          "ms": [
+            644,
+            810,
+            581,
+            699,
+            600,
+            684,
+            784,
+            748,
+            636
+          ]
+        },
+        {
+          "control": "textarea",
+          "attempts": 4,
+          "ok": 4,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 701,
+          "ms": [
+            629,
+            737,
+            751,
+            664
+          ]
+        },
+        {
+          "control": "radio",
+          "attempts": 2,
+          "ok": 2,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 713,
+          "ms": [
+            596,
+            829
+          ]
+        },
+        {
+          "control": "checkbox",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 804,
+          "ms": [
+            804
+          ],
+          "strategies": {
+            "option": 1
+          }
+        },
+        {
+          "control": "tel",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 667,
+          "ms": [
+            667
+          ],
+          "strategies": {
+            "fill": 1
+          }
+        },
+        {
+          "control": "file",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 340,
+          "ms": [
+            340
+          ]
+        },
+        {
+          "control": "location",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1844,
+          "ms": [
+            1844
+          ],
+          "replanned_from_schema": 1,
+          "strategies": {
+            "location:exact": 1
+          }
+        }
+      ],
+      "notes": "Hardest row: 28 questions, 17 required, four sections (Links / Application Questions / Accommodations / Screening Questions). Carries a 24-option ValueSelect (\"What brought you to this job posting\") which per src/schema/ashby.mjs:21 should render as 24 radio inputs — whether Ashby switches to a dropdown at that length is unverified and is one of the things this row measures [INFERENCE]. Two one-option MultiValueSelects (a conditional-offer acknowledgement, required, and a marketing opt-in, optional) hit the same single-checkbox branch as row 7. Three required essays plus a `why_us`, so the writer path runs at full width. Two rows classified `sensitive` by label (\"Pronouns\", an accommodations textarea) must stay untouched. The two AI-topic essays are questions *about* AI tooling, not AI-usage attestations — the form carries no attestation and no login.",
+      "slug": "1password-c6fc16b0",
+      "status": "needs_user",
+      "title": "Senior Product Manager, Machine Identity",
+      "ms": 20978,
+      "usage": {
+        "ms_total": 20514,
+        "ms_schema": 672,
+        "ms_plan": 4160,
+        "ms_browser": 15610,
+        "jev": {
+          "requests": 3,
+          "input_tokens": 60190,
+          "output_tokens": 13130,
+          "usd": 0.002528
+        },
+        "openai": {
+          "calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "usd": 0
+        },
+        "usd_total": 0.002528
+      },
+      "fields": {
+        "total": 28,
+        "filled": 19,
+        "check": 0,
+        "ask": 6,
+        "skipped": 3,
+        "draft": 0,
+        "failed": 0,
+        "from": "decisions"
+      },
+      "failures": [
+        {
+          "reason": "plan:no_product_manager_senior_eu_remote_row_",
+          "kind": "plan",
+          "qid": "f2260c40-88f8-48c0-be3e-2cc1b55eb38e",
+          "label": "What is the beginning of your desired annual base salary ra…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_product_manager_senior_eu_remote_row_",
+          "kind": "plan",
+          "qid": "bf779869-12c3-492e-a851-9a228deff2e5",
+          "label": "What is the end of your desired annual base salary range? (…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:canon_q_screening_product_manager_experi",
+          "kind": "plan",
+          "qid": "1f9278d0-9f61-43b7-9d64-801aee56eaff",
+          "label": "Do you have experience in cybersecurity SaaS?",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.screening.product_manager.experience_cybersecurity_saas",
+          "class": "company_specific"
+        },
+        {
+          "reason": "plan:no_company_answer_saved_for_1password",
+          "kind": "plan",
+          "qid": "d63efc68-812d-4b77-be6f-ea164e45f857",
+          "label": "Why 1Password?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "why_us"
+        },
+        {
+          "reason": "plan:no_saved_question_asks_for_the_same_info",
+          "kind": "plan",
+          "qid": "e7d18276-e843-406a-86d9-ddec6f0873eb",
+          "label": "As a PM which AI tool are you using on daily or weekly basi…",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.screening.product_manager.pm_which_ai_tool_using_daily_weekly_basis",
+          "class": "essay"
+        },
+        {
+          "reason": "plan:canon_q_core_how_heard",
+          "kind": "plan",
+          "qid": "0bcb278d-9475-4a52-8102-dac2deeb1e01",
+          "label": "What brought you to this job posting",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.core.how_heard",
+          "class": "company_specific"
+        }
+      ],
+      "asks": [
+        {
+          "reason": "plan:no_product_manager_senior_eu_remote_row_",
+          "kind": "plan",
+          "qid": "f2260c40-88f8-48c0-be3e-2cc1b55eb38e",
+          "label": "What is the beginning of your desired annual base salary ra…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_product_manager_senior_eu_remote_row_",
+          "kind": "plan",
+          "qid": "bf779869-12c3-492e-a851-9a228deff2e5",
+          "label": "What is the end of your desired annual base salary range? (…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:canon_q_screening_product_manager_experi",
+          "kind": "plan",
+          "qid": "1f9278d0-9f61-43b7-9d64-801aee56eaff",
+          "label": "Do you have experience in cybersecurity SaaS?",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.screening.product_manager.experience_cybersecurity_saas",
+          "class": "company_specific"
+        },
+        {
+          "reason": "plan:no_company_answer_saved_for_1password",
+          "kind": "plan",
+          "qid": "d63efc68-812d-4b77-be6f-ea164e45f857",
+          "label": "Why 1Password?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "why_us"
+        },
+        {
+          "reason": "plan:no_saved_question_asks_for_the_same_info",
+          "kind": "plan",
+          "qid": "e7d18276-e843-406a-86d9-ddec6f0873eb",
+          "label": "As a PM which AI tool are you using on daily or weekly basi…",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.screening.product_manager.pm_which_ai_tool_using_daily_weekly_basis",
+          "class": "essay"
+        },
+        {
+          "reason": "plan:canon_q_core_how_heard",
+          "kind": "plan",
+          "qid": "0bcb278d-9475-4a52-8102-dac2deeb1e01",
+          "label": "What brought you to this job posting",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.core.how_heard",
+          "class": "company_specific"
+        }
+      ],
+      "screenshots": [],
+      "probes": [],
+      "writes": 19,
+      "eeo_writes": 0,
+      "ms_execute": 20513,
+      "expected_controls": [
+        "text",
+        "textarea",
+        "essay",
+        "tel",
+        "file",
+        "radio",
+        "yesno_buttons",
+        "checkbox_single",
+        "multi_select",
+        "location",
+        "long_option_list",
+        "hear_about",
+        "eeo"
+      ],
+      "exercised": {
+        "ran": true,
+        "rows": 7,
+        "attempted": 7,
+        "ok": 7,
+        "fail": 0,
+        "declined": 0,
+        "ms": 13014,
+        "jev": {
+          "requests": 2,
+          "input_tokens": 1108,
+          "output_tokens": 279
+        },
+        "usd": 0.000047,
+        "controls": [
+          {
+            "control": "text",
+            "attempts": 2,
+            "ok": 2,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 759,
+            "ms": [
+              715,
+              803
+            ],
+            "strategies": {
+              "fixed_text": 2
+            }
+          },
+          {
+            "control": "textarea",
+            "attempts": 2,
+            "ok": 2,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 777,
+            "ms": [
+              823,
+              731
+            ],
+            "strategies": {
+              "fixed_text": 2
+            }
+          },
+          {
+            "control": "radio",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 2019,
+            "ms": [
+              2019
+            ],
+            "strategies": {
+              "jev_generic": 1
+            }
+          },
+          {
+            "control": "checkbox",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 775,
+            "ms": [
+              775
+            ],
+            "strategies": {
+              "boolean": 1
+            }
+          },
+          {
+            "control": "combobox",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 6273,
+            "ms": [
+              6273
+            ],
+            "strategies": {
+              "jev_generic": 1
+            }
+          }
+        ],
+        "skipped": {},
+        "as_planned": {
+          "radio": {
+            "attempts": 1,
+            "ok": 1,
+            "detected": {
+              "combobox": 1
+            }
+          }
+        },
+        "detail": [
+          {
+            "qid": "f2260c40-88f8-48c0-be3e-2cc1b55eb38e",
+            "label": "What is the beginning of your desired annual base salary range? (please format with no commas, i.e. $50000, £50000)",
+            "control": "text",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 715
+          },
+          {
+            "qid": "bf779869-12c3-492e-a851-9a228deff2e5",
+            "label": "What is the end of your desired annual base salary range? (please format with no commas, i.e. $70000, £70000)",
+            "control": "text",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 803
+          },
+          {
+            "qid": "1f9278d0-9f61-43b7-9d64-801aee56eaff",
+            "label": "Do you have experience in cybersecurity SaaS?",
+            "control": "radio",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 2019,
+            "options": 2
+          },
+          {
+            "qid": "d63efc68-812d-4b77-be6f-ea164e45f857",
+            "label": "Why 1Password?",
+            "control": "textarea",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 823
+          },
+          {
+            "qid": "e7d18276-e843-406a-86d9-ddec6f0873eb",
+            "label": "As a PM which AI tool are you using on daily or weekly basis?",
+            "control": "textarea",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 731
+          },
+          {
+            "qid": "0bcb278d-9475-4a52-8102-dac2deeb1e01",
+            "label": "What brought you to this job posting",
+            "control": "combobox",
+            "planned": "radio",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 6273,
+            "options": 24
+          },
+          {
+            "qid": "9fac80b8-e39d-408a-a5c5-7296b2b61538",
+            "label": "Interested in learning more about exciting careers at 1Password? Check this box to sign up. You can unsubscribe at any time.",
+            "control": "checkbox",
+            "was": "skip",
+            "exercised": true,
+            "ok": true,
+            "strategy": "boolean",
+            "ms": 775
+          }
+        ]
+      },
+      "tab_closed": true
+    },
+    {
+      "n": 3,
+      "url": "https://jobs.ashbyhq.com/elevenlabs/71992118-5b37-4a4a-a862-99e82e02916f/application",
+      "company": "elevenlabs",
+      "ats": "ashby",
+      "family": "frontend",
+      "controls": [
+        {
+          "control": "text",
+          "attempts": 4,
+          "ok": 4,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 756,
+          "ms": [
+            750,
+            587,
+            762,
+            765
+          ]
+        },
+        {
+          "control": "textarea",
+          "attempts": 2,
+          "ok": 2,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 753,
+          "ms": [
+            780,
+            726
+          ]
+        },
+        {
+          "control": "file",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 488,
+          "ms": [
+            488
+          ]
+        },
+        {
+          "control": "location",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 3199,
+          "ms": [
+            3199
+          ],
+          "replanned_from_schema": 1,
+          "strategies": {
+            "location:named_part": 1
+          }
+        }
+      ],
+      "notes": "8-option radio group, \"How did you hear about ElevenLabs?\" — the first option list long enough that a wrong pick is plausible, and a `circumstance` row the memory is expected to answer. Four textareas (one `why_us`, three optional) exercise the draft path. No phone field at all, which is the negative control for the tel/`tel_country` pair.",
+      "slug": "elevenlabs-71992118",
+      "status": "needs_user",
+      "title": "Website Growth Engineer",
+      "ms": 13953,
+      "usage": {
+        "ms_total": 13505,
+        "ms_schema": 417,
+        "ms_plan": 3137,
+        "ms_browser": 9815,
+        "jev": {
+          "requests": 3,
+          "input_tokens": 25238,
+          "output_tokens": 5618,
+          "usd": 0.00106
+        },
+        "openai": {
+          "calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "usd": 0
+        },
+        "usd_total": 0.00106
+      },
+      "fields": {
+        "total": 12,
+        "filled": 8,
+        "check": 0,
+        "ask": 2,
+        "skipped": 2,
+        "draft": 0,
+        "failed": 0,
+        "from": "decisions"
+      },
+      "failures": [
+        {
+          "reason": "plan:p_how_heard",
+          "kind": "plan",
+          "qid": "9ea8b1bb-a272-4352-9e26-50b387d8c025",
+          "label": "How did you hear about ElevenLabs?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_company_answer_saved_for_elevenlabs",
+          "kind": "plan",
+          "qid": "29e8435d-6a3d-4cd4-91b4-8e82afa0c1f3",
+          "label": "Why ElevenLabs, and why now?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "why_us"
+        }
+      ],
+      "asks": [
+        {
+          "reason": "plan:p_how_heard",
+          "kind": "plan",
+          "qid": "9ea8b1bb-a272-4352-9e26-50b387d8c025",
+          "label": "How did you hear about ElevenLabs?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_company_answer_saved_for_elevenlabs",
+          "kind": "plan",
+          "qid": "29e8435d-6a3d-4cd4-91b4-8e82afa0c1f3",
+          "label": "Why ElevenLabs, and why now?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "why_us"
+        }
+      ],
+      "screenshots": [],
+      "probes": [],
+      "writes": 8,
+      "eeo_writes": 0,
+      "ms_execute": 13501,
+      "expected_controls": [
+        "text",
+        "textarea",
+        "file",
+        "radio",
+        "hear_about",
+        "location"
+      ],
+      "exercised": {
+        "ran": true,
+        "rows": 4,
+        "attempted": 4,
+        "ok": 4,
+        "fail": 0,
+        "declined": 0,
+        "ms": 5352,
+        "jev": {
+          "requests": 1,
+          "input_tokens": 485,
+          "output_tokens": 92
+        },
+        "usd": 0.00002,
+        "controls": [
+          {
+            "control": "text",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 720,
+            "ms": [
+              720
+            ],
+            "strategies": {
+              "fixed_text": 1
+            }
+          },
+          {
+            "control": "textarea",
+            "attempts": 2,
+            "ok": 2,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 755,
+            "ms": [
+              829,
+              680
+            ],
+            "strategies": {
+              "fixed_text": 2
+            }
+          },
+          {
+            "control": "radio",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 2084,
+            "ms": [
+              2084
+            ],
+            "strategies": {
+              "jev_generic": 1
+            }
+          }
+        ],
+        "skipped": {},
+        "as_planned": {},
+        "detail": [
+          {
+            "qid": "9ea8b1bb-a272-4352-9e26-50b387d8c025",
+            "label": "How did you hear about ElevenLabs?",
+            "control": "radio",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 2084,
+            "options": 8
+          },
+          {
+            "qid": "f1d7e277-0c8f-4ff9-87d1-3d17914a8063",
+            "label": "If other, please specify below",
+            "control": "text",
+            "was": "skip",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 720
+          },
+          {
+            "qid": "29e8435d-6a3d-4cd4-91b4-8e82afa0c1f3",
+            "label": "Why ElevenLabs, and why now?",
+            "control": "textarea",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 829
+          },
+          {
+            "qid": "832af6e6-f4c6-49de-b4d6-e6d3c7041863",
+            "label": "How did you know it worked? What did success actually look like?",
+            "control": "textarea",
+            "was": "skip",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 680
+          }
+        ]
+      },
+      "tab_closed": true
+    },
+    {
+      "n": 4,
+      "url": "https://jobs.ashbyhq.com/deepl/236d8651-c4c9-4bb8-a9ea-57d535cb76fb/application",
+      "company": "deepl",
+      "ats": "ashby",
+      "family": "product_manager",
+      "controls": [
+        {
+          "control": "text",
+          "attempts": 5,
+          "ok": 5,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 791,
+          "ms": [
+            905,
+            753,
+            734,
+            791,
+            827
+          ],
+          "replanned_from_schema": 1
+        },
+        {
+          "control": "radio",
+          "attempts": 2,
+          "ok": 2,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 701,
+          "ms": [
+            622,
+            780
+          ]
+        },
+        {
+          "control": "tel",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 665,
+          "ms": [
+            665
+          ],
+          "strategies": {
+            "fill": 1
+          }
+        },
+        {
+          "control": "file",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 399,
+          "ms": [
+            399
+          ]
+        },
+        {
+          "control": "location",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 2034,
+          "ms": [
+            2034
+          ],
+          "replanned_from_schema": 1,
+          "strategies": {
+            "location:city+qualifier": 1
+          }
+        }
+      ],
+      "notes": "First date picker. `d53167a0` is an Ashby `Date` field (\"What is your earliest possible/desired start date?\"), required. `setField` in src/browser/adapters/ashby.mjs has no date branch — it falls through to `setText` against `input.ashby-application-form-input-date`, which carries neither id nor name, so the container `data-field-path` scope is the only handle. Expect this row to fail until a date path exists; that failure is the measurement. Also a 2-option required checkbox group (relocation/entity), a GDPR retention consent classified `policy_gate` (must stay an `ask`), and a \"Which pronouns…\" *text* row classified `sensitive` that must stay empty.",
+      "slug": "deepl-236d8651",
+      "status": "needs_user",
+      "title": "Head of Product Growth",
+      "ms": 14192,
+      "usage": {
+        "ms_total": 13602,
+        "ms_schema": 1097,
+        "ms_plan": 2370,
+        "ms_browser": 10056,
+        "jev": {
+          "requests": 3,
+          "input_tokens": 13129,
+          "output_tokens": 2710,
+          "usd": 0.000551
+        },
+        "openai": {
+          "calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "usd": 0
+        },
+        "usd_total": 0.000551
+      },
+      "fields": {
+        "total": 17,
+        "filled": 9,
+        "check": 0,
+        "ask": 6,
+        "skipped": 2,
+        "draft": 0,
+        "failed": 0,
+        "from": "decisions"
+      },
+      "failures": [
+        {
+          "reason": "plan:p_relocation",
+          "kind": "plan",
+          "qid": "9a53dc0c-6251-4d98-9b06-38f6e377250e",
+          "label": "Are you willing to relocate? And if you are looking to relo…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:what_is_your_earliest_possible_desired_s",
+          "kind": "plan",
+          "qid": "d53167a0-cbab-4643-b997-3a038b6b6850",
+          "label": "What is your earliest possible/desired start date?",
+          "control": null,
+          "attempts": 1,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_product_manager_senior_uk_london_row_",
+          "kind": "plan",
+          "qid": "7f4d699c-31b2-47ad-8f1c-69004dfc5475",
+          "label": "What is your annual salary expectation?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_product_manager_senior_uk_london_row_",
+          "kind": "plan",
+          "qid": "a3da6623-cc23-4df7-9e6c-71030f0e873a",
+          "label": "Would you like to provide any additional context or details…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:attestation",
+          "kind": "plan",
+          "qid": "66965ac4-5a43-4376-a47c-4f005cf88cc6",
+          "label": "Would you like us to keep your application details on file …",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "policy_gate"
+        },
+        {
+          "reason": "plan:p_in_office",
+          "kind": "plan",
+          "qid": "7e2550d4-f15a-49aa-932a-c123e898cb28",
+          "label": "Please select the office(s) you are closest to and/or would…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        }
+      ],
+      "asks": [
+        {
+          "reason": "plan:p_relocation",
+          "kind": "plan",
+          "qid": "9a53dc0c-6251-4d98-9b06-38f6e377250e",
+          "label": "Are you willing to relocate? And if you are looking to relo…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:what_is_your_earliest_possible_desired_s",
+          "kind": "plan",
+          "qid": "d53167a0-cbab-4643-b997-3a038b6b6850",
+          "label": "What is your earliest possible/desired start date?",
+          "control": null,
+          "attempts": 1,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_product_manager_senior_uk_london_row_",
+          "kind": "plan",
+          "qid": "7f4d699c-31b2-47ad-8f1c-69004dfc5475",
+          "label": "What is your annual salary expectation?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:no_product_manager_senior_uk_london_row_",
+          "kind": "plan",
+          "qid": "a3da6623-cc23-4df7-9e6c-71030f0e873a",
+          "label": "Would you like to provide any additional context or details…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:attestation",
+          "kind": "plan",
+          "qid": "66965ac4-5a43-4376-a47c-4f005cf88cc6",
+          "label": "Would you like us to keep your application details on file …",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "policy_gate"
+        },
+        {
+          "reason": "plan:p_in_office",
+          "kind": "plan",
+          "qid": "7e2550d4-f15a-49aa-932a-c123e898cb28",
+          "label": "Please select the office(s) you are closest to and/or would…",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        }
+      ],
+      "screenshots": [],
+      "probes": [],
+      "writes": 10,
+      "eeo_writes": 0,
+      "ms_execute": 13601,
+      "expected_controls": [
+        "text",
+        "tel",
+        "file",
+        "radio",
+        "yesno_buttons",
+        "checkbox_group",
+        "multi_select",
+        "date",
+        "location",
+        "eeo"
+      ],
+      "exercised": {
+        "ran": true,
+        "rows": 6,
+        "attempted": 5,
+        "ok": 5,
+        "fail": 0,
+        "declined": 1,
+        "ms": 5388,
+        "jev": {
+          "requests": 1,
+          "input_tokens": 399,
+          "output_tokens": 44
+        },
+        "usd": 0.000017,
+        "controls": [
+          {
+            "control": "text",
+            "attempts": 3,
+            "ok": 3,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 740,
+            "ms": [
+              723,
+              818,
+              740
+            ],
+            "strategies": {
+              "fixed_date_as_planned": 1,
+              "fixed_text": 2
+            }
+          },
+          {
+            "control": "radio",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 1879,
+            "ms": [
+              1879
+            ],
+            "strategies": {
+              "jev_generic": 1
+            }
+          },
+          {
+            "control": "checkbox",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 650,
+            "ms": [
+              650
+            ],
+            "strategies": {
+              "boolean": 1
+            }
+          }
+        ],
+        "skipped": {
+          "file_upload_is_the_runners_own": 1
+        },
+        "as_planned": {
+          "date": {
+            "attempts": 1,
+            "ok": 1,
+            "detected": {
+              "text": 1
+            }
+          }
+        },
+        "detail": [
+          {
+            "qid": "68c48124-441c-4272-a5ce-1230043a9d7d",
+            "label": "Cover Letter",
+            "control": "file",
+            "was": "skip",
+            "exercised": false,
+            "why": "file_upload_is_the_runners_own"
+          },
+          {
+            "qid": "9a53dc0c-6251-4d98-9b06-38f6e377250e",
+            "label": "Are you willing to relocate? And if you are looking to relocate, which of our entities are you interested in working from?",
+            "control": "checkbox",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "boolean",
+            "ms": 650
+          },
+          {
+            "qid": "d53167a0-cbab-4643-b997-3a038b6b6850",
+            "label": "What is your earliest possible/desired start date?",
+            "control": "text",
+            "planned": "date",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_date_as_planned",
+            "ms": 723
+          },
+          {
+            "qid": "7f4d699c-31b2-47ad-8f1c-69004dfc5475",
+            "label": "What is your annual salary expectation?",
+            "control": "text",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 818
+          },
+          {
+            "qid": "a3da6623-cc23-4df7-9e6c-71030f0e873a",
+            "label": "Would you like to provide any additional context or details for your salary expectation?",
+            "control": "text",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 740
+          },
+          {
+            "qid": "7e2550d4-f15a-49aa-932a-c123e898cb28",
+            "label": "Please select the office(s) you are closest to and/or would be able to commute to",
+            "control": "radio",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 1879,
+            "options": 2
+          }
+        ]
+      },
+      "tab_closed": true
+    },
+    {
+      "n": 5,
+      "url": "https://job-boards.greenhouse.io/figma/jobs/5790627004",
+      "company": "figma",
+      "ats": "greenhouse",
+      "family": "devrel_techwriter",
+      "controls": [
+        {
+          "control": "text",
+          "attempts": 6,
+          "ok": 6,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 709,
+          "ms": [
+            742,
+            676,
+            779,
+            755,
+            612,
+            666
+          ]
+        },
+        {
+          "control": "textarea",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 662,
+          "ms": [
+            662
+          ]
+        },
+        {
+          "control": "react_select",
+          "attempts": 2,
+          "ok": 2,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1341,
+          "ms": [
+            1382,
+            1299
+          ],
+          "strategies": {
+            "exact": 2
+          }
+        },
+        {
+          "control": "tel",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 568,
+          "ms": [
+            568
+          ],
+          "strategies": {
+            "fill": 1
+          }
+        },
+        {
+          "control": "file",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1720,
+          "ms": [
+            1720
+          ]
+        },
+        {
+          "control": "location",
+          "attempts": 1,
+          "ok": 1,
+          "fail": 0,
+          "ok_pct": 100,
+          "median_ms": 1524,
+          "ms": [
+            1524
+          ],
+          "replanned_from_schema": 1,
+          "strategies": {
+            "location:exact": 1
+          }
+        }
+      ],
+      "notes": "Known adapter mismatch, and the reason this posting is in the set. `question_15527168004[]` and `question_15527169004[]` are 9-option `multi_value_multi_select` rows that src/schema/greenhouse.mjs:114 hard-overrides to `control:\"checkbox\"` with selector `input[type=\"checkbox\"][name=\"question_…[]\"]` — but the served HTML contains *zero* checkboxes and instead exposes `react-select-question_15527168004[]-live-region`, i.e. Figma renders them as multi-value react-selects. Expect `checkbox_not_found`. 13 react-selects total, 5 of them real screening questions, plus a required `why_us` textarea.",
+      "slug": "figma-5790627004",
+      "status": "needs_user",
+      "title": "Software Engineer - Developer Experience",
+      "ms": 16729,
+      "usage": {
+        "ms_total": 16228,
+        "ms_schema": 596,
+        "ms_plan": 3415,
+        "ms_browser": 12137,
+        "jev": {
+          "requests": 3,
+          "input_tokens": 47641,
+          "output_tokens": 10985,
+          "usd": 0.002001
+        },
+        "openai": {
+          "calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "usd": 0
+        },
+        "usd_total": 0.002001
+      },
+      "fields": {
+        "total": 23,
+        "filled": 12,
+        "check": 0,
+        "ask": 4,
+        "skipped": 7,
+        "draft": 0,
+        "failed": 0,
+        "from": "decisions"
+      },
+      "failures": [
+        {
+          "reason": "plan:no_company_answer_saved_for_figma",
+          "kind": "plan",
+          "qid": "question_15317093004",
+          "label": "Why do you want to join Figma?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "why_us"
+        },
+        {
+          "reason": "plan:canon_q_company_figma_where_intend_work_",
+          "kind": "plan",
+          "qid": "question_15317096004",
+          "label": "From where do you intend to work?",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.company.figma.where_intend_work",
+          "class": "company_specific"
+        },
+        {
+          "reason": "plan:no_pipeline_history_to_answer_from",
+          "kind": "plan",
+          "qid": "question_15317099004",
+          "label": "Have you ever worked for Figma before, as an employee or a …",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:canon_q_screening_devrel_techwriter_work",
+          "kind": "plan",
+          "qid": "question_15527166004",
+          "label": "Have you worked as a full-time software engineer in a profe…",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.screening.devrel_techwriter.worked_full_time_software_engineer",
+          "class": "company_specific"
+        }
+      ],
+      "asks": [
+        {
+          "reason": "plan:no_company_answer_saved_for_figma",
+          "kind": "plan",
+          "qid": "question_15317093004",
+          "label": "Why do you want to join Figma?",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "why_us"
+        },
+        {
+          "reason": "plan:canon_q_company_figma_where_intend_work_",
+          "kind": "plan",
+          "qid": "question_15317096004",
+          "label": "From where do you intend to work?",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.company.figma.where_intend_work",
+          "class": "company_specific"
+        },
+        {
+          "reason": "plan:no_pipeline_history_to_answer_from",
+          "kind": "plan",
+          "qid": "question_15317099004",
+          "label": "Have you ever worked for Figma before, as an employee or a …",
+          "control": null,
+          "attempts": 0,
+          "canon": null,
+          "class": "circumstance"
+        },
+        {
+          "reason": "plan:canon_q_screening_devrel_techwriter_work",
+          "kind": "plan",
+          "qid": "question_15527166004",
+          "label": "Have you worked as a full-time software engineer in a profe…",
+          "control": null,
+          "attempts": 0,
+          "canon": "q.screening.devrel_techwriter.worked_full_time_software_engineer",
+          "class": "company_specific"
+        }
+      ],
+      "screenshots": [],
+      "probes": [],
+      "writes": 12,
+      "eeo_writes": 0,
+      "ms_execute": 16227,
+      "expected_controls": [
+        "text",
+        "textarea",
+        "tel",
+        "tel_country",
+        "file",
+        "react_select",
+        "location",
+        "multi_select",
+        "eeo"
+      ],
+      "exercised": {
+        "ran": true,
+        "rows": 7,
+        "attempted": 7,
+        "ok": 7,
+        "fail": 0,
+        "declined": 0,
+        "ms": 16008,
+        "jev": {
+          "requests": 3,
+          "input_tokens": 1166,
+          "output_tokens": 132
+        },
+        "usd": 0.000049,
+        "controls": [
+          {
+            "control": "textarea",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 782,
+            "ms": [
+              782
+            ],
+            "strategies": {
+              "fixed_text": 1
+            }
+          },
+          {
+            "control": "react_select",
+            "attempts": 5,
+            "ok": 5,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 2582,
+            "ms": [
+              2582,
+              1652,
+              1934,
+              3858,
+              3996
+            ],
+            "strategies": {
+              "jev_generic": 3,
+              "first_two": 2
+            }
+          },
+          {
+            "control": "location",
+            "attempts": 1,
+            "ok": 1,
+            "fail": 0,
+            "ok_pct": 100,
+            "median_ms": 610,
+            "ms": [
+              610
+            ],
+            "strategies": {
+              "fixed_text": 1
+            }
+          }
+        ],
+        "skipped": {},
+        "as_planned": {
+          "checkbox": {
+            "attempts": 2,
+            "ok": 2,
+            "detected": {
+              "react_select": 2
+            }
+          }
+        },
+        "detail": [
+          {
+            "qid": "question_15317093004",
+            "label": "Why do you want to join Figma?",
+            "control": "textarea",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 782
+          },
+          {
+            "qid": "question_15317096004",
+            "label": "From where do you intend to work?",
+            "control": "text",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "fixed_text",
+            "ms": 610
+          },
+          {
+            "qid": "question_15317099004",
+            "label": "Have you ever worked for Figma before, as an employee or a contractor/consultant?",
+            "control": "react_select",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 2582,
+            "options": 2
+          },
+          {
+            "qid": "question_15527166004",
+            "label": "Have you worked as a full-time software engineer in a professional setting (excluding internships)?",
+            "control": "react_select",
+            "was": "ask",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 1652,
+            "options": 2
+          },
+          {
+            "qid": "question_15527167004",
+            "label": "Have you built and maintained user-facing web applications in a professional setting?",
+            "control": "react_select",
+            "was": "skip",
+            "exercised": true,
+            "ok": true,
+            "strategy": "jev_generic",
+            "ms": 1934,
+            "options": 2
+          },
+          {
+            "qid": "question_15527168004[]",
+            "label": "Which of the following best describes your primary technical expertise?",
+            "control": "react_select",
+            "planned": "checkbox",
+            "was": "skip",
+            "exercised": true,
+            "ok": true,
+            "strategy": "first_two",
+            "ms": 3858,
+            "options": 9
+          },
+          {
+            "qid": "question_15527169004[]",
+            "label": "Which programming languages do you regularly use in a professional setting?",
+            "control": "react_select",
+            "planned": "checkbox",
+            "was": "skip",
+            "exercised": true,
+            "ok": true,
+            "strategy": "first_two",
+            "ms": 3996,
+            "options": 9
+          }
+        ]
+      },
+      "tab_closed": true
+    }
+  ],
+  "controls": [
+    {
+      "control": "text",
+      "attempts": 30,
+      "ok": 30,
+      "fail": 0,
+      "replanned": 1,
+      "ok_pct": 100,
+      "median_ms": 738
+    },
+    {
+      "control": "textarea",
+      "attempts": 7,
+      "ok": 7,
+      "fail": 0,
+      "replanned": 0,
+      "ok_pct": 100,
+      "median_ms": 726
+    },
+    {
+      "control": "react_select",
+      "attempts": 3,
+      "ok": 3,
+      "fail": 0,
+      "replanned": 0,
+      "ok_pct": 100,
+      "median_ms": 1299
+    },
+    {
+      "control": "radio",
+      "attempts": 4,
+      "ok": 4,
+      "fail": 0,
+      "replanned": 0,
+      "ok_pct": 100,
+      "median_ms": 701
+    },
+    {
+      "control": "checkbox",
+      "attempts": 2,
+      "ok": 2,
+      "fail": 0,
+      "replanned": 0,
+      "ok_pct": 100,
+      "median_ms": 679
+    },
+    {
+      "control": "tel",
+      "attempts": 4,
+      "ok": 4,
+      "fail": 0,
+      "replanned": 0,
+      "ok_pct": 100,
+      "median_ms": 666
+    },
+    {
+      "control": "file",
+      "attempts": 5,
+      "ok": 5,
+      "fail": 0,
+      "replanned": 0,
+      "ok_pct": 100,
+      "median_ms": 488
+    },
+    {
+      "control": "location",
+      "attempts": 6,
+      "ok": 6,
+      "fail": 0,
+      "replanned": 5,
+      "ok_pct": 100,
+      "median_ms": 1966
+    }
+  ],
+  "exercised": {
+    "controls": [
+      {
+        "control": "text",
+        "attempts": 6,
+        "ok": 6,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 732,
+        "picked_by": [
+          "fixed_text×5",
+          "fixed_date_as_planned×1"
+        ],
+        "fell_back": [],
+        "reasons": []
+      },
+      {
+        "control": "textarea",
+        "attempts": 5,
+        "ok": 5,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 782,
+        "picked_by": [
+          "fixed_text×5"
+        ],
+        "fell_back": [],
+        "reasons": []
+      },
+      {
+        "control": "react_select",
+        "attempts": 5,
+        "ok": 5,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 2582,
+        "picked_by": [
+          "jev_generic×3",
+          "first_two×2"
+        ],
+        "fell_back": [],
+        "reasons": []
+      },
+      {
+        "control": "radio",
+        "attempts": 3,
+        "ok": 3,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 2019,
+        "picked_by": [
+          "jev_generic×3"
+        ],
+        "fell_back": [],
+        "reasons": []
+      },
+      {
+        "control": "checkbox",
+        "attempts": 2,
+        "ok": 2,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 713,
+        "picked_by": [
+          "boolean×2"
+        ],
+        "fell_back": [],
+        "reasons": []
+      },
+      {
+        "control": "combobox",
+        "attempts": 1,
+        "ok": 1,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 6273,
+        "picked_by": [
+          "jev_generic×1"
+        ],
+        "fell_back": [],
+        "reasons": []
+      },
+      {
+        "control": "location",
+        "attempts": 1,
+        "ok": 1,
+        "fail": 0,
+        "ok_pct": 100,
+        "median_ms": 610,
+        "picked_by": [
+          "fixed_text×1"
+        ],
+        "fell_back": [],
+        "reasons": []
+      }
+    ],
+    "skipped": {
+      "file_upload_is_the_runners_own": 2
+    },
+    "as_planned": {
+      "radio": {
+        "attempts": 1,
+        "ok": 1,
+        "detected": {
+          "combobox": 1
+        }
+      },
+      "date": {
+        "attempts": 1,
+        "ok": 1,
+        "detected": {
+          "text": 1
+        }
+      },
+      "checkbox": {
+        "attempts": 2,
+        "ok": 2,
+        "detected": {
+          "react_select": 2
+        }
+      }
+    }
+  },
+  "failures": [
+    {
+      "reason": "plan:no_product_manager_senior_eu_remote_row_",
+      "kind": "plan",
+      "count": 2,
+      "controls": [],
+      "examples": [
+        {
+          "label": "What is the beginning of your desired annual base salary ra…",
+          "company": "1password"
+        },
+        {
+          "label": "What is the end of your desired annual base salary range? (…",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_product_manager_senior_uk_london_row_",
+      "kind": "plan",
+      "count": 2,
+      "controls": [],
+      "examples": [
+        {
+          "label": "What is your annual salary expectation?",
+          "company": "deepl"
+        },
+        {
+          "label": "Would you like to provide any additional context or details…",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:attestation",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Would you like us to keep your application details on file …",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_company_figma_where_intend_work_",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "From where do you intend to work?",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_core_how_heard",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "What brought you to this job posting",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_screening_devrel_techwriter_work",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Have you worked as a full-time software engineer in a profe…",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_screening_product_manager_experi",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Do you have experience in cybersecurity SaaS?",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_company_answer_saved_for_1password",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Why 1Password?",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_company_answer_saved_for_elevenlabs",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Why ElevenLabs, and why now?",
+          "company": "elevenlabs"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_company_answer_saved_for_figma",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Why do you want to join Figma?",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_pipeline_history_to_answer_from",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Have you ever worked for Figma before, as an employee or a …",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_saved_question_asks_for_the_same_info",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "As a PM which AI tool are you using on daily or weekly basi…",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:p_how_heard",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "How did you hear about ElevenLabs?",
+          "company": "elevenlabs"
+        }
+      ]
+    },
+    {
+      "reason": "plan:p_in_office",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Please select the office(s) you are closest to and/or would…",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:p_relocation",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "Are you willing to relocate? And if you are looking to relo…",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:what_is_your_earliest_possible_desired_s",
+      "kind": "plan",
+      "count": 1,
+      "controls": [],
+      "examples": [
+        {
+          "label": "What is your earliest possible/desired start date?",
+          "company": "deepl"
+        }
+      ]
+    }
+  ],
+  "asks": [
+    {
+      "reason": "plan:no_product_manager_senior_eu_remote_row_",
+      "kind": "plan",
+      "count": 2,
+      "mapped": 2,
+      "answerable": 2,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [
+        "rule"
+      ],
+      "examples": [
+        {
+          "label": "What is the beginning of your desired annual base salary ra…",
+          "company": "1password"
+        },
+        {
+          "label": "What is the end of your desired annual base salary range? (…",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_product_manager_senior_uk_london_row_",
+      "kind": "plan",
+      "count": 2,
+      "mapped": 2,
+      "answerable": 2,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [
+        "rule"
+      ],
+      "examples": [
+        {
+          "label": "What is your annual salary expectation?",
+          "company": "deepl"
+        },
+        {
+          "label": "Would you like to provide any additional context or details…",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:attestation",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 0,
+      "answerable": 0,
+      "classes": [
+        "policy_gate"
+      ],
+      "canon_kinds": [],
+      "examples": [
+        {
+          "label": "Would you like us to keep your application details on file …",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_company_figma_where_intend_work_",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "company_specific"
+      ],
+      "canon_kinds": [
+        "constant"
+      ],
+      "examples": [
+        {
+          "label": "From where do you intend to work?",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_core_how_heard",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "company_specific"
+      ],
+      "canon_kinds": [
+        "constant"
+      ],
+      "examples": [
+        {
+          "label": "What brought you to this job posting",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_screening_devrel_techwriter_work",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "company_specific"
+      ],
+      "canon_kinds": [
+        "constant"
+      ],
+      "examples": [
+        {
+          "label": "Have you worked as a full-time software engineer in a profe…",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:canon_q_screening_product_manager_experi",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "company_specific"
+      ],
+      "canon_kinds": [
+        "constant"
+      ],
+      "examples": [
+        {
+          "label": "Do you have experience in cybersecurity SaaS?",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_company_answer_saved_for_1password",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 0,
+      "answerable": 0,
+      "classes": [
+        "why_us"
+      ],
+      "canon_kinds": [],
+      "examples": [
+        {
+          "label": "Why 1Password?",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_company_answer_saved_for_elevenlabs",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 0,
+      "classes": [
+        "why_us"
+      ],
+      "canon_kinds": [
+        "company"
+      ],
+      "examples": [
+        {
+          "label": "Why ElevenLabs, and why now?",
+          "company": "elevenlabs"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_company_answer_saved_for_figma",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 0,
+      "classes": [
+        "why_us"
+      ],
+      "canon_kinds": [
+        "company"
+      ],
+      "examples": [
+        {
+          "label": "Why do you want to join Figma?",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_pipeline_history_to_answer_from",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [
+        "rule"
+      ],
+      "examples": [
+        {
+          "label": "Have you ever worked for Figma before, as an employee or a …",
+          "company": "figma"
+        }
+      ]
+    },
+    {
+      "reason": "plan:no_saved_question_asks_for_the_same_info",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "essay"
+      ],
+      "canon_kinds": [
+        "constant"
+      ],
+      "examples": [
+        {
+          "label": "As a PM which AI tool are you using on daily or weekly basi…",
+          "company": "1password"
+        }
+      ]
+    },
+    {
+      "reason": "plan:p_how_heard",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 0,
+      "answerable": 0,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [],
+      "examples": [
+        {
+          "label": "How did you hear about ElevenLabs?",
+          "company": "elevenlabs"
+        }
+      ]
+    },
+    {
+      "reason": "plan:p_in_office",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 1,
+      "answerable": 1,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [
+        "rule"
+      ],
+      "examples": [
+        {
+          "label": "Please select the office(s) you are closest to and/or would…",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:p_relocation",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 0,
+      "answerable": 0,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [],
+      "examples": [
+        {
+          "label": "Are you willing to relocate? And if you are looking to relo…",
+          "company": "deepl"
+        }
+      ]
+    },
+    {
+      "reason": "plan:what_is_your_earliest_possible_desired_s",
+      "kind": "plan",
+      "count": 1,
+      "mapped": 0,
+      "answerable": 0,
+      "classes": [
+        "circumstance"
+      ],
+      "canon_kinds": [],
+      "examples": [
+        {
+          "label": "What is your earliest possible/desired start date?",
+          "company": "deepl"
+        }
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "name": "eeo",
+      "postings": 4,
+      "bucket": null,
+      "attempts": 0,
+      "ok_pct": null,
+      "exercised": 0,
+      "exercised_ok_pct": null,
+      "total": 0
+    },
+    {
+      "name": "hear_about",
+      "postings": 2,
+      "bucket": null,
+      "attempts": 0,
+      "ok_pct": null,
+      "exercised": 0,
+      "exercised_ok_pct": null,
+      "total": 0
+    },
+    {
+      "name": "long_option_list",
+      "postings": 1,
+      "bucket": null,
+      "attempts": 0,
+      "ok_pct": null,
+      "exercised": 0,
+      "exercised_ok_pct": null,
+      "total": 0
+    },
+    {
+      "name": "date",
+      "postings": 1,
+      "bucket": "date",
+      "attempts": 0,
+      "ok_pct": null,
+      "exercised": 1,
+      "exercised_ok_pct": 100,
+      "drove_as": [
+        "text×1"
+      ],
+      "total": 1
+    },
+    {
+      "name": "tel",
+      "postings": 4,
+      "bucket": "tel",
+      "attempts": 4,
+      "ok_pct": 100,
+      "exercised": 0,
+      "exercised_ok_pct": null,
+      "total": 4
+    },
+    {
+      "name": "tel_country",
+      "postings": 2,
+      "bucket": "tel",
+      "attempts": 4,
+      "ok_pct": 100,
+      "exercised": 0,
+      "exercised_ok_pct": null,
+      "total": 4
+    },
+    {
+      "name": "file",
+      "postings": 5,
+      "bucket": "file",
+      "attempts": 5,
+      "ok_pct": 100,
+      "exercised": 0,
+      "exercised_ok_pct": null,
+      "total": 5
+    },
+    {
+      "name": "multi_select",
+      "postings": 4,
+      "bucket": "checkbox",
+      "attempts": 2,
+      "ok_pct": 100,
+      "exercised": 4,
+      "exercised_ok_pct": 100,
+      "drove_as": [
+        "react_select×2"
+      ],
+      "total": 6
+    },
+    {
+      "name": "checkbox_single",
+      "postings": 2,
+      "bucket": "checkbox",
+      "attempts": 2,
+      "ok_pct": 100,
+      "exercised": 4,
+      "exercised_ok_pct": 100,
+      "drove_as": [
+        "react_select×2"
+      ],
+      "total": 6
+    },
+    {
+      "name": "checkbox_group",
+      "postings": 1,
+      "bucket": "checkbox",
+      "attempts": 2,
+      "ok_pct": 100,
+      "exercised": 4,
+      "exercised_ok_pct": 100,
+      "drove_as": [
+        "react_select×2"
+      ],
+      "total": 6
+    },
+    {
+      "name": "location",
+      "postings": 5,
+      "bucket": "location",
+      "attempts": 6,
+      "ok_pct": 100,
+      "exercised": 1,
+      "exercised_ok_pct": 100,
+      "total": 7
+    },
+    {
+      "name": "radio",
+      "postings": 3,
+      "bucket": "radio",
+      "attempts": 4,
+      "ok_pct": 100,
+      "exercised": 4,
+      "exercised_ok_pct": 100,
+      "drove_as": [
+        "combobox×1"
+      ],
+      "total": 8
+    },
+    {
+      "name": "react_select",
+      "postings": 2,
+      "bucket": "react_select",
+      "attempts": 3,
+      "ok_pct": 100,
+      "exercised": 5,
+      "exercised_ok_pct": 100,
+      "total": 8
+    },
+    {
+      "name": "yesno_buttons",
+      "postings": 2,
+      "bucket": "radio",
+      "attempts": 4,
+      "ok_pct": 100,
+      "exercised": 4,
+      "exercised_ok_pct": 100,
+      "drove_as": [
+        "combobox×1"
+      ],
+      "total": 8
+    },
+    {
+      "name": "textarea",
+      "postings": 3,
+      "bucket": "textarea",
+      "attempts": 7,
+      "ok_pct": 100,
+      "exercised": 5,
+      "exercised_ok_pct": 100,
+      "total": 12
+    },
+    {
+      "name": "essay",
+      "postings": 1,
+      "bucket": "textarea",
+      "attempts": 7,
+      "ok_pct": 100,
+      "exercised": 5,
+      "exercised_ok_pct": 100,
+      "total": 12
+    },
+    {
+      "name": "text",
+      "postings": 5,
+      "bucket": "text",
+      "attempts": 30,
+      "ok_pct": 100,
+      "exercised": 6,
+      "exercised_ok_pct": 100,
+      "total": 36
+    }
+  ]
+}

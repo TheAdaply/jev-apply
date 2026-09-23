@@ -4,7 +4,7 @@
 //   finalize()      one last pass through `src/jev/gates.mjs` — the only place a Decision's action
 //                   is settled, so thresholds keep living in exactly one module.
 //   freeze()/load() `applications/<slug>/decisions.json` (private, atomic).
-//   applyAnswers()  `--answers answers.json` → `{ "<qid>": {value, remember_as:{kind,id,scope}} }`:
+//   applyAnswers()  `--answers answers.json` → `{ "<qid>": {value, remember_as:{kind,id}} }`:
 //                   stores the answer as a memory row with `source: user` when the host asked for
 //                   it, re-plans **only** the `ask` rows, and is idempotent — re-running with the
 //                   same file changes nothing, because an answered row is no longer an `ask`.
@@ -20,7 +20,7 @@ import { asYesNo } from "../browser/readback.mjs";
 import { traceDir } from "../browser/trace.mjs";
 import { GATES } from "../jev/gates.mjs";
 import { loadSection, saveSection } from "../memory/store.mjs";
-import { mintId, parseScope, stamp } from "../memory/schema.mjs";
+import { mintId, stamp } from "../memory/schema.mjs";
 import { resolvePreference, usableStories } from "../memory/resolve.mjs";
 import { fitsLimits } from "../schema/classes.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
@@ -136,7 +136,7 @@ export function autoDraft(decisions, { mem, context = {} } = {}) {
       prompt: d.label ?? "",
       help: d._help ?? "",
     };
-    d.why = `${kind === "why_us" ? "drafting from the posting" : "drafting from your saved material"} — p.auto_draft (${pref.scope})`;
+    d.why = `${kind === "why_us" ? "drafting from the posting" : "drafting from your saved material"} — p.auto_draft`;
     d._open = false;
     delete d.value;
     delete d.remember_as;
@@ -266,7 +266,7 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
     d.confidence = undefined;
     d.gap = undefined;
     const remember = typeof answer === "object" ? answer.remember_as : null;
-    d.why = remember ? `you answered — remembered ${scopeText(remember.scope)}` : "you answered (this application only)";
+    d.why = remember ? "you answered — remembered" : "you answered (this application only)";
     applied.push(d.qid);
 
     // A select the user answered still needs its option: exact label first, Jev only if needed.
@@ -293,11 +293,15 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
   return { decisions: out, applied, ignored, stored, reopen };
 }
 
-const scopeText = (scope) => (parseScope(scope)?.kind === "global" ? "globally" : `for ${parseScope(scope)?.key ?? scope}`);
+/**
+ * The `remember_as` a question is asked with: the kind of row the answer becomes and the id it
+ * belongs under, and nothing else. Where it is saved is this module's business, not a question
+ * the user is ever shown or has to hand back (`memoryRow`).
+ */
+const askedAs = (remember) => ({ kind: remember.kind, ...(remember.id ? { id: remember.id } : {}) });
 
 /** answers.json `remember_as` → the memory row to write, with `source: user` (PLAN §2.4). */
 function memoryRow({ decision, question, remember, value, context }) {
-  const scope = parseScope(remember.scope)?.text ?? "global";
   const kind = String(remember.kind ?? "").toLowerCase();
   const updated = stamp();
 
@@ -315,7 +319,7 @@ function memoryRow({ decision, question, remember, value, context }) {
   }
   if (kind === "preference") {
     const id = remember.id ?? mintId("preferences", question?.label ?? decision.label, new Set(), { namespace: "user" });
-    return { section: "preferences", row: { id, value, scope, source: "user", updated } };
+    return { section: "preferences", row: { id, value, source: "user", updated } };
   }
   if (kind === "story") {
     const id = remember.id ?? mintId("stories", decision.label, new Set(), { namespace: "user" });
@@ -324,9 +328,14 @@ function memoryRow({ decision, question, remember, value, context }) {
   if (kind === "answer" || kind === "") {
     const qid = remember.id ?? mintId("answers", decision.label, new Set(), { namespace: "user" });
     const answerKind = question?.class === "policy_gate" ? "policy" : question?.class === "why_us" ? "company" : "constant";
+    // A question about *this* company is one answer per company (PLAN §2.4): saved globally, the
+    // next employer's form would be filled with the sentence the user wrote about this one. The
+    // home comes from the question's own class and the posting being applied to — never from
+    // anything the host sent back, and never from a scope the user was asked to name.
+    const home = PER_COMPANY.has(question?.class) && context?.company ? `company:${slugify(context.company)}` : "global";
     return {
       section: "answers",
-      row: { qid, kind: answerKind, value, scope, source: "user", reviewed: true, updated, ...(context?.role_family ? { family: context.role_family } : {}) },
+      row: { qid, kind: answerKind, value, scope: home, source: "user", reviewed: true, updated, ...(context?.role_family ? { family: context.role_family } : {}) },
     };
   }
   return null;
@@ -350,25 +359,14 @@ function workAuthHalf(label, value) {
 }
 
 /**
- * Write the rows, one `saveSection` per touched section. Scoped preferences become an `overrides[]`
- * entry on the existing row rather than a second row, which is how `resolvePreference` reads them.
+ * Write the rows, one `saveSection` per touched section. Preferences are one row each: the user
+ * states how they want applications answered, and it holds for every application.
  */
 async function persistRows(rows) {
   const bySection = new Map();
   for (const { section, row, merge } of rows) {
     if (!bySection.has(section)) bySection.set(section, await loadSection(section));
     const list = bySection.get(section);
-    if (section === "preferences" && row.scope && row.scope !== "global") {
-      const at = list.findIndex((r) => r?.id === row.id);
-      const override = { scope: row.scope, value: row.value, source: "user" };
-      if (at === -1) list.push({ id: row.id, value: null, source: "user", updated: row.updated, overrides: [override] });
-      else {
-        const existing = list[at];
-        const overrides = (existing.overrides ?? []).filter((o) => o?.scope !== row.scope);
-        list[at] = { ...existing, overrides: [...overrides, override], updated: row.updated };
-      }
-      continue;
-    }
     const key = section === "answers" ? (r) => r?.qid === row.qid && (r?.scope ?? "global") === (row.scope ?? "global") : (r) => r?.id === row.id;
     const at = list.findIndex(key);
     const stored = section === "preferences" ? { id: row.id, value: row.value, source: "user", updated: row.updated } : row;
@@ -413,7 +411,7 @@ export function needsUser(decisions, slug) {
       qid: d.qid,
       label: d.label,
       ...(d.options?.length ? { options: d.options } : {}),
-      ...(d.remember_as ? { remember_as: d.remember_as } : {}),
+      ...(d.remember_as ? { remember_as: askedAs(d.remember_as) } : {}),
       why: d.why,
       also: [],
     });
@@ -440,7 +438,7 @@ export function mergedNeedsUser(postings) {
           qid: `${posting.slug}:${d.qid}`,
           label: d.label,
           ...(d.options?.length ? { options: d.options } : {}),
-          ...(d.remember_as ? { remember_as: d.remember_as } : {}),
+          ...(d.remember_as ? { remember_as: askedAs(d.remember_as) } : {}),
           why: d.why,
           asked_by: [],
           applies_to: [],

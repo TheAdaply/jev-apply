@@ -52,7 +52,7 @@ import {
   withOptions,
   writeSummary,
 } from "../src/plan/decisions.mjs";
-import { draftFor, draftRows } from "../src/plan/draft.mjs";
+import { acceptHostDrafts, draftFor, draftRows, hostDraftAsks } from "../src/plan/draft.mjs";
 import {
   Blocked,
   attachPosting,
@@ -197,6 +197,25 @@ async function applyToPlan(plan, answers, { stores, budget }) {
   plan.stored = out.stored;
   plan.applied = out.applied;
   return { ...out, decisions: plan.decisions };
+}
+
+/**
+ * The half of `--answers` that is a draft the host agent wrote, because no writer model is
+ * configured (src/writer/backend.mjs `host`). Checked against the grounding the row was handed —
+ * the limit, `groundingCheck` and `substitutionCheck` — and filled as a `draft`, so the summary
+ * still lists it under ► DRAFTED. What it returns is the rest of the answers, for `applyToPlan`.
+ */
+function takeHostDrafts(plan, answers, { stores, args }) {
+  const out = acceptHostDrafts({
+    decisions: plan.decisions,
+    answers,
+    pipeline: stores.pipeline,
+    company: plan.formPlan?.job?.company ?? plan.context?.company ?? null,
+    dry: Boolean(args.dryRun),
+    onLog: log,
+  });
+  if (out.accepted.length) log(`drafts from you: ${out.accepted.length} accepted, ${out.refused.length} refused`);
+  return out;
 }
 
 /** Re-attach: the frozen record is the plan; today's resolve pass only supplies the form shape. */
@@ -375,8 +394,11 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
   const { formPlan, slug, decisions, jev } = plan;
   const counts = tally(decisions);
   const asked = needsUser(decisions, slug);
+  // A row nobody could write for the user carries what it takes to write it: the prompt, the
+  // grounding and the field's limit (src/plan/draft.mjs `hostDraftAsks`).
+  const questions = hostDraftAsks(asked.questions, decisions);
   const outcome = submitOutcome(submit);
-  const status = outcome?.status ?? (asked.questions.length ? "needs_user" : "ready_to_submit");
+  const status = outcome?.status ?? (questions.length ? "needs_user" : "ready_to_submit");
   const usage = usageFor({ plan, started });
   const summary = renderSummary({ formPlan, decisions, slug, status, usage, submit });
   const extra = dedupeQuestions([...(plan.extra ?? []), ...(browser?.added ?? [])]);
@@ -414,7 +436,7 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
     title: formPlan.job.title,
     filled: counts.filled,
     ...(browser ? { set: browser.filled, failed: browser.failed, appeared: browser.added.length, tab: formPlan.url } : {}),
-    asks: asked.questions,
+    asks: questions,
     checks: decisions.filter((d) => d.action === "check").map((d, i) => ({ handle: `c${i + 1}`, qid: d.qid, label: d.label, value: d.class === "sensitive" ? "••••" : d.option ?? d.value ?? null })),
     // The draft itself, clipped: it is the one value in this report the user did not write, so
     // "190 words" alone is not enough to decide whether to keep it, and a `--dry-run` says
@@ -512,7 +534,10 @@ async function singleRun(args, stores) {
     const answers = args.answers ? await readAnswersFile(args.answers) : null;
     plan = await planPosting({ source, stores, budget, phases, reattach: Boolean(answers) });
     if (answers) {
-      const out = await applyToPlan(plan, answers, { stores, budget });
+      // A row the host agent was asked to write comes back as text, not as an `ask`: it is
+      // checked against its own grounding and filled as a `draft` (src/plan/draft.mjs).
+      const host = takeHostDrafts(plan, answers, { stores, args });
+      const out = await applyToPlan(plan, host.answers, { stores, budget });
       log(`answers: applied ${out.applied.length}, ignored ${out.ignored.length}, remembered ${out.stored.length}`);
       for (const { section, row } of out.stored) log(`  remembered ${section}: ${row.id ?? row.qid} (${row.scope ?? "global"})`);
     }
@@ -547,6 +572,9 @@ async function singleRun(args, stores) {
         dry: true,
         onLog: log,
       });
+      // The dry pass is where a `host` backend hands a row over, so the host's own text for a
+      // row *this* run just handed over is accepted right after it.
+      if (answers) takeHostDrafts(plan, answers, { stores, args });
     } else {
       conn ??= await connect({});
       browser = await fill({ conn, plan, stores, budget, attach: Boolean(answers) });
@@ -604,7 +632,9 @@ async function queueRun(args, stores) {
     const routed = routeAnswers(answers, live().map(({ plan }) => ({ slug: plan.slug, company: plan.formPlan.job.company, decisions: plan.decisions })));
     for (const job of live()) {
       try {
-        const out = await applyToPlan(job.plan, routed.get(job.plan.slug) ?? {}, { stores, budget: job.budget });
+        const mine = routed.get(job.plan.slug) ?? {};
+        const host = takeHostDrafts(job.plan, mine, { stores, args });
+        const out = await applyToPlan(job.plan, host.answers, { stores, budget: job.budget });
         log(`answers ${job.entry.id}: applied ${out.applied.length}, remembered ${out.stored.length}`);
       } catch (err) {
         job.error = err;
@@ -659,7 +689,12 @@ async function queueRun(args, stores) {
     }
   }
 
-  const questions = mergedNeedsUser(postings);
+  // `mergedNeedsUser` ids a question `<slug>:<qid>`; the drafting rows are matched on that same
+  // id so a queue's `draft` items carry their prompt and grounding too.
+  const questions = hostDraftAsks(
+    mergedNeedsUser(postings),
+    postings.flatMap(({ slug, decisions }) => decisions.filter((d) => d.host_draft).map((d) => ({ qid: `${slug}:${d.qid}`, host_draft: d.host_draft }))),
+  );
   const status = questions.length
     ? "needs_user"
     : rows.every((r) => r.status === "blocked")

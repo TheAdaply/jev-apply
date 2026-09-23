@@ -2,24 +2,43 @@
 
 A memory-backed job-application skill. TypeSafe AI's **Jev** model *selects* which of your saved
 facts, preferences, or past answers belongs in each form field — it never writes text and never
-guesses a personal detail. An OpenAI model writes only genuinely new prose, such as a "why us"
-paragraph. A Playwright runner fills the real form and reads every value back. It targets hosted
-**Greenhouse** and **Ashby** application forms, stops at ready-to-submit by default, and clicks
-Submit itself only once you turn auto-submit on.
+guesses a personal detail. The few sentences that are genuinely new — a "why us" paragraph, an
+expanded story — are written by whichever backend you configure (or by the host agent, when you
+configure none). A Playwright runner fills the real form and reads every value back. It targets
+hosted **Greenhouse** and **Ashby** application forms, stops at ready-to-submit by default, and
+clicks Submit itself only once you turn auto-submit on.
+
+The only credential jev-apply cannot run without is a TypeSafe **Jev** key.
 
 ## Quickstart
 
 ```
 git clone https://github.com/theadaply/jev-apply.git && cd jev-apply && npm install
-node scripts/install.mjs                       # creates ~/.config/jev-apply/
-# put TYPESAFE_API_KEY and OPENAI_API_KEY in ~/.config/jev-apply/env, then: chmod 600 ~/.config/jev-apply/env
+node scripts/install.mjs
+printf 'TYPESAFE_API_KEY=...\n' > ~/.config/jev-apply/env && chmod 600 ~/.config/jev-apply/env
 node scripts/learn.mjs --resume you.pdf --links https://linkedin.com/in/you,https://github.com/you
-# answer the day-1 questions it prints, save them as answers.json, then:
-node scripts/learn.mjs --answers answers.json
-node scripts/answers.mjs --families ml_engineer --curate
-node scripts/answers.mjs --accept ~/.config/jev-apply/review/narratives.md
 node scripts/apply.mjs --url <posting>
 ```
+
+`learn.mjs` prints the day-1 questions it still needs answered; write them to `answers.json`
+(`{"<id>": <answer>}`) and re-run `node scripts/learn.mjs --answers answers.json`.
+
+## Choose how text gets written
+
+`apply.mjs` writes only a handful of sentences per application — the rest is your own saved
+material, selected by Jev, never generated. Pick one:
+
+```
+echo 'OPENAI_API_KEY=sk-...' >> ~/.config/jev-apply/env                       # OpenAI writes it
+echo 'JEV_APPLY_WRITER_URL=http://127.0.0.1:11434/v1' >> ~/.config/jev-apply/env  # your own model writes it
+# do nothing                                                                   # your agent writes it
+```
+
+A local server (Ollama, llama.cpp, LM Studio) also needs `JEV_APPLY_WRITER_MODEL=<name>` in the
+same file; it costs nothing and needs no key. With neither set, jev-apply detects it is running
+inside Claude Code or Codex and hands the paragraph's prompt, grounding, and word limit back as a
+question for the host agent to write and return — checked against the same rules a model's draft
+would face. `node scripts/writer-smoke.mjs --detect` prints which one is active.
 
 ## Daily use
 
@@ -37,8 +56,9 @@ Fills every field it can, then prints one JSON object with a status:
 - **`blocked{reason}`** — e.g. `unsupported_ats`. `apply.mjs --resume <slug>` re-attaches and lists
   every field still unfilled with its intended value, so you can finish by hand.
 
-Answer a `needs_user` batch by writing `answers.json` (`{"<qid>": {"value": "…", "remember_as": {...}}}`
-from the questions it printed) and re-running with the answers:
+Answer a `needs_user` batch by writing `answers.json` (`{"<qid>": {"value": "…"}}` from the
+questions it printed — add "remember_as" back through exactly as printed for a row you want saved)
+and re-running with the answers:
 
 ```
 node scripts/apply.mjs --url <posting> --answers answers.json
@@ -49,12 +69,11 @@ node scripts/apply.mjs --resume <slug>          # re-attach later, list unfilled
 
 ```
 node scripts/remember.mjs "my email is now jane@example.com"
-node scripts/remember.mjs "use my company-only résumé for fintech roles" --scope role_family:fintech
-node scripts/remember.mjs "never apply to contract roles" --scope global
+node scripts/remember.mjs "never apply to contract roles"
 ```
 
-Jev only classifies the instruction (fact, preference, or correction) and picks the scope when it's
-ambiguous — the words it stores are always yours.
+Jev only classifies the instruction (fact, preference, or correction) — the words it stores are
+always yours, and what you tell it holds for every application from then on.
 
 ### Find roles
 
@@ -80,8 +99,8 @@ finishes to `submitted` or `ready_to_submit`.
 
 ### Auto-submit
 
-Off by default. `p.auto_submit` is asked once at onboarding (`g.auto_submit`, y/n) and can be set
-per company. Override it for one run:
+Off by default. `p.auto_submit` is asked once at onboarding (`g.auto_submit`, y/n). Override it
+for one run:
 
 ```
 node scripts/apply.mjs --url <posting> --submit      # force Submit on for this run
@@ -113,7 +132,8 @@ queue".
 
 ```
 ~/.config/jev-apply/        (0700)
-  env                       TYPESAFE_API_KEY, OPENAI_API_KEY — chmod 600, read once at start
+  env                       TYPESAFE_API_KEY (required); OPENAI_API_KEY or JEV_APPLY_WRITER_URL /
+                            JEV_APPLY_WRITER_MODEL (optional) — chmod 600, read once at start
   memory/                   facts, preferences, stories, pre-computed answers, drafts, corrections
   documents/                résumés and other uploaded files
   applications/<slug>/      per-application trace and decision log
@@ -150,11 +170,11 @@ posting**, about **$0.0004 of Jev per posting**.
 
 ```
 src/
-  config.mjs      constants, env loader, private-directory paths
-  memory/         the YAML store, scope resolution, derivations (since:, notice, salary)
+  config.mjs      constants, env loader, writer auto-detection, private-directory paths
+  memory/         the YAML store and derivations (since:, notice, salary)
   schema/         Greenhouse/Ashby schema fetch, question classification, FormPlan normalization
   jev/            the Jev client, request builders, confidence gates
-  writer/         the OpenAI writer (why_us, expand, narrative) and its grounding checks
+  writer/         which backend writes, and the grounding/limit checks every draft passes
   plan/           resolve → decide → draft → execute → summarize
   browser/        Chrome-over-CDP lifecycle and the per-control fill/readback adapters
   discover/       board providers, filters, dedup, fit scoring
@@ -168,6 +188,7 @@ Checks:
 ```
 node eval/plan.test.mjs                 # resolve+Jev+gate pipeline against recorded fixtures
 node scripts/controls-smoke.mjs         # every browser control kind, driven live
+node scripts/writer-smoke.mjs --detect  # which writer backend this environment would use
 node scripts/bench.mjs --postings bench/smoke.txt --limit 2 --home /tmp/jev-bench
 node scripts/canon-scan.mjs --companies private/companies-seed.yml   # rebuild the corpus
 node scripts/canon-cluster.mjs          # corpus → canon/questions.yaml

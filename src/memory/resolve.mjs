@@ -83,6 +83,23 @@ export function answersFor(mem, qid, ctx = {}) {
     .sort((a, b) => scopeRank(b?.scope ?? "global") - scopeRank(a?.scope ?? "global"));
 }
 
+/**
+ * Where a promoted draft is saved — derived from the draft row itself, never asked and never
+ * inferred from anything the user typed. A "why us?" or company-specific answer is one sentence
+ * *per company* (PLAN §2.4): stored globally, `answersFor` would hand it straight back at the next
+ * employer, which is the one thing a company answer must never do. Everything else is global.
+ * @returns {{kind:string, scope:string}} spread straight into the `answers` row.
+ */
+export function promotionHome(draft) {
+  const companyish =
+    draft?.class === "why_us" ||
+    draft?.class === "company_specific" ||
+    String(draft?.canon ?? draft?.qid ?? "").startsWith("q.company.");
+  const named = draft?.company ?? draft?.application ?? null;
+  if (companyish && named) return { kind: "company", scope: `company:${slugify(named)}` };
+  return { kind: "narrative", scope: "global" };
+}
+
 /** Stories usable as writer material / selector pool: `use: never` rows stay saved but hidden. */
 export function usableStories(mem) {
   return (mem?.stories ?? []).filter((row) => row?.use !== "never");

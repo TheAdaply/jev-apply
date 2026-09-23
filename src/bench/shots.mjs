@@ -19,8 +19,10 @@
 // Three rules this module does not bend:
 //   * **Never Submit.** Every child gets `--no-submit`, which is why this file spawns the runner
 //     itself instead of calling `runApply` from `./run.mjs` (that one takes no extra flags).
-//   * **Never close the tab.** The filled tab is the fixture; a reviewer opens it after the fact.
-//     Only the CDP connection is dropped (D12).
+//   * **Never close the tab by default.** The filled tab is the fixture; a reviewer opens it after
+//     the fact, and only the CDP connection is dropped (D12). `captureShots({close:true})` — the
+//     harness's `--close` — is the one opt-in exception, taken after every image is on disk, for
+//     rounds long enough that a dozen filled forms left open is its own hazard.
 //   * **Sensitive rows stay sensitive in text.** A row classed `sensitive` carries `<redacted>`
 //     as its value *and* as its read-back, exactly as `src/browser/trace.mjs` does — the point of
 //     the EEO rows in this eval is that they are *empty*, which the screenshot shows on its own.
@@ -39,6 +41,7 @@ import YAML from "yaml";
 
 import { cdpVersion, connect, disconnect, findTab } from "../browser/chrome.mjs";
 import { OPENAI_MODEL, REPO_ROOT, slugify } from "../config.mjs";
+import { money } from "../plan/summary.mjs";
 import { fitsLimits, wordCount } from "../schema/classes.mjs";
 import { loadFormPlan } from "../schema/index.mjs";
 import { parseTrace } from "./metrics.mjs";
@@ -428,9 +431,16 @@ export async function resetTab({ url, home, port, timeout = 45000, onLog = null 
 /**
  * Photograph the tab this posting was filled in, and leave it exactly as it was found.
  *
+ * `close` is the one exception to "never close the tab" (D12): a ten-posting round would leave ten
+ * filled forms open in the user's own Chrome, and the screenshots are the evidence the tab was
+ * there for. It is opt-in (`eval-shots.mjs --close`), it happens only after every image is on
+ * disk, and a tab that refuses to close is reported rather than retried.
+ *
  * @param {{url:string, home:string, port:number, dir:string, width?:number, height?:number,
- *          scale?:number, maxShots?:number, pause?:number, onLog?:(line:string)=>void}} args
- * @returns {Promise<{ok:boolean, why?:string, full:string|null, viewports:string[], page:object|null}>}
+ *          scale?:number, maxShots?:number, pause?:number, close?:boolean,
+ *          onLog?:(line:string)=>void}} args
+ * @returns {Promise<{ok:boolean, why?:string, full:string|null, viewports:string[],
+ *                    page:object|null, closed:boolean}>}
  */
 export async function captureShots({
   url,
@@ -442,15 +452,17 @@ export async function captureShots({
   scale = 2,
   maxShots = 40,
   pause = 220,
+  close = false,
   onLog = null,
 }) {
   const log = (line) => onLog?.(line);
-  const empty = { full: null, viewports: [], page: null };
+  const empty = { full: null, viewports: [], page: null, closed: false };
   if (!(await cdpVersion(port))) return { ok: false, why: `no browser on 127.0.0.1:${port}`, ...empty };
 
   let conn = null;
   let session = null;
   let overridden = false;
+  let closed = false;
   try {
     conn = await connect({ profileDir: path.join(home, "profile"), port, spawnIfMissing: false });
     const page = await findTab(conn.context, url);
@@ -497,7 +509,7 @@ export async function captureShots({
       if (at.y + at.inner >= at.height - 4) break;
     }
 
-    return { ok: viewports.length > 0, full, viewports, page: { ...metrics, shots: viewports.length } };
+    return { ok: viewports.length > 0, full, viewports, page: { ...metrics, shots: viewports.length }, closed };
   } catch (err) {
     return { ok: false, why: err.message, ...empty };
   } finally {
@@ -505,10 +517,20 @@ export async function captureShots({
       if (overridden) await session.send("Emulation.clearDeviceMetricsOverride").catch(() => {});
       await session.detach().catch(() => {});
     }
-    // The tab outlives this process (D12): scrolled back to the top, never closed.
+    // The tab outlives this process (D12) unless `close` was asked for: scrolled back to the top,
+    // and only then closed.
     if (conn) {
       const page = await findTab(conn.context, url).catch(() => null);
       await page?.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+      if (close && page) {
+        try {
+          await page.close({ runBeforeUnload: false });
+          closed = true;
+          log?.("tab closed");
+        } catch (err) {
+          log?.(`tab would not close: ${err.message}`);
+        }
+      }
       await disconnect(conn.browser, { port, verify: false }).catch(() => {});
     }
   }
@@ -522,6 +544,20 @@ export async function writeJson(file, value) {
 }
 
 /**
+ * The middle value of what is actually known, `null` when nothing is.
+ *
+ * Absent values are dropped rather than read as zero: a posting whose run died before it priced
+ * anything has no cost, and counting it as free would quietly pull the round's typical spend down.
+ * Even counts take the same treatment, so "the median posting" always means the same population.
+ */
+function median(values = []) {
+  const seen = values.filter((v) => v != null && Number.isFinite(v)).sort((a, b) => a - b);
+  if (!seen.length) return null;
+  const mid = seen.length >> 1;
+  return seen.length % 2 ? seen[mid] : (seen[mid - 1] + seen[mid]) / 2;
+}
+
+/**
  * `index.md` for the whole round: every posting of every profile that has run so far, with the
  * three numbers a reader checks first (status, filled, asks) and the path to its evidence.
  * Rendered from the per-profile `run.json` manifests, so re-running one profile never drops the
@@ -530,13 +566,23 @@ export async function writeJson(file, value) {
 export function renderIndex({ round, runs = [], generated = new Date().toISOString() }) {
   const rows = runs.flatMap((r) => (r.postings ?? []).map((p) => ({ ...p, profile: r.profile })));
   const byProfile = runs.map((r) => `${r.profile} ${r.postings?.length ?? 0}`).join(" · ");
+  // What became of the tabs, from the rows themselves rather than from a constant: `--close`
+  // shuts each one after its last image, and an index that claimed otherwise would be sending a
+  // reader to a tab that is not there.
+  const closed = rows.filter((p) => p.shots?.closed === true).length;
+  const fate =
+    closed === 0
+      ? "no tab was closed — each one is still open in the profile's Chrome"
+      : closed === rows.length
+        ? "each tab was closed after its own screenshots were on disk — the PNGs are the record"
+        : `${closed} of ${rows.length} tabs were closed after their screenshots were on disk; the rest are still open`;
   const lines = [
     `# eval-shots — ${round}`,
     "",
     `${rows.length} posting${rows.length === 1 ? "" : "s"} (${byProfile}) · generated ${generated}`,
     "",
-    "Every posting was filled with `node scripts/apply.mjs --url <posting> --no-submit --json`; no Submit",
-    "control was clicked and no tab was closed — each one is still open in the profile's Chrome. Each",
+    `Every posting was filled with \`node scripts/apply.mjs --url <posting> --no-submit --json\`; no Submit`,
+    `control was clicked and ${fate}. Each`,
     "tab was navigated away and back *before* its fill (a plain reload does not clear Chrome's",
     "restored form state), and each posting line below also carries what the runner itself recorded",
     "doing with the tab it found, so the two witnesses can be checked against each other.",
@@ -570,10 +616,16 @@ export function renderIndex({ round, runs = [], generated = new Date().toISOStri
     "the OpenAI spend for that posting. A row the writer refused stays in the file with `text:null`",
     "and the reason, so \"declined\" and \"never ran\" cannot be confused.",
     "",
-    "`filled` counts `fill` + `check` (PLAN §2.6); `chk` is how many of them are `check` rows the",
-    "user is meant to eyeball. `drafted` counts rows the writer wrote into the form. `disputed`",
-    "counts rows whose own `why` records that the form refused the set while the action still claims",
-    "it took — look at the photograph before believing either.",
+    "`filled` counts `fill` + `check` (PLAN §2.6) over every row on the form; `chk` is how many of",
+    "them are `check` rows the user is meant to eyeball. `drafted` counts rows the writer wrote into",
+    "the form. `failed` counts rows whose read-back disagreed with what was typed. `disputed` counts",
+    "rows whose own `why` records that the form refused the set while the action still claims it took",
+    "— look at the photograph before believing either.",
+    "",
+    "`ms` is wall clock for that posting end to end, and the three money columns are that posting's",
+    "own spend, read back from its `result.json` `usage` block: Jev selection, OpenAI drafting, and",
+    "the sum. The totals row adds them up; the medians row is the typical posting, which is the",
+    "number to quote — one long form drags a mean and not a median.",
     "",
   ];
 
@@ -596,18 +648,37 @@ export function renderIndex({ round, runs = [], generated = new Date().toISOStri
         `${run.finished ? ` · finished ${run.finished}` : ""}${eeoNote}`,
       "",
     );
-    lines.push("| # | slug | status | filled | chk | asks | drafted | failed | disputed | shots | dir |");
-    lines.push("|---|---|---|---|---|---|---|---|---|---|---|");
+    lines.push("| # | slug | company | family | ats | status | filled | chk | asks | drafted | failed | disputed | ms | jev $ | openai $ | total $ |");
+    lines.push("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     for (const p of posts) {
       const c = p.counts ?? {};
-      const shots = p.shots?.ok ? `full + ${p.shots.viewports?.length ?? 0}` : `none (${p.shots?.why ?? "not captured"})`;
+      const u = p.usage ?? null;
       const flag = p.integrity && p.integrity.ok === false ? " **contaminated**" : "";
       const stale = p.reset && p.reset.ok === false ? " ⚠ not reset" : "";
       const drafted = `${c.drafted ?? 0}${p.drafts?.refused ? ` (+${p.drafts.refused} refused)` : ""}`;
       lines.push(
-        `| ${p.n} | ${p.slug}${flag}${stale} | ${p.status}${p.reason ? ` (${p.reason})` : ""} | ${c.filled ?? 0}/${c.total ?? 0} | ${c.checks ?? 0} | ${c.asks ?? 0} | ${drafted} | ${c.failed ?? 0} | ${c.disputed ?? 0} | ${shots} | \`${p.dir}/\` |`,
+        `| ${p.n} | ${p.slug}${flag}${stale} | ${p.company ?? ""} | ${p.family ?? ""} | ${p.ats ?? ""} | ${p.status}${p.reason ? ` (${p.reason})` : ""} | ` +
+          `${c.filled ?? 0}/${c.total ?? 0} | ${c.checks ?? 0} | ${c.asks ?? 0} | ${drafted} | ${c.failed ?? 0} | ${c.disputed ?? 0} | ` +
+          `${p.ms ?? 0} | ${money(u?.jev?.usd)} | ${money(u?.openai?.usd)} | ${money(u?.usd_total)} |`,
       );
     }
+    const sum = (pick) => posts.reduce((n, p) => n + (pick(p) ?? 0), 0);
+    const spend = (pick) => {
+      const seen = posts.map(pick).filter((v) => v != null);
+      return seen.length === posts.length ? seen.reduce((a, b) => a + b, 0) : null;
+    };
+    lines.push(
+      `| | **totals** (${posts.length}) | | | | | **${sum((p) => p.counts?.filled)}/${sum((p) => p.counts?.total)}** | ` +
+        `${sum((p) => p.counts?.checks)} | ${sum((p) => p.counts?.asks)} | ${sum((p) => p.counts?.drafted)} | ` +
+        `${sum((p) => p.counts?.failed)} | ${sum((p) => p.counts?.disputed)} | ${sum((p) => p.ms)} | ` +
+        `${money(spend((p) => p.usage?.jev?.usd))} | ${money(spend((p) => p.usage?.openai?.usd))} | ${money(spend((p) => p.usage?.usd_total))} |`,
+    );
+    lines.push(
+      `| | **medians** | | | | | ${median(posts.map((p) => p.counts?.filled))}/${median(posts.map((p) => p.counts?.total))} | ` +
+        `${median(posts.map((p) => p.counts?.checks))} | ${median(posts.map((p) => p.counts?.asks))} | ${median(posts.map((p) => p.counts?.drafted))} | ` +
+        `${median(posts.map((p) => p.counts?.failed))} | ${median(posts.map((p) => p.counts?.disputed))} | ${median(posts.map((p) => p.ms))} | ` +
+        `${money(median(posts.map((p) => p.usage?.jev?.usd)))} | ${money(median(posts.map((p) => p.usage?.openai?.usd)))} | ${money(median(posts.map((p) => p.usage?.usd_total)))} |`,
+    );
     lines.push("");
     for (const p of posts) {
       const files = p.files ?? {};

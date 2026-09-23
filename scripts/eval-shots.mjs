@@ -59,7 +59,7 @@ import { ensureSyntheticHome } from "../src/bench/synthetic.mjs";
 const USAGE = [
   "usage: eval-shots.mjs --round <name> --profile synthetic|real",
   "       --postings <bench/postings.yml | url-list.txt | <url> [<url> …]>",
-  "       [--limit N] [--timeout 300] [--no-submit] [--verbose]",
+  "       [--limit N] [--timeout 300] [--close] [--no-submit] [--verbose]",
   "       eval-shots.mjs --round <name> --index-only",
   "",
   "  --postings    a postings file, or one or more posting URLs on the command line.",
@@ -67,11 +67,14 @@ const USAGE = [
   "  --timeout     seconds per posting before the child is killed (default 300).",
   "  --no-submit   accepted and always true — every child is spawned with `--no-submit` whatever",
   "                either home's `p.auto_submit` says. There is no `--submit`.",
+  "  --close       close each tab once its screenshots are on disk. Off by default: the filled tab",
+  "                is the fixture (D12). Use it for long rounds against the real profile, where a",
+  "                dozen filled forms left open in the user's own Chrome is its own hazard.",
   "  --index-only  re-render <round>/index.md from the profiles that already ran; fills nothing.",
 ].join("\n");
 
 function parseArgs(argv) {
-  const args = { postings: [], timeout: 300, verbose: false, indexOnly: false };
+  const args = { postings: [], timeout: 300, verbose: false, indexOnly: false, close: false };
   for (let i = 0; i < argv.length; i += 1) {
     const next = () => argv[++i];
     switch (argv[i]) {
@@ -85,6 +88,7 @@ function parseArgs(argv) {
       case "--limit": args.limit = Number(next()); break;
       case "--timeout": args.timeout = Number(next()); break;
       case "--verbose": args.verbose = true; break;
+      case "--close": args.close = true; break;
       case "--index-only": args.indexOnly = true; break;
       // Stating the invariant at the call site is allowed; changing it is not.
       case "--no-submit": break;
@@ -204,8 +208,15 @@ async function shootOne(posting, ctx) {
   const counts = countRows(decisions);
 
   await writeJson(path.join(dir, "expected.json"), expected);
+  // `result.json` is the runner's own stdout, plus the two things a reader of *this* round asks it
+  // for and the runner does not print in one place: `counts`, the Decision tally the index's
+  // filled/asks/drafted/failed columns are computed from (the runner prints `filled` and lists
+  // `asks`, but never a denominator), and the usage block, which the runner does print and which
+  // is therefore only asserted here — a result without one is a run that died before it planned.
   await writeJson(path.join(dir, "result.json"), {
     ...result,
+    counts,
+    ...(result.usage ? {} : { usage: null }),
     ...(run.result ? {} : { stderr_tail: run.stderr.split("\n").filter(Boolean).slice(-8).join("\n") }),
   });
 
@@ -219,6 +230,7 @@ async function shootOne(posting, ctx) {
     home: ctx.home,
     port: ctx.port,
     dir,
+    close: ctx.close,
     onLog: (line) => log(`    ${line}`),
   });
   if (!shots.ok) log(`    screenshots: ${shots.why ?? "none captured"}`);
@@ -254,7 +266,7 @@ async function shootOne(posting, ctx) {
     reset: tab,
     integrity,
     drafts: drafts.counts,
-    shots: { ok: shots.ok, ...(shots.why ? { why: shots.why } : {}), viewports: shots.viewports, page: shots.page },
+    shots: { ok: shots.ok, ...(shots.why ? { why: shots.why } : {}), closed: shots.closed === true, viewports: shots.viewports, page: shots.page },
     files: {
       full: shots.full,
       viewports: shots.viewports,
@@ -389,7 +401,7 @@ try {
 
   log(
     `eval-shots ${args.round}/${profile.name}: ${postings.length} posting(s) · home ${home} · CDP ${profile.port} · ` +
-      "--no-submit on every run · tabs are left open",
+      `--no-submit on every run · ${args.close ? "each tab is closed once its screenshots are on disk" : "tabs are left open"}`,
   );
 
   const ctx = {
@@ -402,6 +414,7 @@ try {
     timeoutMs: args.timeout * 1000,
     total: postings.length,
     verbose: args.verbose,
+    close: args.close,
   };
 
   const rows = [];

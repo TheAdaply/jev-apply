@@ -1,5 +1,70 @@
 # Changelog
 
+## v0.4.0
+
+Setup, simplified. Two product changes came out of user-facing review: the "who can this run for"
+question drops to one credential, and the "where does this apply" question — scope — is gone from
+everything the user sees.
+**A writer is optional.** `TYPESAFE_API_KEY` is the only credential jev-apply needs; the few
+sentences it cannot look up (`why_us`, an expanded story, a narrative) are written by whichever of
+three backends is configured, auto-detected in that order: an `OPENAI_API_KEY` → the Responses API;
+`JEV_APPLY_WRITER_URL` (+ `JEV_APPLY_WRITER_MODEL`) → chat completions against a server the user
+runs (Ollama, llama.cpp, LM Studio), no key, billed at $0; neither → the host agent (Claude Code,
+Codex) writes it. A row the host has to write leaves `apply.mjs` as a `needs_user` item of kind
+`draft` carrying the prompt, the posting's and the user's own material as plain grounding lines, and
+the field's stated limit, and comes back through `--answers` checked by the same grounding,
+substitution, and limit rules a model's draft faces. Résumé onboarding needs no model at all: with
+no writer configured, `learn.mjs --resume` reads a deterministic extractor instead of an LLM.
+**Scoping is gone from the user surface.** No `--scope` flag, no "remembered for `<scope>`" wording,
+no company or role-family override asked or explained. Everything a user states — a fact, a
+standing preference, a correction — holds for every application; a `why_us`/company-specific answer
+still keys to its own company internally, derived from the draft, never asked.
+
+- `src/config.mjs` — `REQUIRED_KEYS` narrows to `["TYPESAFE_API_KEY"]`; `OPTIONAL_KEYS`,
+  `WRITER_URL_VAR`/`WRITER_MODEL_VAR`, and `writerFromEnv(env, {preferLocal})` (the three-way
+  auto-detect, in that order, with a `JEV_APPLY_WRITER_URL` set in the process environment
+  overriding a stored OpenAI key for that run). `loadEnv()` treats a variable that is present but
+  empty as "off this run", never as unset.
+- `src/writer/backend.mjs` (new) — `detectWriter`/`describeWriter`/`complete`/`usageTotals` behind
+  one interface for all three backends; `HostWriterRequired` is what `complete()` throws for `host`.
+  `src/writer/openai.mjs` keeps the prompts, the schemas, and the grounding/substitution post-checks
+  and re-exports the backend's client so every caller goes through one module.
+- `src/writer/extract-basic.mjs` (new) — `extractBasic(text, {doc, pages})`: name from the top line,
+  contacts by regex, one story per bullet line under a work/projects heading — `extractResume`'s row
+  shapes with no model at all.
+- `src/plan/draft.mjs` — `hostDraft`/`hostDraftAsks`/`checkHostDraft`/`acceptHostDrafts`/
+  `groundingTexts`: a row `draftRows` cannot write because the backend is `host` is turned into a
+  `needs_user` question instead of an `ask` with no way forward, and the paragraph that comes back
+  through `--answers` is graded by exactly the checks a model's own draft would face.
+- `scripts/apply.mjs` — wires `hostDraftAsks` into both `singleRun` and `queueRun`'s `needs_user`
+  payload, and `acceptHostDrafts` into `--answers` handling before the ordinary `applyAnswers` pass.
+- `scripts/install.mjs` — prints which of the three writing options is active (never key material)
+  and, when none is, the three ways to add one.
+- `scripts/writer-smoke.mjs` (new) — `--detect` prints the resolved backend; `--extract-basic`
+  exercises the deterministic résumé reader.
+- `scripts/learn.mjs` — `resumeReader()` picks `extractBasic` over `extractResume` automatically
+  when `detectWriter().kind === "host"`, so onboarding never blocks on a missing OpenAI key; the
+  day-1 `gaps[]` are `g.work_auth`, `g.notice_rule`, `g.salary`, `g.contact` (only with more than one
+  email/phone), `g.resume_by_role_family` (only with more than one résumé), `g.looking_for`,
+  `g.eeo`, `g.auto_submit`, `g.auto_draft`, and a conditional `g.identity.name_split` for a
+  two-token name where one token is an initial; each carries `remember_as:{kind,id}` (no `scope`)
+  or none at all where the answer names its own fact ids directly.
+- `scripts/remember.mjs` — `--scope` and the scope classification pass are gone: usage is
+  `remember.mjs "<instruction>" [--id <memory id>] [--dry-run]`, output `{status, kind, id}`.
+- `src/plan/decisions.mjs` — `needs_user`'s `remember_as` is `{kind, id}`; `memoryRow` derives a
+  company-specific answer's home from the question's own class and the posting, never from a scope
+  the user is asked to pick.
+- `src/memory/resolve.mjs` — `promotionHome(draft)` keys a promoted `why_us`/company-specific answer
+  to its own company, derived from the draft; `src/memory/schema.mjs` drops
+  `p.legal.previously_employed` from `ID_CATALOGUE` (nothing read a global one).
+- `references/memory-format.md` — the "## Scope" section is deleted and its prose rewritten;
+  `resolvePreference` still returns `scope: "global"` internally (existing stores keep resolving),
+  but nothing new is asked or written about it.
+- `SKILL.md`, `README.md`, `INSTALL.md` — the setup story cut to a five-command quickstart, a
+  three-line "choose how text gets written" section, and a "Writing a `draft` item" section telling
+  the host agent exactly how to answer one; every `--scope` example, "remembered for `<scope>`"
+  wording, and company/role-family override explanation is gone.
+
 ## v0.3.0
 
 Answers a round-1 screenshot judgement of 200 graded filled-form rows — 155 correct, twelve

@@ -18,11 +18,6 @@ comment lines are regenerated on each write.
 
 All examples below are synthetic.
 
-## Scope
-
-`global` · `company:<slug>` · `role_family:<family>`. Resolution is **company > role_family >
-global**, everywhere. `company:` keys are `slugify()`d (`"Acme Inc." → acme-inc`).
-
 ## `facts.yaml` — what is true of the user
 
 Never model-written. `since:` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is stored instead of "N years", so
@@ -146,8 +141,8 @@ as `check`, never silently.
 
 ## `preferences.yaml` — how the user wants applications answered
 
-`overrides[]` carry the scoped values; `value` is the global one. A preference that exists only at
-one scope has `value: null`.
+One row per preference, and it holds for every application: the user says how they want
+applications answered and is never asked where the answer applies.
 
 ```yaml
 - id: p.notice_rule
@@ -160,8 +155,6 @@ one scope has `value: null`.
     prefer_posting_range: midpoint    # `none` to ignore a published range
     state_end: mid                    # which end of the baseline row to state: low|mid|high
     baselines: salary-baselines.yaml
-  overrides:
-    - {scope: "company:acme-inc", value: {prefer_posting_range: midpoint, state_end: high}}
   source: user
   updated: 2026-01-31
 - id: p.looking_for
@@ -181,8 +174,9 @@ one scope has `value: null`.
 ```
 
 `resolvePreference(mem, "p.salary", {company: "Acme Inc.", role_family: "ml_engineer"})`
-→ `{id, value, scope: "company:acme-inc", source, overridden: true}`, or `undefined` when nothing
-applies — again, the caller asks.
+→ `{id, value, scope: "global", source, overridden: false}`, or `undefined` when nothing is on
+file — and then the caller asks. (`overrides[]` on a row are still read, most specific first, so a
+store written by an older version keeps resolving; nothing writes one any more.)
 
 ### The preferences other code reads as a *shape*
 
@@ -206,9 +200,7 @@ form row. Every one of them is user-stated; none is ever defaulted by code.
   source: user
   updated: 2026-01-31
 - id: p.auto_submit              # asked once (gap g.auto_submit); absent is not "no", it is unanswered
-  value: true                    # true | false; company scope overrides global like any preference
-  overrides:
-    - {scope: "company:acme-inc", value: false}
+  value: true                    # true | false
   source: user
   updated: 2026-01-31
 - id: p.auto_draft               # asked once (gap g.auto_draft); absent is not "no", it is unanswered
@@ -247,7 +239,7 @@ question outside the five fields (sexual orientation, transgender status, age ba
 asks finer than they stated, and a list with no entry for what they stated. In each the form's own
 "Decline to self-identify" / "I don't wish to answer" option is picked, and only where the user has
 stated that stance — absent, every one of them is still an `ask`. A field with nothing on file is
-an `ask` carrying `remember_as: {kind: preference, id: "p.eeo.<field>", scope: global}` — never a
+an `ask` carrying `remember_as: {kind: preference, id: "p.eeo.<field>"}` — never a
 guess, and never a skip. Ethnicity outranks race on a form that folds both into one select: with
 `hispanic_latino: yes`, a `Hispanic or Latino` option is the answer to the race question.
 
@@ -270,8 +262,8 @@ of `p.eeo` was ever stated, which is the one demographic-looking field that is n
 Submit once nothing is left to ask; anything else, **including an absent row**, stops at
 `ready_to_submit`.
 
-**`p.auto_draft`** is the same shape and the same rule (`resolvePreference`, company scope
-overrides global, absent means *unanswered*). `true` lets the writer draft the two classes nobody
+**`p.auto_draft`** is the same shape and the same rule (`resolvePreference`, absent means
+*unanswered*). `true` lets the writer draft the two classes nobody
 can answer from stored facts — `why_us` and required essay prompts — from the posting plus the
 user's own saved material; the Decision carries `draft_request: {kind, limits, grounding_ids,
 prompt, help}` and the draft is listed under ► DRAFTED before anything is submitted. Facts are
@@ -281,9 +273,8 @@ untouched by it: a missing personal fact is still an `ask`, never a draft.
 row from one global statement: a restriction binds the user wherever they apply, and the "If yes,
 please explain" row underneath is left blank when the answer is No. **`p.legal.previously_employed`
 is different**: "have you ever been employed **by this company**?" is a different question at every
-employer, so only a company-scoped override answers it — a global value is ignored on purpose and
-the row falls back to the pipeline derivation (`appliedBeforeFor`), which answers per company or
-asks.
+employer, so the row is not answered from a stated stance at all — it falls back to the pipeline
+derivation (`appliedBeforeFor`), which answers per company or asks.
 
 **`p.legal.<slug>` — the standing answer to an acknowledgement.** Besides the two stances above,
 the `p.legal.*` namespace holds one `"Yes"`/`"No"` row per attestation the user has decided to
@@ -318,8 +309,12 @@ computes `sha256` itself (a changed digest is what makes `learn.mjs` re-run as a
 
 ## `answers.yaml` — pre-computed answers, keyed by canonical question (§2.7)
 
-Row identity is `qid + scope + family`, so the same canonical question can hold a global answer and
-a company-specific one side by side.
+Row identity is `qid + scope + family`. A "why us?" sentence is one answer *per company* — saved
+globally it would be handed straight back at the next employer — so an answer to a `why_us`,
+`company_specific` or `policy_gate` question is keyed to the posting it was written for. That key
+is derived from the question's own class and the company being applied to
+(`memoryRow` in `src/plan/decisions.mjs`, `promotionHome` in `src/memory/resolve.mjs`); the user
+is never asked about it. Everything else is `global`.
 
 ```yaml
 - qid: q.policy.arbitration
@@ -408,8 +403,8 @@ filtered out of every selector pool and writer prompt (`usableStories(mem)`).
 ```yaml
 - id: c1                       # the handle the user says: "drop c1"
   when: 2026-01-31T09:15:00.000Z
-  scope: "company:acme-inc"
-  rule: "Never say I am open to relocation for this company."
+  scope: global                # a correction the user states holds for every application
+  rule: "Never say I am open to relocation."
   source: user
 ```
 
@@ -436,8 +431,8 @@ block owns the market vocabulary. `market` is derived from the posting location 
 `marketFor(job, baselines)`; a location that matches no market in the table returns
 `action: "ask"` (the table's own `when_market_unknown: ask`), never a neighbouring market.
 
-`role_family` is the third key. It is the user's own vocabulary first (`p.looking_for.role_families`,
-which is also what scopes their preferences and answers) and, when the posting's title matches
+`role_family` is the third key. It is the user's own vocabulary first (`p.looking_for.role_families`)
+and, when the posting's title matches
 nothing there, the canon taxonomy's name for it (`classifyTitle` in `src/canon/families.mjs`, the
 same deterministic classifier that picks the screening layer) — so a designer or PM posting is
 priced from the table instead of asking about a role family the user never listed. A title that
@@ -477,14 +472,15 @@ overwrite a row whose `source` is `user` (pass `{overwriteUser: true}` to mean i
   run a diff.
 - Both print `{status, facts, preferences, documents, stories, answers, echo[], gaps[]}`. `status` is
   one of the three every script is bound to — `needs_user` while `gaps[]` is non-empty, otherwise
-  `ready_to_submit`, or `blocked` with a `reason` for a usage error. `gaps[]` is the six day-1
-  questionnaire items minus those already answered, plus anything knowably absent
-  (`g.identity.city`). A gap is never filled with a default.
-- `scripts/remember.mjs "<instruction>" [--scope …] [--id <memory id>] [--dry-run]` — **one** Jev
-  request carrying three choices: the row kind, the memory **id** it belongs to, and (unless
-  `--scope` says) the scope. It writes the row with `source: user` and prints
-  `{status, kind, id, scope}` — `ready_to_submit` when written, `needs_user` when the id or the
-  scope of a preference is below `GATES.askBelow`. `--dry-run` runs the same selection and reports
+  `ready_to_submit`, or `blocked` with a `reason` for a usage error. `gaps[]` is the day-1
+  questions minus those already answered — the six standing ones, the demographic block and
+  auto-submit, plus drafting — each in the words a person would use, each carrying the id its
+  answer is stored under. Nothing else is asked on day 1, and a gap is never filled with a default.
+- `scripts/remember.mjs "<instruction>" [--id <memory id>] [--dry-run]` — **one** Jev
+  request carrying two choices: the row kind and the memory **id** it belongs to. It writes the
+  row with `source: user` and prints `{status, kind, id}` — `ready_to_submit` when written,
+  `needs_user` when the id is below `GATES.askBelow`. Everything remembered this way holds for
+  every application. `--dry-run` runs the same selection and reports
   the row it would write without touching disk; `--id` answers the `needs_user` and skips the id
   choice entirely.
 - The id choice runs over `ID_CATALOGUE` (`src/memory/schema.mjs`) plus every id already in

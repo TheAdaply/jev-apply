@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 // scripts/remember.mjs — turn one spoken instruction into one memory row.
 //
-//   remember.mjs "<instruction>" [--scope global|company:<slug>|role_family:<family>]
+//   remember.mjs "<instruction>" [--id <memory id>] [--dry-run]
 //
-// Jev *selects* what kind of row this is and which scope it belongs to (it never writes the text —
-// the row's content is the user's own words). One JSON object on stdout: `{status, kind, id, scope}`.
+// Jev *selects* what kind of row this is and which saved row it belongs to (it never writes the
+// text — the row's content is the user's own words). One JSON object on stdout:
+// `{status, kind, id}`. Everything the user states is remembered for every application; there is
+// nothing to say about where it applies and nothing is asked about it.
 
-import { slugify } from "../src/config.mjs";
 import { NONE, choice, closeJevClient, noul, systemOne, withNone } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
 import { loadMemory, upsertRow } from "../src/memory/store.mjs";
-import { resolvePreference } from "../src/memory/resolve.mjs";
-import { ID_CATALOGUE, mintId, nextHandle, parseScope, rowKey, stamp } from "../src/memory/schema.mjs";
+import { promotionHome } from "../src/memory/resolve.mjs";
+import { ID_CATALOGUE, mintId, nextHandle, rowKey, stamp } from "../src/memory/schema.mjs";
 import { yesNoOf } from "../src/plan/resolve.mjs";
 
 class Blocked extends Error {}
@@ -26,19 +27,13 @@ const KINDS = {
   promote_draft: "The instruction tells the assistant to keep a draft or answer from an application — it names a handle such as d1 or c1.",
 };
 
-const USAGE = 'usage: remember.mjs "<instruction>" [--scope global|company:<slug>|role_family:<family>] [--id <memory id>] [--dry-run]';
+const USAGE = 'usage: remember.mjs "<instruction>" [--id <memory id>] [--dry-run]';
 
 function parseArgs(argv) {
-  const args = { instruction: null, scope: null, id: null, dryRun: false };
+  const args = { instruction: null, id: null, dryRun: false };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
-    if (flag === "--scope") {
-      const value = argv[i + 1];
-      if (!value || value.startsWith("--")) throw new Blocked("--scope needs a value (global | company:<slug> | role_family:<family>)");
-      if (!parseScope(value)) throw new Blocked(`bad scope ${JSON.stringify(value)} — use global, company:<slug>, or role_family:<family>`);
-      args.scope = parseScope(value).text;
-      i += 1;
-    } else if (flag === "--id") {
+    if (flag === "--id") {
       // The answer to the `needs_user` this script emits when it cannot tell which saved row an
       // instruction belongs to: the user names the row and no selection is made at all.
       const value = argv[i + 1];
@@ -60,33 +55,6 @@ function parseArgs(argv) {
   }
   if (!args.instruction?.trim()) throw new Blocked(USAGE);
   return args;
-}
-
-/** Company slugs memory already knows, so Jev picks an existing scope instead of inventing one. */
-function knownCompanies(mem) {
-  const slugs = new Set();
-  const add = (scope) => {
-    const parsed = parseScope(scope);
-    if (parsed?.kind === "company") slugs.add(parsed.key);
-  };
-  for (const row of mem.preferences) for (const ov of row.overrides ?? []) add(ov?.scope);
-  for (const row of mem.corrections) add(row?.scope);
-  for (const row of mem.answers) add(row?.scope);
-  for (const row of mem.drafts) if (row?.company) slugs.add(slugify(row.company));
-  return [...slugs];
-}
-
-/** Concrete scopes — Jev selects one of these, it never names a new company. */
-function scopeCriteria(mem) {
-  const criteria = { global: "The instruction applies to every application from now on." };
-  const families = resolvePreference(mem, "p.looking_for")?.value?.role_families ?? {};
-  for (const family of Object.keys(families)) {
-    criteria[`role_family:${family}`] = `The instruction applies only to ${String(family).replace(/_/g, " ")} applications.`;
-  }
-  for (const slug of knownCompanies(mem)) {
-    criteria[`company:${slug}`] = `The instruction applies only to applications to ${slug}.`;
-  }
-  return withNone(criteria, "The instruction does not say which of these it applies to");
 }
 
 /**
@@ -155,47 +123,35 @@ async function writeFact(mem, instruction, { id = null, dryRun = false } = {}) {
   const value = id ? catalogueValue(id, instruction) : { value: instruction };
   if (value.needs) return { status: "needs_user", kind: "fact", id: target, question: value.needs };
   await put("facts", { id: target, value: value.value, source: "user", updated: stamp() }, dryRun);
-  return { status: "ready_to_submit", kind: "fact", id: target, scope: "global", note: "facts are global; a scoped statement is a preference" };
+  return { status: "ready_to_submit", kind: "fact", id: target };
 }
 
-async function writePreference(mem, instruction, scope, { id = null, dryRun = false } = {}) {
+async function writePreference(mem, instruction, { id = null, dryRun = false } = {}) {
   const target = id ?? mintId("preferences", instruction, takenIds(mem.preferences));
   const stated = id ? catalogueValue(id, instruction) : { value: instruction };
   if (stated.needs) return { status: "needs_user", kind: "preference", id: target, question: stated.needs };
-  const row = scope === "global"
-    ? { id: target, value: stated.value, source: "user", updated: stamp() }
-    : { id: target, value: null, overrides: [{ scope, value: stated.value, source: "user" }], source: "user", updated: stamp() };
-  await put("preferences", row, dryRun);
-  return { status: "ready_to_submit", kind: "preference", id: target, scope };
+  await put("preferences", { id: target, value: stated.value, source: "user", updated: stamp() }, dryRun);
+  return { status: "ready_to_submit", kind: "preference", id: target };
 }
 
-async function writeCorrection(mem, instruction, scope, { dryRun = false } = {}) {
+async function writeCorrection(mem, instruction, { dryRun = false } = {}) {
   const id = nextHandle("corrections", mem.corrections);
-  await put("corrections", { id, when: new Date().toISOString(), scope, rule: instruction, source: "user" }, dryRun);
-  return { status: "ready_to_submit", kind: "correction", id, scope };
+  await put("corrections", { id, when: new Date().toISOString(), scope: "global", rule: instruction, source: "user" }, dryRun);
+  return { status: "ready_to_submit", kind: "correction", id };
 }
 
-/** A company-specific answer is always saved at company scope, never globally (PLAN §2.4). */
-function forcedScope(draft, scope) {
-  const companyish = draft.class === "why_us" || draft.class === "company_specific" || String(draft.canon ?? draft.qid ?? "").startsWith("q.company.");
-  const slug = draft.company ? slugify(draft.company) : draft.application ? slugify(draft.application) : null;
-  if (companyish && slug) return `company:${slug}`;
-  return scope;
-}
-
-async function promoteDraft(mem, instruction, scope, { dryRun = false } = {}) {
+async function promoteDraft(mem, instruction, { dryRun = false } = {}) {
   const handle = /\b([dc]\d+)\b/i.exec(instruction)?.[1]?.toLowerCase();
   if (!handle) return { status: "needs_user", kind: "promote_draft", question: "Which draft should I keep? Name its handle, e.g. \"keep d1\"." };
   const draft = mem.drafts.find((row) => String(row?.id ?? "").toLowerCase() === handle);
   if (!draft) return { status: "needs_user", kind: "promote_draft", question: `No draft ${handle} is saved. Which draft should I keep?` };
 
   const qid = draft.canon ?? draft.qid ?? null;
-  const target = forcedScope(draft, scope);
 
   if (qid) {
     // Any saved answer for this question that is *not* the row we are about to write: if it already
     // says the same thing, adding a second one is noise (PLAN §2.4). Same-identity rows upsert.
-    const targetKey = rowKey("answers", { qid, scope: target, family: draft.family });
+    const targetKey = rowKey("answers", { qid, ...promotionHome(draft), family: draft.family });
     const rival = mem.answers.find((row) => row.qid === qid && row.kind !== "never" && rowKey("answers", row) !== targetKey);
     if (rival) {
       const { answers } = await systemOne({
@@ -203,12 +159,15 @@ async function promoteDraft(mem, instruction, scope, { dryRun = false } = {}) {
         questions: { same: noul("`promoted_draft` says the same thing as `saved_answer`.") },
       });
       if ((answers.same?.noul ?? 0) >= 0.5) {
-        return { status: "ready_to_submit", kind: "answer", id: rival.qid, scope: rival.scope ?? "global", duplicate_of: rival.qid, note: "an existing saved answer already says this; nothing added" };
+        return { status: "ready_to_submit", kind: "answer", id: rival.qid, duplicate_of: rival.qid, note: "an existing saved answer already says this; nothing added" };
       }
     }
-    const kind = target.startsWith("company:") ? "company" : "narrative";
-    await put("answers", { qid, kind, value: draft.text, scope: target, ...(draft.family ? { family: draft.family } : {}), source: "user", reviewed: true, updated: stamp() }, dryRun);
-    return { status: "ready_to_submit", kind: "answer", id: qid, scope: target, from: draft.id };
+    await put(
+      "answers",
+      { qid, ...promotionHome(draft), value: draft.text, ...(draft.family ? { family: draft.family } : {}), source: "user", reviewed: true, updated: stamp() },
+      dryRun,
+    );
+    return { status: "ready_to_submit", kind: "answer", id: qid, from: draft.id };
   }
 
   const id = mintId("stories", draft.title ?? draft.text, takenIds(mem.stories), { namespace: "kept" });
@@ -224,7 +183,7 @@ async function promoteDraft(mem, instruction, scope, { dryRun = false } = {}) {
     },
     dryRun,
   );
-  return { status: "ready_to_submit", kind: "story", id, scope: target, from: draft.id };
+  return { status: "ready_to_submit", kind: "story", id, from: draft.id };
 }
 
 // --------------------------------------------------------------------- main
@@ -233,8 +192,8 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const mem = await loadMemory();
 
-  // One request: what kind of row is this, which saved id does it belong to, and (unless the user
-  // said) which scope. Three judgments, one call — Jev selects all three and writes none of them.
+  // One request: what kind of row is this, and which saved id does it belong to. Two judgments,
+  // one call — Jev selects both and writes neither.
   const questions = {
     kind: choice(
       "`instruction` is what the user just told the assistant to remember. Which kind of memory row does it become?",
@@ -246,9 +205,6 @@ async function main() {
       "Which saved memory row is `instruction` about? Pick the id whose description states the same thing the instruction states.",
       idCriteria(mem),
     );
-  }
-  if (!args.scope) {
-    questions.scope = choice("Which scope does `instruction` apply to?", scopeCriteria(mem));
   }
 
   const { answers, ms, requests } = await systemOne({
@@ -293,46 +249,21 @@ async function main() {
   }
   const section = id ? (id.startsWith("p.") ? "preference" : "fact") : kind;
 
-  let scope = args.scope;
-  let scopeConfidence = null;
-  if (!scope) {
-    scopeConfidence = answers.scope.confidence;
-    const stated = answers.scope.choice !== NONE && scopeConfidence >= GATES.askBelow;
-    // The only other confidence-driven ask. A preference or a correction *lives at* its scope, so
-    // a guessed one is worse than one more question. A fact is global by nature, and a promoted
-    // draft takes the draft's own scope — neither needs the user to answer this.
-    if (!stated && (section === "preference" || kind === "correction")) {
-      emit({
-        status: "needs_user",
-        kind: section,
-        ...(id ? { id } : {}),
-        confidence: answers.kind.confidence,
-        ...(idConfidence == null ? {} : { id_confidence: idConfidence }),
-        scope_confidence: scopeConfidence,
-        question: "Does that apply to every application, to one company, or to one role family? Re-run with --scope (e.g. --scope company:acme).",
-      });
-      return;
-    }
-    scope = stated ? parseScope(answers.scope.choice).text : "global";
-  }
-
   const opts = { id, dryRun: args.dryRun };
   const written = section === "fact" ? await writeFact(mem, args.instruction, opts)
-    : section === "preference" ? await writePreference(mem, args.instruction, scope, opts)
-    : kind === "correction" ? await writeCorrection(mem, args.instruction, scope, opts)
-    : await promoteDraft(mem, args.instruction, scope, opts);
+    : section === "preference" ? await writePreference(mem, args.instruction, opts)
+    : kind === "correction" ? await writeCorrection(mem, args.instruction, opts)
+    : await promoteDraft(mem, args.instruction, opts);
 
   if (args.dryRun) {
     log("dry run — nothing written");
     log(`  id: ${written.id}`);
-    log(`  scope: ${written.scope ?? scope}`);
   }
   emit({
     ...written,
     ...(args.dryRun ? { dry_run: true } : {}),
     confidence: answers.kind.confidence,
     ...(idConfidence == null ? {} : { id_confidence: idConfidence }),
-    ...(scopeConfidence == null ? {} : { scope_confidence: scopeConfidence }),
   });
 }
 

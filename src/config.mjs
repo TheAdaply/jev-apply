@@ -39,6 +39,10 @@ export const PRICING = {
   openai: {
     "gpt-5.4": { input_per_mtok: 2.5, output_per_mtok: 15.0 },
     "gpt-5.4-mini": { input_per_mtok: 0.75, output_per_mtok: 4.5 },
+    // `PRICING.openai` is keyed by the writer's own by_model keys, and a model the user hosts
+    // themselves (Ollama, llama.cpp, LM Studio) is one of them. Its tokens are real and are
+    // counted; its rate is genuinely zero, which is why this row is a number and not `null`.
+    local: { input_per_mtok: 0, output_per_mtok: 0 },
   },
 };
 
@@ -84,8 +88,45 @@ export const SIGNUP = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
 };
 
-/** Both keys the product needs; `loadEnv({ require })` narrows this for single-service scripts. */
-export const REQUIRED_KEYS = ["TYPESAFE_API_KEY", "OPENAI_API_KEY"];
+/**
+ * The one credential jev-apply cannot run without: Jev is what decides every answer.
+ * `loadEnv({ require })` narrows this for single-service scripts.
+ */
+export const REQUIRED_KEYS = ["TYPESAFE_API_KEY"];
+
+/**
+ * Everything else is optional, and each one names a way to write the few sentences that are not
+ * on file: an OpenAI key, an OpenAI-compatible server you run yourself, or neither — in which
+ * case the host agent writes them and the runner checks them (src/writer/backend.mjs).
+ */
+export const OPTIONAL_KEYS = ["OPENAI_API_KEY"];
+export const WRITER_URL_VAR = "JEV_APPLY_WRITER_URL";
+export const WRITER_MODEL_VAR = "JEV_APPLY_WRITER_MODEL";
+
+/**
+ * Which backend writes. Configuration order is OpenAI key → local server → nobody; no writer at
+ * all is a supported configuration, not an error.
+ *
+ * Two things override that order, and both are a choice the user made for *this* run:
+ *   * `preferLocal` — `JEV_APPLY_WRITER_URL` set in the process environment rather than read out
+ *     of the env file. Pointing a run at a local server is meant to be enough; having to unset a
+ *     stored key as well would be a trap.
+ *   * an empty value means "explicitly off", never "unset": `OPENAI_API_KEY= node scripts/apply.mjs`
+ *     is how a user with a key on file runs a posting the host agent drafts, and `loadEnv`
+ *     honours the same rule by not filling a variable that is already present but blank.
+ * @param {Record<string,string|undefined>} [env]
+ * @param {{preferLocal?: boolean}} [opts]
+ * @returns {{kind:"openai"|"local"|"host", model:string|null, baseURL:string|null}}
+ */
+export function writerFromEnv(env = process.env, { preferLocal = false } = {}) {
+  const has = (name) => String(env[name] ?? "").trim();
+  const url = has(WRITER_URL_VAR);
+  const local = () => ({ kind: "local", model: has(WRITER_MODEL_VAR) || null, baseURL: url.replace(/\/+$/, "") });
+  if (url && preferLocal) return local();
+  if (has("OPENAI_API_KEY")) return { kind: "openai", model: OPENAI_MODEL, baseURL: null };
+  if (url) return local();
+  return { kind: "host", model: null, baseURL: null };
+}
 
 /** `KEY=VALUE` / `export KEY="VALUE"` lines; `#` comments; values are never logged. */
 function parseEnvFile(text) {
@@ -125,8 +166,13 @@ function missingKeyError(names, hasFile) {
 }
 
 /**
- * Read CONFIG_DIR/env into process.env (never overwriting an already-set variable) and return
- * the credentials. Throws a fail-fast Error naming every missing variable and its signup URL.
+ * Read CONFIG_DIR/env into process.env (never overwriting a variable the caller already set) and
+ * return the credentials. Throws a fail-fast Error naming every missing required variable and its
+ * signup URL.
+ *
+ * A variable that is present but empty is left empty: `OPENAI_API_KEY= node scripts/apply.mjs …`
+ * means "not this run", and filling it from the file would take that choice away
+ * (src/writer/backend.mjs detectWriter).
  * @param {{ require?: string[] }} [opts] subset of REQUIRED_KEYS a caller actually needs.
  */
 export function loadEnv(opts = {}) {
@@ -135,7 +181,7 @@ export function loadEnv(opts = {}) {
   try {
     const parsed = parseEnvFile(readFileSync(paths.env, "utf8"));
     for (const [key, value] of Object.entries(parsed)) {
-      if (process.env[key] === undefined || process.env[key] === "") process.env[key] = value;
+      if (process.env[key] === undefined) process.env[key] = value;
     }
   } catch (err) {
     if (err.code !== "ENOENT") throw err;

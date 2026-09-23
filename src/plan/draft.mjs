@@ -21,6 +21,7 @@
 
 import { resolvePreference, usableStories } from "../memory/resolve.mjs";
 import { fitsLimits, pickVariant } from "../schema/classes.mjs";
+import { HostWriterRequired } from "../writer/backend.mjs";
 import { expand, groundingCheck, narrative, substitutionCheck, whyUs, wordCount } from "../writer/openai.mjs";
 import { jobBlock } from "../writer/prompts.mjs";
 import { slugify } from "../config.mjs";
@@ -266,22 +267,23 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
     // file to ground this row in.
     const avoid_repeating = stories.filter((s) => used.has(s.id)).map((s) => toldBy.get(s.id) ?? s.title ?? s.id);
 
+    let text = "";
+    let how = "";
+    // The stories this row actually told, for the next row on the page.
+    let told = stories;
+    // The exact set the writer was given. Reconstructing a *similar* set here is how this pass
+    // refused a perfectly grounded paragraph for the number 62: the writer's `joinTexts` reads
+    // a story's title as well as its body, and a flattened copy dropped the titles. Same
+    // objects, same order, same verdict. It is built *before* the call, because the `host`
+    // backend throws instead of answering and the host agent needs exactly this grounding.
+    let grounding = [];
     try {
-      let text = "";
-      let how = "";
-      // The stories this row actually told, for the next row on the page.
-      let told = stories;
-      // The exact set the writer was given. Reconstructing a *similar* set here is how this pass
-      // refused a perfectly grounded paragraph for the number 62: the writer's `joinTexts` reads
-      // a story's title as well as its body, and a flattened copy dropped the titles. Same
-      // objects, same order, same verdict.
-      let grounding = [];
       if (kind === "why_us") {
         const sentence = request.sentence ?? null;
-        const out = await whyUs({ sentence, stories, facts, job, limits, avoid: avoid_repeating, signal });
-        text = out.text;
         grounding = [...(sentence ? [sentence] : []), ...stories.slice(0, MAX_STORIES), ...facts, jobBlock(job)];
         how = sentence ? "your sentence + the posting" : "the posting + your saved material";
+        const out = await whyUs({ sentence, stories, facts, job, limits, avoid: avoid_repeating, signal });
+        text = out.text;
       } else if (kind === "expand") {
         // The story Jev matched to this field, by id. It is the reason the row is an `expand` at
         // all, so it is looked up in memory rather than hoped for in the ranked shortlist.
@@ -291,22 +293,22 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
           : (named.stories[0] ?? stories[0] ?? null);
         if (!story?.text) throw new Error("no saved story to expand");
         told = [story];
+        grounding = [story, ...facts, jobBlock(job)];
+        how = `your story "${String(story.title ?? story.id).slice(0, 40)}"`;
         // An `expand` has no choice of story — the matched one is the reason the row is an
         // `expand` at all — so when an earlier box on this page already told it, the dedupe
         // cannot help and the writer is told instead.
         const repeated = used.has(story.id) ? [toldBy.get(story.id) ?? String(story.title ?? story.id)] : [];
         const out = await expand({ story, question: asked, facts, job, limits, avoid: [...avoid_repeating, ...repeated], signal });
         text = out.text;
-        grounding = [story, ...facts, jobBlock(job)];
-        how = `your story "${String(story.title ?? story.id).slice(0, 40)}"`;
       } else {
+        grounding = [...facts, ...stories, jobBlock(job)];
+        how = "your saved facts and stories";
         const variants = await narrative({ prompt: asked, facts, stories, family: context.role_family ?? undefined, job, limits, avoid: avoid_repeating, signal });
         // The longest variant the field's own limit allows — a 300-word box does not want the
         // 60-word answer, and a 100-word box must never get the 300-word one. Same rule, same
         // helper, as a stored `narrative` answer gets in the deterministic pass.
         text = pickVariant(variants, limits);
-        grounding = [...facts, ...stories, jobBlock(job)];
-        how = "your saved facts and stories";
       }
 
       // A writer that returned nothing must never reach the form as an empty answer: an empty
@@ -337,6 +339,14 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
       written.push(d);
       onLog?.(`drafted ${d.qid}: ${d.words} words (${kind})`);
     } catch (err) {
+      // No writer model at all: the host agent is the writer. The row is handed back with the
+      // prompt, the grounding and the field's limit, and comes home through `--answers` — where
+      // it faces the same grounding and substitution checks a model's draft does.
+      if (err instanceof HostWriterRequired) {
+        hostDraft(d, { kind, prompt: asked, grounding, limits });
+        onLog?.(`draft handed to the host ${d.qid} (${kind})`);
+        continue;
+      }
       const reason = String(err?.message ?? err).slice(0, 120);
       ask(d, `could not draft this one — ${reason}`);
       onLog?.(`draft refused ${d.qid}: ${reason}`);
@@ -360,4 +370,117 @@ export function draftFor({ plan, stores, dry = false, onLog = null }) {
       });
     },
   };
+}
+
+// ─── the host as the writer ───────────────────────────────────────────────────────────────────
+//
+// With no writer model configured (src/writer/backend.mjs `host`), the runner does not stop
+// drafting — it hands the drafting out. The row leaves as a `needs_user` question of kind
+// `draft` carrying the prompt, the grounding and the field's limit; the host agent writes the
+// paragraph and passes it back through `--answers`. Nothing is relaxed on the way back in: the
+// text faces the same limit, grounding and substitution checks a model's draft faces, and a
+// paragraph that fails them is refused exactly as a model's would be.
+
+/** The writer's grounding objects as the plain lines a host agent can read. */
+export function groundingTexts(grounding = []) {
+  const out = [];
+  for (const g of grounding) {
+    if (g == null) continue;
+    if (typeof g === "string") {
+      if (g.trim()) out.push(g.trim());
+      continue;
+    }
+    const title = String(g.title ?? g.id ?? "").trim();
+    const body = String(g.text ?? g.value ?? "").trim();
+    const line = title && body ? `${title} — ${body}` : title || body;
+    if (line) out.push(line);
+  }
+  return out;
+}
+
+/** Turn one undraftable row into the `draft` question the host answers. */
+export function hostDraft(d, { kind, prompt, grounding, limits }) {
+  ask(d, "no writer model is configured — write this one and pass it back with --answers");
+  d.host_draft = {
+    kind: "draft",
+    writes: kind,
+    prompt,
+    grounding: groundingTexts(grounding),
+    limits: limits ?? null,
+    label: d.label ?? prompt,
+  };
+  return d;
+}
+
+/** The `needs_user` questions, with the drafting rows carrying what it takes to write them. */
+export function hostDraftAsks(questions = [], decisions = []) {
+  const byQid = new Map((decisions ?? []).map((d) => [d.qid, d]));
+  return questions.map((q) => {
+    const host = byQid.get(q.qid)?.host_draft;
+    if (!host) return q;
+    const { label, ...rest } = host;
+    return { ...q, ...rest };
+  });
+}
+
+/** @returns {string|null} why this text cannot be used, or null when it can. */
+export function checkHostDraft(text, host, forbidden = []) {
+  const tooLong = overLimit(text, host?.limits ?? null);
+  if (tooLong) return `over the stated limit: ${tooLong}`;
+  const ground = groundingCheck(text, host?.grounding ?? []);
+  if (!ground.ok) return `not in your saved material or the posting: ${ground.missing.slice(0, 4).join(", ")}`;
+  const swap = substitutionCheck(text, forbidden);
+  if (!swap.ok) return `names another company you are applying to: ${swap.found.join(", ")}`;
+  return null;
+}
+
+/**
+ * `--answers` for the rows the host was asked to write. Mutates the Decisions it accepts and
+ * returns the answers that are *not* host drafts, for the ordinary `applyAnswers` pass.
+ * @returns {{answers:object, accepted:string[], refused:Array<{qid:string, reason:string}>}}
+ */
+export function acceptHostDrafts({ decisions = [], answers = {}, pipeline = null, company = null, dry = false, onLog = null } = {}) {
+  const rest = { ...answers };
+  const accepted = [];
+  const refused = [];
+  const forbidden = otherCompanies(pipeline, company);
+  for (const d of decisions) {
+    const host = d.host_draft;
+    if (answers[d.qid] === undefined || answers[d.qid] === null) continue;
+    if (!host) {
+      // A row the draft pass has not reached yet (a fresh plan drafts *after* `--answers` is
+      // read). Its answer is held back rather than handed to `applyAnswers`, which would only
+      // report it as ignored; this function is called again once the pass has run.
+      if (d.action === "draft" && d.value == null) delete rest[d.qid];
+      continue;
+    }
+    const answer = answers[d.qid];
+    const text = String((typeof answer === "string" ? answer : answer?.value) ?? "").trim();
+    delete rest[d.qid];
+    const problem = text ? checkHostDraft(text, host, forbidden) : "it is empty";
+    if (problem) {
+      // Refused, not corrected: the row stays an `ask` carrying the complaint, so the next
+      // `--answers` can fix exactly what was wrong.
+      d.why = `your draft was not used — ${problem}`;
+      refused.push({ qid: d.qid, reason: problem });
+      onLog?.(`draft refused ${d.qid}: ${problem}`);
+      continue;
+    }
+    d.action = "draft";
+    d.source = "host";
+    d.value = text;
+    d.words = wordCount(text);
+    // Every row that ends up with text records what it was actually handed (CONTRACTS §Decision
+    // record): the host was given the whole offered set, undeduped, so that is what it used.
+    d.grounding_used = [...(d.draft_request?.grounding_ids ?? [])];
+    d.why = `written by your agent from your saved material${dry ? " (dry run — not typed into the form)" : ""}`;
+    if (dry) d.dry = true;
+    delete d.confidence;
+    delete d.gap;
+    delete d.shot;
+    delete d.host_draft;
+    accepted.push(d.qid);
+    onLog?.(`drafted ${d.qid}: ${d.words} words (host)`);
+  }
+  return { answers: rest, accepted, refused };
 }

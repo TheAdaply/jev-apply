@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-// Writer smoke test (PLAN A5). Real OpenAI calls, synthetic memory — no user data is read.
-//   node scripts/writer-smoke.mjs                 narrative + why_us + the two post-checks
-//   node scripts/writer-smoke.mjs --extract F.txt  extractResume over a text file
+// Writer smoke test (PLAN A5). Real writer calls, synthetic memory — no user data is read.
+//   node scripts/writer-smoke.mjs                  narrative + why_us + the two post-checks
+//   node scripts/writer-smoke.mjs --detect         which backend would write, and nothing else
+//   node scripts/writer-smoke.mjs --extract F.txt  extractResume over a text file (needs a model)
+//   node scripts/writer-smoke.mjs --extract-basic F.txt
+//                                                  the deterministic extractor, no model at all
 // Human-readable on stdout; exits 1 if a draft cannot be made to satisfy the writing rules.
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { OPENAI_MODEL, OPENAI_MODEL_FAST } from "../src/config.mjs";
+import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
+import { extractBasic } from "../src/writer/extract-basic.mjs";
 import { VARIANT_WORDS, WHY_US_WORDS, jobBlock } from "../src/writer/prompts.mjs";
 import { extractResume, groundingCheck, narrative, substitutionCheck, whyUs } from "../src/writer/openai.mjs";
 
@@ -72,6 +77,18 @@ async function runExtract(file) {
   console.log(`  titles that are questions: ${stories.length - bad.length}/${stories.length}`);
 }
 
+/** The deterministic extractor `learn.mjs` falls back to when no writer model is configured. */
+async function runExtractBasic(file) {
+  const text = await readFile(file, "utf8");
+  const { facts, stories } = extractBasic(text, { doc: path.basename(file) });
+  console.log(`extractBasic ${file} · no model`);
+  console.log(`  facts ${facts.length} · stories ${stories.length}`);
+  for (const f of facts) console.log(`  fact  ${f.id} = ${f.value} [${f.source}]`);
+  for (const s of stories.slice(0, 4)) console.log(`  story ${s.id} | ${s.title} [${s.source}]`);
+  const questions = stories.filter((s) => s.title.trim().endsWith("?")).length;
+  console.log(`  titles that are questions: ${questions}/${stories.length}`);
+}
+
 async function runWriter() {
   const caps = {
     short: Math.min(VARIANT_WORDS.short, LIMITS.words),
@@ -101,12 +118,28 @@ async function runWriter() {
 
 const argv = process.argv.slice(2);
 const extractAt = argv.indexOf("--extract");
+const basicAt = argv.indexOf("--extract-basic");
 try {
-  if (extractAt !== -1) {
+  if (argv.includes("--detect")) {
+    const cfg = detectWriter({ refresh: true });
+    // The kind on its own line: this is what a setup script greps for.
+    console.log(cfg.kind);
+    console.log(`  ${describeWriter(cfg)}`);
+  } else if (basicAt !== -1) {
+    const file = argv[basicAt + 1];
+    if (!file) throw new Error("--extract-basic needs a text file");
+    await runExtractBasic(file);
+  } else if (extractAt !== -1) {
     const file = argv[extractAt + 1];
     if (!file) throw new Error("--extract needs a text file");
     await runExtract(file);
+  } else if (detectWriter().kind === "host") {
+    // Not a failure: no writer model is a supported configuration. There is simply nothing for
+    // this script to call — the host agent writes those few paragraphs and `apply.mjs` checks them.
+    console.log(`writer backend: ${describeWriter()}`);
+    console.log("nothing to smoke — set OPENAI_API_KEY, or JEV_APPLY_WRITER_URL + JEV_APPLY_WRITER_MODEL.");
   } else {
+    console.log(`writer backend: ${describeWriter()}`);
     await runWriter();
   }
 } catch (err) {

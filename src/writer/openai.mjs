@@ -1,12 +1,16 @@
-// The only module that generates text (PLAN §2.1, §2.2 step 10). OpenAI Responses API.
+// The module that generates text (PLAN §2.1, §2.2 step 10). Which model does the generating is
+// `src/writer/backend.mjs`'s business — OpenAI, a local OpenAI-compatible server, or nobody at
+// all, in which case `complete()` throws `HostWriterRequired` and the runner asks the host agent
+// for the paragraph instead. Everything below is the same either way.
+//
 // It writes nothing that is not grounded in the facts/stories it is handed, and every draft is
 // checked before it is returned: word/char caps, first person, no marketing vocabulary, every
 // number and every organisation/product name present in the grounding. A draft that fails is sent
 // back to the model once with the exact complaints; a draft that still fails throws — the runner
 // turns that into an `ask`, never a guess.
 
-import OpenAI from "openai";
-import { loadEnv, OPENAI_MODEL, OPENAI_MODEL_FAST } from "../config.mjs";
+import { OPENAI_MODEL, OPENAI_MODEL_FAST } from "../config.mjs";
+import { HostWriterRequired, WriterError, complete, resetWriter, usageTotals, resetUsage } from "./backend.mjs";
 import {
   EXPAND_WORDS,
   EXTRACT_SCHEMA,
@@ -28,128 +32,21 @@ import {
   whyUsInstructions,
 } from "./prompts.mjs";
 
-const TIMEOUT_MS = 60_000;
-const MAX_RETRIES = 3; // SDK retries 408/409/429/5xx + connection errors, honouring Retry-After
 const ATTEMPTS = 2; // one draft + one repair round
-const REASONING_MODEL = /^(gpt-5|o\d)/;
 const VARIANTS = ["short", "medium", "long"];
 
-export class WriterError extends Error {
-  constructor(message, extra = {}) {
-    super(message);
-    this.name = "WriterError";
-    Object.assign(this, extra);
-  }
-}
+// The backend owns the transport, the usage counters and the three-way detection; re-exported
+// here so every caller keeps importing the writer from one place.
+export { HostWriterRequired, WriterError, usageTotals, resetUsage };
 
-let _client = null;
-function client() {
-  if (!_client) {
-    const { OPENAI_API_KEY } = loadEnv({ require: ["OPENAI_API_KEY"] });
-    _client = new OpenAI({ apiKey: OPENAI_API_KEY, timeout: TIMEOUT_MS, maxRetries: MAX_RETRIES });
-  }
-  return _client;
-}
-
-/** Test seam: drop the memoised client (e.g. after changing JEV_APPLY_HOME). */
-export function resetClient() {
-  _client = null;
-}
-
-// ------------------------------------------------------------------- usage
-
-/**
- * What this process has spent on the Responses API, split by model — `gpt-5.4` and
- * `gpt-5.4-mini` differ by 3.3× on input, so one lump sum could not be priced. Counted per
- * *billed* call: a response that arrives `incomplete` or fails a post-check was still paid for,
- * so it is recorded before those checks run. A call that never reached OpenAI is not.
- */
-const spent = new Map();
-
-function record(model, usage) {
-  const row = spent.get(model) ?? { calls: 0, input_tokens: 0, output_tokens: 0 };
-  row.calls += 1;
-  row.input_tokens += usage?.input_tokens ?? 0;
-  row.output_tokens += usage?.output_tokens ?? 0;
-  spent.set(model, row);
-}
-
-/** @returns {{calls:number, input_tokens:number, output_tokens:number, by_model:Record<string,object>}} */
-export function usageTotals() {
-  const total = { calls: 0, input_tokens: 0, output_tokens: 0, by_model: {} };
-  for (const [model, row] of spent) {
-    total.calls += row.calls;
-    total.input_tokens += row.input_tokens;
-    total.output_tokens += row.output_tokens;
-    total.by_model[model] = { ...row };
-  }
-  return total;
-}
-
-/** Test seam: zero the counters (a benchmark that runs several postings in one process). */
-export function resetUsage() {
-  spent.clear();
-}
+/** Test seam: drop the memoised client and backend detection (e.g. after changing the env). */
+export const resetClient = resetWriter;
 
 // ------------------------------------------------------------------ the call
 
-async function askJson({
-  instructions,
-  input,
-  schema,
-  name,
-  model = OPENAI_MODEL,
-  effort = "low",
-  maxOutputTokens = 4000,
-  signal,
-}) {
-  const body = {
-    model,
-    instructions,
-    input,
-    max_output_tokens: maxOutputTokens,
-    text: { format: { type: "json_schema", name, schema, strict: true } },
-  };
-  if (REASONING_MODEL.test(model)) body.reasoning = { effort };
-
-  let res;
-  try {
-    res = await client().responses.create(body, { signal, timeout: TIMEOUT_MS });
-  } catch (err) {
-    throw new WriterError(`OpenAI ${model}: ${err?.status ?? ""} ${err?.message ?? err}`.trim(), {
-      status: err?.status,
-      cause: err,
-    });
-  }
-  // Billed the moment the response exists — before `error`/`incomplete`/post-check rejections,
-  // all of which still cost the tokens the model produced. Keyed by the model we asked for:
-  // that is what PRICING is keyed by, and `res.model` may be a dated snapshot of it.
-  record(model, res.usage);
-  if (res.error) throw new WriterError(`OpenAI ${model}: ${res.error.message ?? res.error}`);
-  if (res.status === "incomplete") {
-    throw new WriterError(
-      `OpenAI ${model} stopped early (${res.incomplete_details?.reason ?? "unknown"}); raise max_output_tokens`,
-    );
-  }
-  const text = outputText(res);
-  if (!text) throw new WriterError(`OpenAI ${model} returned no text`);
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new WriterError(`OpenAI ${model} returned text that is not JSON: ${text.slice(0, 200)}`);
-  }
-}
-
-function outputText(res) {
-  const parts = [];
-  for (const item of res.output ?? []) {
-    for (const part of item.content ?? []) {
-      if (part.type === "output_text") parts.push(part.text);
-      else if (part.type === "refusal") throw new WriterError(`OpenAI refused: ${part.refusal}`);
-    }
-  }
-  const joined = parts.join("").trim();
-  return joined || String(res.output_text ?? "").trim();
+/** One structured call, whichever backend is configured. Always returns a parsed JSON object. */
+function askJson({ instructions, input, schema, name, model = OPENAI_MODEL, effort = "low", maxOutputTokens = 4000, signal }) {
+  return complete({ system: instructions, input, schema, name, model, effort, maxTokens: maxOutputTokens, signal });
 }
 
 /** One draft, then one repair round carrying the exact complaints. Never returns a failing draft. */

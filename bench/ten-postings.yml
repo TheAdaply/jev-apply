@@ -1,0 +1,177 @@
+# jev-apply — ten fresh postings for the real-profile screenshot eval
+#
+# Purpose: measure how well the runner fills an application *by itself*, with the user's real
+# profile, on postings it has never seen. Consumed by `scripts/eval-shots.mjs --postings`
+# (`src/bench/postings.mjs` reads `postings[]`; `controls` here is the inventory the live schema
+# reported, not a scoring expectation).
+#
+# How the list was built (2026-09-23):
+#   1. Candidates taken from the user's own pipeline (`pipeline.mjs list --top 60`) and the corpus,
+#      restricted to hosted boards — `job-boards.greenhouse.io/<token>/jobs/<id>` and
+#      `jobs.ashbyhq.com/<token>/<uuid>/application` — i.e. the two ATSes `detectAts` supports.
+#   2. Every row re-fetched live through the repo's own schema slice (`loadFormPlan`) on this date:
+#      all ten returned a FormPlan, so all ten are open. The four Greenhouse rows were additionally
+#      fetched as served HTML: 200, zero redirects, `id="application-form"` present — hosted, not
+#      embedded.
+#   3. Excluded: every posting any earlier round already filled (Together AI 5179372007 and
+#      4385540007, Scale AI 4534631005, Fireworks fc3845e6, xAI 4533894007, Baseten db6477fc and
+#      7c9d2bb0) and every URL in `bench/postings.yml`; AI-usage attestation forms (Anthropic,
+#      Isomorphic Labs); postings located in India; embedded boards that redirect off the ATS.
+#   4. No row carries an AI-usage attestation. The one AI-flavoured row in the set is Mistral's
+#      "most complex project with LLM?" free-text prompt, which is an ordinary essay, and Scale AI's
+#      restrictive-agreement react-select, which is the `p.legal` question, not an attestation.
+#   5. ML / research / inference families only, ten distinct companies, four on Greenhouse and six
+#      on Ashby (≥3 companies per ATS).
+#
+# Run rules: real profile (`~/.config/jev-apply`, CDP 9223), `--no-submit` on every child, tab
+# closed after its screenshots. These are live employer forms and the user's real identity — the
+# run fills, photographs and walks away.
+#
+# NOT personal data: every field below is public job-board metadata.
+
+generated: 2026-09-23
+verified: 2026-09-23          # all 10 fetched through loadFormPlan and confirmed open on this date
+ats_supported: [greenhouse, ashby]
+
+# Ordered Greenhouse first, then Ashby; within each ATS, ascending on the number of questions the
+# live schema reported.
+postings:
+  - url: https://job-boards.greenhouse.io/togetherai/jobs/5140763007
+    company: together-ai
+    family: ml_engineer
+    ats: greenhouse
+    title: Staff Machine Learning Engineer, Voice AI
+    questions: 10
+    required: 5
+    controls: [text, tel, file, react_select]
+    notes: >-
+      Smallest Greenhouse form in the set: 10 rows, 5 required, the standard hosted shape
+      (name/email/phone/résumé + country react-select + candidate-location) and the demographic
+      block. A different Together AI posting from the two earlier rounds filled.
+
+  - url: https://job-boards.greenhouse.io/tenstorrent/jobs/4832276007
+    company: tenstorrent
+    family: ml_engineer
+    ats: greenhouse
+    title: Machine Learning Engineer, AI Models
+    questions: 14
+    required: 8
+    controls: [text, tel, file, react_select]
+    notes: >-
+      Cyprus-based role on a board the adapters have seen before (a different Tenstorrent posting is
+      row 4 of bench/postings.yml), so a failure here is about this form's rows, not about the board.
+      Carries the export-control acknowledgement react-select that should gate to `ask`.
+
+  - url: https://job-boards.greenhouse.io/graphcore/jobs/8632581002
+    company: graphcore
+    family: research_engineer
+    ats: greenhouse
+    title: AI Research Engineer
+    questions: 16
+    required: 11
+    controls: [text, tel, file, react_select]
+    notes: >-
+      UK employer, 11 of 16 rows required — the strictest Greenhouse row here, and the only board in
+      the set the runner has never touched. Right-to-work and notice-period react-selects are
+      personal facts: filled if on file, `ask` if not, never guessed.
+
+  - url: https://job-boards.greenhouse.io/scaleai/jobs/4488520005
+    company: scale-ai
+    family: research_scientist
+    ats: greenhouse
+    title: Senior / Staff Machine Learning Research Scientist, Agents
+    questions: 19
+    required: 10
+    controls: [text, tel, file, react_select]
+    notes: >-
+      Longest Greenhouse form here (19 rows) and the one carrying the restrictive-agreement
+      react-select ("bound by any agreements with a current or former employer…"), which answers
+      from the global `p.legal.restrictive_agreements` preference and from nothing else.
+
+  - url: https://jobs.ashbyhq.com/modal/7db771eb-e379-47fe-974f-765a8780dc10/application
+    company: modal
+    family: research_engineer
+    ats: ashby
+    title: Member of Technical Staff - Research, Post-Training
+    questions: 4
+    required: 4
+    controls: [text, file, radio]
+    notes: >-
+      The floor of the whole eval: four rows, all required, no phone, one ValueSelect radio group.
+      Anything less than 4/4 filled here is a runner problem, not a form problem.
+
+  - url: https://jobs.ashbyhq.com/d-matrix/f36b38d8-1d7c-40ad-9649-0c9bdef8429a/application
+    company: d-matrix
+    family: inference
+    ats: ashby
+    title: Senior Staff LLM Inference Engineer
+    questions: 10
+    required: 5
+    controls: [text, tel, file, textarea, radio]
+    notes: >-
+      Half the rows optional, and the free-text rows are where `p.auto_draft` earns its keep: a
+      textarea the writer declines must come back as an `ask`, never as a guess.
+
+  - url: https://jobs.ashbyhq.com/decagon/c1ac7d78-028b-451e-a10a-48c3c11308ea/application
+    company: decagon
+    family: research_engineer
+    ats: ashby
+    title: Senior Research Engineer
+    questions: 10
+    required: 10
+    controls: [text, tel, file, radio]
+    notes: >-
+      Every row required, so the verify step has no slack: one unanswered radio is the difference
+      between `ready_to_submit` and `needs_user`.
+
+  - url: https://jobs.ashbyhq.com/cerebras/d654a704-2c58-4ba6-9109-2c92aecb2503/application
+    company: cerebras
+    family: research_scientist
+    ats: ashby
+    title: Applied Machine Learning Research Scientist
+    questions: 11
+    required: 6
+    controls: [text, file, react_select, radio]
+    notes: >-
+      Ashby form with a react-select (the Location autocomplete) and no phone row — the negative
+      control for the tel path on this ATS.
+
+  - url: https://jobs.ashbyhq.com/mistral.ai/2ed434c7-2e1d-4acd-acb2-01edaa4a1208/application
+    company: mistral
+    family: applied_scientist
+    ats: ashby
+    title: Applied Scientist, EMEA
+    questions: 19
+    required: 12
+    controls: [text, tel, file, react_select, radio, textarea]
+    notes: >-
+      Paris-based, 12 of 19 required, and the widest writer surface in the set: the textarea
+      "What's your most complex project with LLM?" is an essay prompt, not an AI-usage attestation —
+      it is answered from the user's own saved material or it goes back as an `ask`.
+
+  - url: https://jobs.ashbyhq.com/snowflake/deaebf03-4681-417b-a870-648d0d6a2a94/application
+    company: snowflake
+    family: research_scientist
+    ats: ashby
+    title: Staff Research Scientist, AI Agents & LLMs
+    questions: 20
+    required: 15
+    controls: [text, tel, file, react_select, radio, checkbox]
+    notes: >-
+      Hardest row: 20 questions, 15 required, and the only Ashby form here with checkbox groups
+      alongside radios and a react-select — the full Ashby control spread on one page, plus the
+      demographic block.
+
+# What the live schemas reported across the ten forms.
+control_summary:
+  text: 10                # every form
+  file: 10                # résumé upload on every form
+  radio: 6                # Ashby ValueSelect
+  react_select: 7         # GH country/demographics + Ashby Location autocomplete
+  tel: 8
+  textarea: 2             # the two writer-path forms (d-matrix, mistral)
+  checkbox: 1             # snowflake only
+
+counts:
+  greenhouse: 4           # together-ai, tenstorrent, graphcore, scale-ai
+  ashby: 6                # modal, d-matrix, decagon, cerebras, mistral, snowflake

@@ -18,6 +18,7 @@ import { listFacts, resolvePreference } from "../src/memory/resolve.mjs";
 import { noticeRule, workAuthCountries } from "../src/memory/derive.mjs";
 import { eeoCanonical, nameSplit } from "../src/plan/resolve.mjs";
 import { EEO_VALUES, stamp, validateRow } from "../src/memory/schema.mjs";
+import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
 
 class Blocked extends Error {}
 
@@ -142,6 +143,24 @@ async function importSeed(dir) {
 
 // ------------------------------------------------------------- résumé import
 
+/**
+ * The extractor this run reads a résumé with. With a writer model configured it is the LLM one
+ * (`src/writer/openai.mjs`); with none — a host agent running us, no OpenAI key, no local server
+ * — onboarding still has to work, so a deterministic reader takes the name off the top line and
+ * the contacts, headings and bullets out of the rest (`src/writer/extract-basic.mjs`). It
+ * proposes the same row shapes, the user's own words either way, and the host refines what it got
+ * wrong with `remember.mjs`.
+ */
+async function resumeReader() {
+  const backend = detectWriter();
+  if (backend.kind === "host") {
+    const { extractBasic } = await import("../src/writer/extract-basic.mjs");
+    return { how: describeWriter(backend), read: ({ text, pages, doc }) => extractBasic(text, { doc, pages }) };
+  }
+  const { extractResume } = await importWriter();
+  return { how: describeWriter(backend), read: (args) => extractResume(args) };
+}
+
 /** `src/writer/openai.mjs` is another slice's file; wait for it rather than duplicating it. */
 async function importWriter({ timeoutMs = 5 * 60 * 1000 } = {}) {
   const spec = "../src/writer/openai.mjs";
@@ -196,7 +215,8 @@ function stamped(rows, source) {
 }
 
 async function importResumes(files, links) {
-  const { extractResume } = await importWriter();
+  const reader = await resumeReader();
+  log(`reading résumés with: ${reader.how}`);
   const report = { sections: {}, rejected: [], sources: [] };
   const proposals = { facts: [], stories: [], documents: [] };
 
@@ -205,7 +225,7 @@ async function importResumes(files, links) {
     const doc = path.basename(file);
     const { text, pages } = await pdfText(file);
     if (!text.trim()) throw new Blocked(`${doc} has no extractable text`);
-    const out = await extractResume({ text, pages, doc });
+    const out = await reader.read({ text, pages, doc });
     proposals.facts.push(...stamped(out?.facts));
     proposals.stories.push(...stamped(out?.stories));
     // The file a form will upload, and the digest that makes the next run a diff (PLAN §2.4).
@@ -224,7 +244,7 @@ async function importResumes(files, links) {
 
   for (const url of links) {
     const text = await linkText(url);
-    const out = await extractResume({ text, doc: url });
+    const out = await reader.read({ text, doc: url });
     const tag = `link:${url}`;
     proposals.facts.push(...stamped(out?.facts, tag));
     proposals.stories.push(...stamped(out?.stories, tag));
@@ -246,40 +266,43 @@ async function importResumes(files, links) {
 // --------------------------------------------------------------------- gaps
 
 /**
- * What memory still cannot answer. The eight day-1 questionnaire items (PLAN §2.4), minus the ones
- * already answered, plus anything lazily asked that is knowably absent. Never a guessed value.
+ * What memory still cannot answer: the eight day-1 questions (PLAN §2.4), minus the ones already
+ * answered, in the words a person would use. Two of the eight only exist when they have to — the
+ * contact question when more than one email or phone is on file, the résumé question when more
+ * than one document is. Never a guessed value, and nothing else is asked on day 1: everything a
+ * form needs beyond this is asked the first time a form asks it.
  *
- * A gap carries `remember_as` wherever the answer has exactly one home, so the host stores it with
- * `remember.mjs --scope` instead of deciding where it goes. `g.work_auth` has none: its answer is
- * one `f.work_auth.<CC>` row per country the user names.
+ * A gap carries `remember_as` wherever the answer has exactly one home, so the host hands answers
+ * back to `learn.mjs --answers` keyed by that id. `g.work_auth` has none: its answer is one
+ * `f.work_auth.<CC>` row per country the user names.
  */
 function gapsFor(mem) {
   const gaps = [];
   const add = (id, ask, remember_as = null) => gaps.push({ id, ask, ...(remember_as ? { remember_as } : {}) });
-  const preference = (id) => ({ kind: "preference", id, scope: "global" });
+  const preference = (id) => ({ kind: "preference", id });
 
   const auth = workAuthCountries(mem);
   if (!auth.countries.length && !auth.hasDefault) {
-    add("g.work_auth", "Which countries are you authorized to work in now, and where would you need sponsorship later?");
+    add("g.work_auth", "Which countries can you work in right now without anyone sponsoring you, and where would you need sponsorship?");
   }
   if (!noticeRule(mem)) {
-    add("g.notice_rule", "What notice period should I state — available immediately, or N weeks?", preference("p.notice_rule"));
+    add("g.notice_rule", "How soon could you start — right away, or after a notice period? Say how many weeks.", preference("p.notice_rule"));
   }
   if (!resolvePreference(mem, "p.salary")) {
-    add("g.salary", "What salary range and currency per role family, and which end should I state?", preference("p.salary"));
+    add("g.salary", "What pay are you looking for, and in what currency? A range is fine — tell me which end to put on forms.", preference("p.salary"));
   }
 
   // One id per fact: the seed and `extractResume` both mint the `f.identity.*` namespace.
   const emails = listFacts(mem, "f.identity.email").length;
   const phones = listFacts(mem, "f.identity.phone").length;
   if ((emails > 1 || phones > 1) && !resolvePreference(mem, "p.contact")) {
-    add("g.contact", "Which email and phone number should applications use?", preference("p.contact"));
+    add("g.contact", "I found more than one email or phone number. Which ones should applications use?", preference("p.contact"));
   }
   if ((mem.documents?.length ?? 0) > 1 && !resolvePreference(mem, "p.resume_by_role_family")) {
-    add("g.resume_by_role_family", "Which résumé should I attach for which role family?", preference("p.resume_by_role_family"));
+    add("g.resume_by_role_family", "You have more than one résumé. Which should I attach by default, and which for which kind of role?", preference("p.resume_by_role_family"));
   }
   if (!resolvePreference(mem, "p.looking_for")) {
-    add("g.looking_for", "What are you looking for — target roles, must-haves, dealbreakers, acceptable locations?", preference("p.looking_for"));
+    add("g.looking_for", "What are you looking for? Roles you want, anything you must have, anything you will not take, and where you would work.", preference("p.looking_for"));
   }
 
   // EEO (PLAN §2.4 item 7, D10). One block, because a form's demographic section is one block and
@@ -293,8 +316,8 @@ function gapsFor(mem) {
       "g.eeo",
       [
         eeoNamed.length
-          ? `US forms ask: ${eeoNamed.join(", ")} — answer each or say decline.` +
-            " I fill these in from your answer on every form instead of leaving them blank."
+          ? `US forms ask about ${eeoNamed.join(", ")}. Answer each one, or say decline —` +
+            " either way I fill the box in for you instead of leaving it blank."
           : "",
         eeoMissing.includes("other_demographics")
           ? "Some boards add their own survey questions (sexual orientation, transgender status, age band):" +
@@ -312,46 +335,30 @@ function gapsFor(mem) {
   if (!resolvePreference(mem, "p.auto_submit")) {
     add(
       "g.auto_submit",
-      "Submit applications automatically when nothing is left to ask? yes/no — no means I stop at ready-to-submit and you click Submit.",
+      "When nothing is left to ask, should I click Submit myself, or stop just before it so you can look and click? yes/no.",
       preference("p.auto_submit"),
     );
   }
 
-  // Drafting (PLAN §2.2 step 10). Same shape as auto-submit and the same rule: absent is
-  // unanswered, so the runner keeps handing "Why us?" and essay prompts back until the user says
-  // whether it may write them. A draft is always shown before anything is submitted.
+  // Drafting (PLAN §2.2 step 10). Same rule as auto-submit: absent is unanswered, not "no", so a
+  // "why us?" or essay prompt keeps coming back to the user until they say I may write it. Every
+  // draft is shown under DRAFTED before anything is submitted, and no fact is ever invented.
   if (!resolvePreference(mem, "p.auto_draft")) {
     add(
       "g.auto_draft",
-      "Draft the writing-heavy answers for you — 'why this company', essay prompts — from the posting and your saved material? yes/no." +
-        " Drafts are shown under DRAFTED before submitting; facts are never invented either way.",
+      "Should I write short answers to 'why us' / essay questions for you from your background? yes/no." +
+        " You see every one of them before anything is submitted.",
       preference("p.auto_draft"),
     );
   }
 
-  // The one standing legal stance every US form asks (PLAN §2.4). `p.legal.previously_employed` is
-  // deliberately not asked here: with nothing on file that row is derived from the pipeline, and
-  // asking a blanket "have you ever worked anywhere you are about to apply to?" answers nothing.
-  if (!resolvePreference(mem, "p.legal.restrictive_agreements")) {
-    add(
-      "g.legal.restrictive_agreements",
-      "Are you bound by any agreements that could restrict this work — a non-compete, a non-solicit, or similar? yes/no.",
-      preference("p.legal.restrictive_agreements"),
-    );
-  }
-
-  // Lazy at first sight (PLAN §2.4), but reported here because it is knowably absent. Only a
-  // city closes it: `f.identity.location` ("Remote", a bare country) and a timezone cannot fill
-  // the city field a form asks for.
-  if (!listFacts(mem, "f.identity.city").length) {
-    add("g.identity.city", "Which city do you currently live in? Only needed when a form asks for one.", { kind: "fact", id: "f.identity.city", scope: "global" });
-  }
-
   // Which half of a two-token name is the given name. Splitting "<Initial> <Name>" at the space
   // puts the given name in the Last Name box on every Greenhouse form
-  // (docs/research/12-eval-judge-round1.md §3.12), so when one token is a single letter the runner
-  // states the reading it will use and asks the user to confirm it. Two ids, so the gap carries no
-  // single `remember_as`: the host answers `{"f.identity.first_name": …, "f.identity.last_name": …}`.
+  // (docs/research/12-eval-judge-round1.md §3.12). `nameRow` fills that split without asking, so
+  // unlike everything else cut from day 1 this one has no later ask to fall back on: the runner
+  // states the reading it will use here, once, and only for a name it cannot read confidently.
+  // Two ids, so no single `remember_as`: the host answers
+  // `{"f.identity.first_name": …, "f.identity.last_name": …}`.
   const full = listFacts(mem, "f.identity.full_name")[0];
   const parts = String(full?.value ?? "").trim().split(/\s+/).filter(Boolean);
   const split = parts.length ? nameSplit(parts) : null;
@@ -359,8 +366,8 @@ function gapsFor(mem) {
   if (split?.initialFirst && !statedSplit) {
     add(
       "g.identity.name_split",
-      `Your name is on file as two tokens, one of them a single letter. I will read it as first name "${split.first}",` +
-        ` last name "${split.last}" — confirm, or give me f.identity.first_name and f.identity.last_name the other way round.`,
+      `Your name is on file as two words, one of them a single letter. I will read it as first name "${split.first}",` +
+        ` last name "${split.last}" — tell me if that is the wrong way round.`,
     );
   }
   return gaps;
@@ -437,7 +444,7 @@ function canonicalEeo(id, value) {
 
 /**
  * `--answers FILE` — the other half of `gaps[]`. Every gap carries the id its answer belongs
- * under (`remember_as: {kind, id, scope}`), so the host hands the answers back keyed by that id
+ * under (`remember_as: {kind, id}`), so the host hands the answers back keyed by that id
  * and this writes them: `{"p.eeo": {...}, "p.auto_submit": true, "p.legal.restrictive_agreements":
  * "No", "f.identity.city": "Lisbon"}`. The section comes from the id's own namespace, the row is
  * `source: user`, and `validateRow` decides whether it is storable — a demographic value no

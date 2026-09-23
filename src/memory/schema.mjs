@@ -108,7 +108,10 @@ export const ID_CATALOGUE = Object.freeze({
   "p.accommodation": { shape: "text", what: "What the user wants said when a form asks whether they need an accommodation or adjustment for the hiring process." },
   "p.relocation": { shape: "yes_no", what: "Whether the user is willing to relocate for a role." },
   "p.legal.restrictive_agreements": { shape: "yes_no", what: "Whether the user is bound by a non-compete, non-solicit or similar restrictive agreement." },
-  "p.legal.previously_employed": { shape: "yes_no", what: "Whether the user has been employed by the company before." },
+  // `p.legal.previously_employed` is deliberately absent: "have you ever worked here?" is a
+  // different question at every employer, so a row the user states once holds no answer to it
+  // (`src/plan/resolve.mjs` ignores a global one on purpose and derives it from the pipeline).
+  // Filing a spoken sentence there would store a stance nothing ever reads.
   "p.legal.privacy_policy_ack": { shape: "yes_no", what: "Whether the user agrees to a company's candidate privacy policy or notice." },
   "p.legal.background_check_consent": { shape: "yes_no", what: "Whether the user consents to a background or reference check." },
   "p.legal.interview_recording_consent": { shape: "yes_no", what: "Whether the user consents to interviews being recorded." },

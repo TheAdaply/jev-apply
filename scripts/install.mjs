@@ -5,7 +5,17 @@
 
 import { mkdirSync, chmodSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { CONFIG_DIR, PRIVATE_DIRS, REQUIRED_KEYS, SIGNUP, paths } from "../src/config.mjs";
+import {
+  CONFIG_DIR,
+  OPTIONAL_KEYS,
+  PRIVATE_DIRS,
+  REQUIRED_KEYS,
+  SIGNUP,
+  WRITER_MODEL_VAR,
+  WRITER_URL_VAR,
+  paths,
+} from "../src/config.mjs";
+import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
 
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
@@ -55,9 +65,23 @@ try {
   if (err.code !== "ENOENT") throw err;
   envPresent = false;
 }
-const present = Object.fromEntries(REQUIRED_KEYS.map((k) => [k, names.includes(k) || Boolean(process.env[k])]));
+const keys = [...REQUIRED_KEYS, ...OPTIONAL_KEYS];
+const present = Object.fromEntries(keys.map((k) => [k, names.includes(k) || Boolean(process.env[k])]));
 const missing = REQUIRED_KEYS.filter((k) => !present[k]);
 tree.push(`${label(paths.env)}  ${envPresent ? mode(paths.env) : "----"}  ${envPresent ? "existed (not modified)" : "MISSING"}`);
+
+// Which model writes the few sentences that are not on file. Presence only — no key material.
+const writer = detectWriter({ refresh: true });
+
+/** The three ways to have a writer, in the order a new user should consider them. */
+const WRITER_HELP = [
+  "Writing (optional — jev-apply only writes the few answers nothing on file covers):",
+  `  OPENAI_API_KEY=…                     # ${SIGNUP.OPENAI_API_KEY}`,
+  `  ${WRITER_URL_VAR}=http://127.0.0.1:11434/v1 and ${WRITER_MODEL_VAR}=…`,
+  "                                       # any OpenAI-compatible server you run (Ollama, llama.cpp, LM Studio)",
+  "  neither                              # inside Claude Code or Codex: those few paragraphs come back",
+  "                                       # to your agent to write, and jev-apply checks them like its own",
+];
 
 const out = {
   status: missing.length ? "needs_user" : "ready",
@@ -65,6 +89,7 @@ const out = {
   tree,
   created,
   env: { path: paths.env, present: envPresent, keys: present },
+  writer: { kind: writer.kind, detail: describeWriter(writer) },
 };
 
 if (missing.length) {
@@ -75,8 +100,12 @@ if (missing.length) {
     `jev-apply cannot run until ${paths.env} holds ${missing.join(" and ")}.`,
     "Create it with `chmod 600` and one KEY=VALUE per line:",
     ...missing.map((k) => `  ${`${k}=…`.padEnd(Math.max(...missing.map((m) => m.length)) + 3)}  # get a key at ${SIGNUP[k]}`),
-    "Nothing else is needed; re-run `node scripts/install.mjs` to confirm.",
+    "That one key is all jev-apply needs; re-run `node scripts/install.mjs` to confirm.",
+    "",
+    ...WRITER_HELP,
   ].join("\n");
+} else {
+  out.message = [`Ready. Writing: ${describeWriter(writer)}.`, ...(writer.kind === "openai" ? [] : ["", ...WRITER_HELP])].join("\n");
 }
 
 process.stdout.write(JSON.stringify(out) + "\n");

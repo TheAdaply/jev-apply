@@ -9,7 +9,10 @@ exit 1 only for programmer errors. See `docs/PLAN.md` §2.2–2.7 for behaviour.
 - `submitted` — `{status:"submitted", slug, confirmation:{detected:boolean, text?, url?, screenshot?},
   filled, usage}`; the pipeline entry for this posting is set to `applied`.
 - `ready_to_submit` — nothing left to ask, and `p.auto_submit` is off/unset for this application.
-- `needs_user` — `{questions:[{qid, label, options?, remember_as:{kind,id,scope}, why}]}`.
+- `needs_user` — `{questions:[{qid, label, options?, remember_as:{kind,id,scope}, why}]}`. A question the
+  host agent has to *write* (no writer model configured) additionally carries
+  `{kind:"draft", writes:"why_us"|"expand"|"narrative", prompt, grounding:string[], limits}`; its answer
+  comes back through `--answers` as `{qid:{value:"<text>"}}`.
 - `blocked{reason, detail?, screenshot?}` — includes `submit_failed` (Submit was clicked but no ATS
   confirmation was detected within `SUBMIT.timeout`; the tab is left open, untouched).
 
@@ -19,9 +22,14 @@ export const JEV_MODEL = "jev-1.13.0";
 export const OPENAI_MODEL = "…";            // owner picks the current GPT-5.x id from skill://openai-llm
 export const CONFIG_DIR;                     // ~/.config/jev-apply (override: JEV_APPLY_HOME)
 export const paths = { env, configJson, memory, documents, applications, pipeline, profile, corpus? };
-export function loadEnv();                   // reads CONFIG_DIR/env (KEY=VALUE), sets process.env if unset,
-                                             // returns { TYPESAFE_API_KEY, OPENAI_API_KEY }; throws a
+export function loadEnv();                   // reads CONFIG_DIR/env (KEY=VALUE), sets process.env when the
+                                             // variable is unset (a present-but-empty one means "off this
+                                             // run"), returns { TYPESAFE_API_KEY, OPENAI_API_KEY }; throws a
                                              // fail-fast Error naming the missing var + signup URL
+export const REQUIRED_KEYS = ["TYPESAFE_API_KEY"];   // the only credential jev-apply needs
+export const OPTIONAL_KEYS = ["OPENAI_API_KEY"];     // one of three ways to have a writer
+export const WRITER_URL_VAR, WRITER_MODEL_VAR;       // JEV_APPLY_WRITER_URL / JEV_APPLY_WRITER_MODEL
+export function writerFromEnv(env, { preferLocal }); // → {kind:"openai"|"local"|"host", model, baseURL}
 export function slugify(s);                  // "acme-123" style
 ```
 
@@ -90,7 +98,24 @@ export function noticeRule(mem, ctx);  export function salaryFor(mem, job, basel
 Seed import: `scripts/learn.mjs --seed private/profile/memory-seed` copies the seed into CONFIG_DIR/memory
 (facts, preferences, documents, stories ← blobs.yaml; `use: never` entries are kept but flagged).
 
-## src/writer/openai.mjs (OpenAI Responses API)
+## src/writer/backend.mjs (which model writes, and whether there is one)
+```js
+export function detectWriter({ refresh });   // → {kind:"openai"|"local"|"host", model, baseURL}; memoised.
+// OPENAI_API_KEY → openai · JEV_APPLY_WRITER_URL (+ _MODEL) → local · neither → host.
+// A writer URL set in the process environment (not the env file) wins over a stored key.
+export function describeWriter(cfg);         // one printable line; never key material
+export async function complete({ system, input, schema, name, model, effort, maxTokens, signal });
+// → the parsed JSON object. openai: Responses API, strict json_schema. local: chat completions at
+//   baseURL with the schema stated in the prompt (json_object when the server takes it) and one
+//   re-ask on a reply that is not JSON. host: throws HostWriterRequired.
+export class WriterError extends Error {}
+export class HostWriterRequired extends WriterError {}   // `what` = which answer needed writing
+export function usageTotals();               // {calls, input_tokens, output_tokens, by_model}
+export function resetUsage(); export function resetWriter();
+// Local calls are counted under the by_model key "local", which PRICING.openai rates at $0.
+```
+
+## src/writer/openai.mjs (the prompts, the post-checks — any backend)
 ```js
 export async function extractResume({ text });                 // → { facts:[…], stories:[…] } with page provenance
 export async function narrative({ prompt, facts, stories, family, limits, avoid }); // → { short, medium, long }
@@ -101,6 +126,17 @@ export async function whyUs({ sentence, stories, job, limits, facts, avoid }); /
 //   `prompts.avoidBlock()`; empty on every row the planner could ground in unused material.
 export function groundingCheck(text, groundingTexts);          // numbers/org names must appear in grounding
 export function substitutionCheck(text, otherCompanies);       // no other company's name
+export { WriterError, HostWriterRequired, usageTotals, resetUsage };  // re-exported from backend.mjs
+```
+
+## src/writer/extract-basic.mjs (résumé onboarding with no model at all)
+```js
+export function extractBasic(text, { doc, pages });  // → { facts:[{id,value,source}],
+//   stories:[{id,title,text,tags,source}] } — `extractResume`'s row shapes, ids and provenance.
+// Deterministic: name from the top line, email/phone/link/location regexes, and one story per
+// bullet line under a work/projects heading (title = the question that bullet answers). Nothing
+// is inferred: a value it is not sure of is not emitted, and the user is asked for it later.
+// `scripts/learn.mjs` uses it instead of `extractResume` when `detectWriter().kind === "host"`.
 ```
 
 ## src/plan/draft.mjs (PLAN §2.2 step 10 — the writer, as the runner calls it)
@@ -119,6 +155,15 @@ export function chooseStories({ named, pool, job, kind, used, limit });
 //   skipped unless skipping it would leave the row with nothing. A written row records what it was
 //   actually handed as `grounding_used` (`grounding_ids` stays the planner's offer).
 export function otherCompanies(pipeline, company); // the names substitutionCheck must not find
+export function hostDraftAsks(questions, decisions); // the `needs_user` items, with `kind:"draft"` +
+//   prompt/grounding/limits on every row the host agent has to write (backend kind `host`)
+export function hostDraft(d, { kind, prompt, grounding, limits }); // one row → that question
+export function groundingTexts(grounding);   // the writer's grounding objects as plain lines
+export function checkHostDraft(text, host, forbidden); // → the complaint, or null
+export function acceptHostDrafts({ decisions, answers, pipeline, company, dry, onLog });
+//   → {answers, accepted, refused} — `answers` is what is left for `applyAnswers`. A host-written
+//   draft passes the same limit/groundingCheck/substitutionCheck a model's draft does before it
+//   fills the row (action stays `draft`, source `host`); a failing one stays `ask` with the reason.
 ```
 
 ## src/browser/*.mjs (Playwright library over CDP; PLAN D12)

@@ -31,9 +31,9 @@ import { parse as parseYaml } from "yaml";
 import { paths } from "../config.mjs";
 import { classifyTitle } from "../canon/families.mjs";
 import { answersFor, getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { fullTimeYears, locationFact, noticeRule, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
-import { appliedBeforeFor, factText, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
-import { optionStating, vocabFor } from "../canon/normalize.mjs";
+import { fullTimeYears, latestEducation, latestEmployment, locationFact, noticeRule, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
+import { acceptsMostRecent, appliedBeforeFor, factText, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
+import { optionStating, topicsIn, unmetTopics, vocabFor } from "../canon/normalize.mjs";
 // The field's stated limit decides the length variant, and the same rule has to hold in the
 // deterministic pass, here, and in the writer — one definition, in the leaf module both import.
 import { pickVariant } from "../schema/classes.mjs";
@@ -134,18 +134,35 @@ function poolFor(q) {
   return long ? { kinds: ["story", "answer"], mode: "material" } : { kinds: ["answer"], mode: "stated" };
 }
 
-/** Saved items Jev may pick from: `use: never` hidden, and never a story naming an excluded org. */
+/**
+ * Saved items Jev may pick from: `use: never` hidden, and never a story naming an excluded org.
+ *
+ * A prompt that narrows itself to a topic ("your most complex project with LLM") offers only the
+ * items that carry that topic. Titles and tags are the user's own index of their material, so
+ * they are consulted first and the item's full text second; an empty pool leaves the row an ask,
+ * which is the right answer when nothing on file is about what was asked
+ * (docs/research/16-eval-judge-ten.md E3).
+ */
 export function storyPool(mem, q) {
   const { kinds, mode } = poolFor(q);
   const never = (resolvePreference(mem, "p.exclusions")?.value?.never_mention ?? []).map((n) => String(n).toLowerCase());
-  const rows = usableStories(mem)
+  const usable = usableStories(mem)
     .filter((row) => kinds.includes(String(row?.kind ?? "story")))
     .filter((row) => {
       const hay = `${row?.title ?? ""} ${row?.id ?? ""}`.toLowerCase();
       return !never.some((n) => n && hay.includes(n));
-    })
-    .slice(0, MAX_CANDIDATES);
+    });
+  const rows = onTopic(usable, q?.label).slice(0, MAX_CANDIDATES);
   return { rows, mode };
+}
+
+/** The items that speak to every topic the label names — by title/tags first, by text second. */
+function onTopic(rows, label) {
+  if (!topicsIn(label).length) return rows;
+  const index = (row) => `${row?.title ?? ""} ${(row?.tags ?? []).join(" ")} ${row?.id ?? ""}`;
+  const titled = rows.filter((row) => !unmetTopics(label, index(row)).length);
+  if (titled.length) return titled;
+  return rows.filter((row) => !unmetTopics(label, `${index(row)} ${row?.text ?? ""}`).length);
 }
 
 // ─── option matching ──────────────────────────────────────────────────────────────────────────
@@ -265,7 +282,12 @@ function applyCanonical(rows, answers, { canon, mem, context, baselines, pipelin
     }
     d.canon = answer.choice;
     const q = byQid.get(d.qid);
-    const resolved = dateSafe(canonAnswer(answer.choice, canon, { mem, context, baselines, pipeline, action, limits: q?.limits }), q, { mem, context });
+    const resolved = dateSafe(
+      canonAnswer(answer.choice, canon, { mem, context, baselines, pipeline, action, limits: q?.limits, label: q?.label }),
+      q,
+      { mem, context },
+    );
+    if (topicGap(d, resolved, { canon, qid: answer.choice, label: q?.label })) continue;
     Object.assign(d, resolved);
     // A canonical id with nothing saved behind it is not an answer. When that id belongs to a
     // layer whose questions are about the *work* — narrative, family screening, this company's own
@@ -275,6 +297,43 @@ function applyCanonical(rows, answers, { canon, mem, context, baselines, pipelin
     // request 2 has no second look left, which is the one-extra-question-per-row budget.
     if (resolved.action === "ask" && REPHRASABLE.test(String(layerOf(canon, answer.choice)))) d._rephrasing = answer.choice;
   }
+}
+
+/**
+ * The E3 guard: a *qualified* prompt may not be answered out of a topic-free narrative.
+ *
+ * "What's your most complex project with LLM?" is not "describe your most exceptional work": the
+ * qualifier is the question. When the matched canonical question's own text and whatever is saved
+ * behind it both never mention the topic the label names, the match is dropped and the row is
+ * left open with no canonical id — request 2's saved-item selector then offers only the items
+ * that *do* carry the topic (`storyPool`), and with none of those the user is asked
+ * (docs/research/16-eval-judge-ten.md E3).
+ *
+ * This fires whether or not the id had an answer behind it. An id with nothing saved would
+ * otherwise go to the rephrasing judgment, whose criteria are other *topic-free* canonical
+ * prompts — the same dead end one question later, and it spends the row's one remaining question
+ * to get there.
+ *
+ * Only narrative-layer ids are guarded. A core/auth/comp id answers a fact, and a fact's wording
+ * has no reason to repeat the label's topic ("years of GPU experience" → "4").
+ *
+ * @returns true when the id was dropped, so the caller leaves the row open.
+ */
+function topicGap(d, resolved, { canon, qid, label }) {
+  if (!/^narrative/i.test(String(layerOf(canon, qid)))) return false;
+  const definition = (canon?.questions ?? []).find((row) => (row.qid ?? row.id) === qid);
+  // The canonical question's *own* text, never its `surface_forms`: those are the real labels the
+  // corpus observed under this id, and this very Mistral field is one of them — reading them back
+  // would let the label satisfy its own qualifier.
+  const offered = `${definition?.text ?? qid} ${resolved._answerText ?? resolved.value ?? ""}`;
+  const unmet = unmetTopics(label, offered);
+  if (!unmet.length) return false;
+  delete d.canon;
+  d.action = "ask";
+  d.source = "none";
+  d.value = undefined;
+  d.why = `asks about ${unmet.join("/")}; ${qid} does not answer that`;
+  return true;
 }
 
 /** Layers whose questions are about the work, and can therefore be asked twice (see `canonStage`). */
@@ -331,10 +390,35 @@ async function secondPass(out, { formPlan, byQid, mem, context, canon, baselines
   if (!open.length) return;
 
   const held = canon ? open.filter((d) => !d.canon && byQid.get(d.qid)?.class === "company_specific") : [];
-  const rephrasing = canon ? open.filter((d) => d._rephrasing) : [];
+  // A row whose label narrows itself to a topic is *not* offered the rephrasing judgment: its
+  // criteria are the other canonical prompts, which are topic-free by construction ("describe
+  // your most exceptional work"), so the one question this row has left would be spent arriving
+  // at an answer about the wrong subject. Mistral's "most complex project with LLM" mapped to a
+  // screening id named after that very label with nothing saved behind it, then rephrased onto
+  // `q.narrative.exceptional_work` and pasted a GPU-kernel story
+  // (docs/research/16-eval-judge-ten.md E3). The saved-item selector — whose pool `storyPool()`
+  // narrows to the items carrying that topic — is the judgment this row wants.
+  const rephrasing = canon ? open.filter((d) => d._rephrasing && !topicsIn(byQid.get(d.qid)?.label).length) : [];
   const asked = new Set([...held, ...rephrasing].map((d) => d.qid));
+  // A `circumstance` row asks for a *fact* about the user. Nothing in the saved-item pool can
+  // answer one: a story is material to write prose from, and writing prose about a fact nobody
+  // stated is how Mistral's "What spoken languages are you fluent in?" came to be answered from
+  // a GPU-inference story (private/eval-shots/ten/findings.md). By the time a circumstance row
+  // reaches here the deterministic pass and the canonical mapping have both already failed to
+  // find the fact, so the row is the user's to answer.
+  const factRows = open.filter((d) => !asked.has(d.qid) && !d.canon && byQid.get(d.qid)?.class === "circumstance");
+  for (const d of factRows) {
+    if (d.why === "circumstance with no matching rule" || d.why === "no rule matched") {
+      d.why = "a fact about you that nothing on file states";
+    }
+  }
+  const skip = new Set(factRows.map((d) => d.qid));
   const items = open.filter(
-    (d) => !asked.has(d.qid) && !d.canon && FREE_TEXT_TYPES.has(byQid.get(d.qid)?.type ?? "text"),
+    (d) =>
+      !asked.has(d.qid) &&
+      !skip.has(d.qid) &&
+      (!d.canon || d._rephrasing) &&
+      FREE_TEXT_TYPES.has(byQid.get(d.qid)?.type ?? "text"),
   );
   if (!held.length && !rephrasing.length && !items.length) return;
 
@@ -411,6 +495,7 @@ function applyRephrasing(rows, answers, { canon, mem, context, baselines, pipeli
       d.why = answer.choice === NONE ? "no saved question asks for the same information" : `rephrasing match too uncertain (${d.confidence})`;
       continue;
     }
+    const label = byQid.get(d.qid)?.label;
     const resolved = canonAnswer(answer.choice, canon, {
       mem,
       context,
@@ -418,11 +503,15 @@ function applyRephrasing(rows, answers, { canon, mem, context, baselines, pipeli
       pipeline,
       action,
       limits: byQid.get(d.qid)?.limits,
+      label,
     });
     if (resolved.action === "ask") {
       d.why = `company question matched ${answer.choice}, which has no saved answer either`;
       continue;
     }
+    // Same guard as request 1: a rephrasing is only a rephrasing when it answers the topic the
+    // label narrows itself to (E3).
+    if (topicGap(d, resolved, { canon, qid: answer.choice, label })) continue;
     Object.assign(d, resolved, { canon: answer.choice, why: `company question matched ${answer.choice}` });
   }
 }
@@ -436,7 +525,7 @@ function applyRephrasing(rows, answers, { canon, mem, context, baselines, pipeli
  * the same way a freshly generated one does. Nothing is invented on this path: every derivation
  * returns null rather than guess, and the caller then asks.
  */
-function canonAnswer(qid, canon, { mem, context, baselines, pipeline, action, limits }) {
+function canonAnswer(qid, canon, { mem, context, baselines, pipeline, action, limits, label = "" }) {
   const saved = answersFor(mem, qid, { company: context.company, role_family: context.role_family })[0];
   const definition = (canon.questions ?? []).find((row) => (row.qid ?? row.id) === qid);
   const kind = saved?.kind ?? definition?.kind_default ?? "never";
@@ -444,14 +533,14 @@ function canonAnswer(qid, canon, { mem, context, baselines, pipeline, action, li
 
   if (!saved) {
     const ref = definition?.rule_ref ?? CANON_RULES.get(qid) ?? (kind === "rule" ? qid : null);
-    const ruled = ref ? ruleAnswer(ref, { mem, context, baselines, pipeline }) : null;
+    const ruled = ref ? ruleAnswer(ref, { mem, context, baselines, pipeline, label }) : null;
     if (ruled) return ruledRow(ruled, { why, action });
     return { action: "ask", why: `${why} has no saved answer` };
   }
   if (kind === "never") return { action: "ask", why: `${why} is marked never-answer` };
   if (kind === "rule") {
     const ref = saved.rule_ref ?? CANON_RULES.get(qid) ?? qid;
-    const ruled = ruleAnswer(ref, { mem, context, baselines, pipeline });
+    const ruled = ruleAnswer(ref, { mem, context, baselines, pipeline, label });
     if (!ruled) return { action: "ask", why: `${why}: rule ${ref} cannot be evaluated` };
     return ruledRow(ruled, { why, action });
   }
@@ -500,15 +589,26 @@ export const CANON_RULES = new Map([
   ["q.core.address_working", "identity.address"],
   ["q.core.years_experience", "experience.years_total"],
   ["q.core.years_experience_total", "experience.years_total"],
+  // Who the user works for, what they are called there and where they studied are read from the
+  // employment/education facts at fill time for the same reason the two rows above are: a store
+  // written from a CV holds one dated row per role, the newest one changes without anybody
+  // editing memory, and a constant copied out of it goes stale the day a job ends
+  // (docs/research/16-eval-judge-ten.md E1).
+  ["q.core.current_company", "employment.employer"],
+  ["q.core.current_title", "employment.title"],
+  ["q.core.education_school", "education.school"],
+  ["q.core.education_field", "education.field"],
 ]);
 
 /**
  * `rule` answers are evaluated here, from the same derivations the deterministic pass uses —
  * `src/plan/resolve.mjs` exports each one, so a canonical row backed by a rule answers exactly what
  * that pass would have answered for the same posting. A ref this cannot evaluate returns null and
- * the caller asks; nothing here defaults or guesses (AGENTS.md).
+ * the caller asks; nothing here defaults or guesses (AGENTS.md). Exported so `eval/plan.test.mjs`
+ * can check a derivation the recorded fixtures do not happen to ask for (a school, an employer)
+ * without a live request.
  */
-function ruleAnswer(ruleRef, { mem, context, baselines, pipeline = null }) {
+export function ruleAnswer(ruleRef, { mem, context = {}, baselines = null, pipeline = null, label = "" }) {
   const ref = String(ruleRef ?? "");
   if (/work_auth|authoriz/.test(ref)) {
     const auth = context.country ? workAuth(mem, context.country) : null;
@@ -556,6 +656,24 @@ function ruleAnswer(ruleRef, { mem, context, baselines, pipeline = null }) {
     if (!(years > 0)) return null;
     const whole = String(Math.floor(years));
     return { value: whole, why: `${years} yr full-time on file`, text: `${whole} years of full-time professional experience` };
+  }
+  // The newest dated role / degree the facts state. `employment.*` draws the same line the
+  // deterministic pass does: a role whose own dates have closed answers a label that asks for the
+  // most recent one and never a label that asks only for a current one, and a value read out of
+  // a CV sentence comes back `exact: false`, which commits it as a `check`.
+  if (/^employment\./.test(ref)) {
+    const part = /title/.test(ref) ? "title" : "employer";
+    const latest = latestEmployment(mem);
+    const value = latest?.[part] ?? null;
+    if (!value) return null;
+    if (!latest.current && !acceptsMostRecent(label)) return null;
+    const when = latest.current ? `current role since ${latest.since}` : `most recent role, since ${latest.since}`;
+    return { value, exact: latest.current && !latest.prose, why: `${latest.id} (${when})` };
+  }
+  if (/^education\./.test(ref)) {
+    const latest = latestEducation(mem);
+    const value = latest?.[/field/.test(ref) ? "field" : "school"] ?? null;
+    return value ? { value, exact: !latest.prose, why: `${latest.id} (most recent, since ${latest.since})` } : null;
   }
   return null;
 }

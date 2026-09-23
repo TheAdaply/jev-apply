@@ -25,7 +25,7 @@ import YAML from "yaml";
 import { paths, slugify } from "../config.mjs";
 import { documentFor, getFact, resolvePreference } from "../memory/resolve.mjs";
 import { EEO_VALUES } from "../memory/schema.mjs";
-import { appliedBefore, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
+import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { isAccommodationRequest } from "../schema/classes.mjs";
 import { countryFromText, countryInQuestion } from "../schema/normalize.mjs";
 
@@ -74,6 +74,15 @@ const LOCATION_RE = /^(?:your |current |candidate )*(?:location|city|country)\b|
 const ADDRESS_RE = /\b(?:legal|home|mailing|street|postal)?\s*address\b/i;
 const CURRENT_COMPANY_RE = /^current (?:company|employer)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:employer|company)/i;
 const CURRENT_TITLE_RE = /^current (?:job ?title|title|role|position)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:job ?title|title|role|position)/i;
+/**
+ * Does this label accept the role the user has *left*? "Current or most recent employer" does;
+ * a bare "Current company" does not, and answering it with an employer whose own dates ended
+ * three months ago states something untrue (docs/research/16-eval-judge-ten.md E1). Exported
+ * because the canonical path (`src/jev/plan.mjs` `employment.*` rules) answers the same
+ * questions from the same facts and must draw the same line.
+ */
+const MOST_RECENT_RE = /most recent|more recent|recent(?:ly)? work|previous(?:ly)?\b|last (?:employer|company|job|title|role|position)|have you worked|did you work/i;
+export const acceptsMostRecent = (label) => MOST_RECENT_RE.test(String(label ?? ""));
 
 // circumstance topics
 const AUTHORIZED_RE = /legally authoriz|authoriz(?:ed|ation) to work|right to work|work authoriz|authorized to work/i;
@@ -757,7 +766,7 @@ function pronounRow(mem, scope, labels, ask) {
   return { source: stated ? "preference" : "fact", value: hit ?? value, ...(hit ? { option: hit } : {}), action: "fill", topic: "eeo", why, _answerText: value };
 }
 
-function identityRow(q, { mem, context }) {
+function identityRow(q, { mem, context, now = new Date() }) {
   const label = q.label ?? "";
   const optional = !q.required;
   const miss = (what, remember) => ({
@@ -799,13 +808,17 @@ function identityRow(q, { mem, context }) {
     return row ? fromFact(row) : miss(`${link[1][0]} fact`, { kind: "fact", id: link[1][0], scope: "global" });
   }
 
+  // The canonical single-valued ids first — a store that carries them says so outright. Failing
+  // that, the newest `since:` row of the CV's own per-role facts (`latestEmployment`): reading
+  // only `f.employment.current` is why three real boards were handed back a title and an employer
+  // the profile states (docs/research/16-eval-judge-ten.md E1).
   if (CURRENT_COMPANY_RE.test(label)) {
     const row = getFact(mem, "f.employment.current") ?? (mem?.facts ?? []).find((r) => r?.value?.current === true);
-    return row ? fromFact(row) : miss("current employer fact", { kind: "fact", id: "f.employment.current", scope: "global" });
+    return row ? fromFact(row) : employmentRow(label, "employer", { mem, now, optional });
   }
   if (CURRENT_TITLE_RE.test(label)) {
     const row = getFact(mem, "f.employment.current_title");
-    return row ? fromFact(row) : miss("current job title fact", { kind: "fact", id: "f.employment.current_title", scope: "global" });
+    return row ? fromFact(row) : employmentRow(label, "title", { mem, now, optional });
   }
   if (LOCATION_RE.test(label)) {
     // A work mode is not a place. `f.identity.location` may hold "Remote" (or "Hybrid", or
@@ -829,6 +842,35 @@ function identityRow(q, { mem, context }) {
     return row ? fromFact(row) : miss("address fact", { kind: "fact", id: "f.identity.address", scope: "global" });
   }
   return miss("matching identity fact", { kind: "fact", scope: "global" });
+}
+
+/**
+ * The employer or job title the user's own employment facts state, when no single-valued
+ * `f.employment.current*` row carries it. The value is read out of the newest role's own words,
+ * so it is committed as `check`, the same way `fromFact()` treats any qualified value.
+ *
+ * A role the row says ended is the **most recent** one. A label that asks for it in those terms
+ * ("current or most recent employer", "where have you most recently worked") is answered; a label
+ * that asks only for a current one is not — that row goes back to the user rather than state an
+ * employment relationship that no longer exists.
+ */
+function employmentRow(label, part, { mem, now, optional }) {
+  const what = part === "employer" ? "current employer fact" : "current job title fact";
+  const id = part === "employer" ? "f.employment.current" : "f.employment.current_title";
+  const remember = { kind: "fact", id, scope: "global" };
+  const gap = (why) => ({ source: "none", action: optional ? "skip" : "ask", why: optional ? `optional — ${why}` : why, remember_as: remember });
+
+  const latest = latestEmployment(mem, now);
+  const value = latest?.[part] ?? null;
+  if (!value) return { source: "none", action: optional ? "skip" : "ask", why: optional ? `optional — no ${what} on file` : `no ${what} on file`, remember_as: remember };
+  if (latest.current) {
+    return { source: "fact", value, action: latest.prose ? "check" : "fill", why: `${latest.id} (current role since ${latest.since})` };
+  }
+  if (!MOST_RECENT_RE.test(label)) {
+    const ended = latest.until ? `ended ${latest.until}` : "states no end date";
+    return gap(`${latest.id} ${ended} — this field asks for a current ${part}`);
+  }
+  return { source: "fact", value, action: "check", why: `${latest.id} (most recent role, since ${latest.since})` };
 }
 
 function fileRow(doc, why) {

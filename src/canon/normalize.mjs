@@ -136,6 +136,58 @@ export function canonicalText(label, { type } = {}) {
   return interrogative ? `${head}?` : upload ? `${head}.` : `${head}`;
 }
 
+// ─── topic qualifiers ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * The topic a prompt narrows itself to, and the words an answer about that topic uses.
+ *
+ * "What's your most complex project **with LLM**?" mapped onto the topic-free
+ * `q.narrative.exceptional_work` and pasted a GPU-kernel physics story into a required field on
+ * an LLM company's form, while memory held four LLM projects
+ * (docs/research/16-eval-judge-ten.md E3). The qualifier is the whole question: a narrative
+ * answer that never mentions the topic is not an answer to it.
+ *
+ * Deliberately a short, literal vocabulary of *topics*, not a general keyword extractor. A word
+ * that is not here does not narrow anything as far as this module is concerned, so the only cost
+ * of an omission is the behaviour that already exists. Each entry's regex matches both the label
+ * that asks about the topic and the saved text that speaks to it.
+ */
+export const TOPICS = Object.freeze({
+  llm: /\bllms?\b|large language model|\bgpt-?\d|\bgenai\b|generative ai|\bprompt(?:ing|s)?\b|\bfine-?tun|\brag\b|\btransformers?\b|language model/i,
+  agents: /\bagentic\b|\bai agents?\b|\bagent(?:s|ic)? (?:system|framework|workflow)|\btool-?use\b/i,
+  gpu: /\bgpus?\b|\bcuda\b|\brocm\b|\btriton\b|\bkernels?\b|\bnvidia\b|\bhpc\b/i,
+  distributed: /\bdistributed\b|\bcluster(?:s|ing)?\b|\bkubernetes\b|\bmulti-?node\b|\bscal(?:e|ing) out\b/i,
+  security: /\bsecurity\b|\bsecure\b|\bcryptograph|\bvulnerab|\bthreat\b|\bappsec\b|\bpen-?test/i,
+  frontend: /\bfront-?end\b|\breact\b|\btypescript\b|\bjavascript\b|\bui\b|\bcss\b|\bbrowser\b/i,
+  backend: /\bback-?end\b|\bapis?\b|\bmicroservices?\b|\bserver-?side\b|\bdatabases?\b/i,
+  mobile: /\bmobile\b|\bios\b|\bandroid\b|\bswift\b|\bkotlin\b|\breact native\b/i,
+  compilers: /\bcompilers?\b|\bllvm\b|\bmlir\b|\bcode-?gen/i,
+  embedded: /\bembedded\b|\bfirmware\b|\bmicrocontroller\b|\brtos\b|\bbare-?metal\b/i,
+  data: /\bdata (?:pipeline|engineering|warehouse)\b|\betl\b|\bspark\b|\bairflow\b/i,
+  rl: /\breinforcement learning\b|\brlhf\b|\brlvr\b|\bppo\b|\bpolicy gradient\b/i,
+  research: /\bresearch\b|\bpublication\b|\bpaper\b|\bpeer-?review/i,
+  opensource: /\bopen-?source\b|\bupstream\b|\bpull request\b|\bmaintainer\b/i,
+});
+
+/** The topics a piece of text names, in declaration order. */
+export function topicsIn(text) {
+  const hay = String(text ?? "");
+  return Object.entries(TOPICS)
+    .filter(([, re]) => re.test(hay))
+    .map(([name]) => name);
+}
+
+/**
+ * The topics `label` narrows itself to that `text` never mentions — empty when the label carries
+ * no topic at all, or when what is on offer speaks to every topic the label names.
+ */
+export function unmetTopics(label, text) {
+  const wanted = topicsIn(label);
+  if (!wanted.length) return [];
+  const hay = String(text ?? "");
+  return wanted.filter((name) => !TOPICS[name].test(hay));
+}
+
 // ─── alias table for the exact-match pass ─────────────────────────────────────────────────────
 
 /**

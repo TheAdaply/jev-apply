@@ -121,10 +121,30 @@ export const WHY_US_RE =
 export const CIRCUMSTANCE_RE =
   /legally authorized|authoriz(?:ed|ation) to work|work authoriz|right to work|sponsor|visa|h-?1b|immigration|citizen|relocat|willing to (?:work|travel|commute|move)|open to (?:working|work|relocat|travel|commut|mov)|in[- ]?office|in[- ]?person|on[- ]?site|onsite|hybrid|\bremote\b|office locations?|prefer to be based|days? (?:a|per) week|times? (?:a|per) week|time ?zone|commut|start date|available to start|when (?:can|could) you start|notice period|salary|compensation|pay expectation|expected (?:pay|salary)|currently (?:reside|live|located|based)|based in|previously (?:applied|worked|interviewed|employed)|ever (?:applied|interviewed|worked|been employed)|interviewed (?:at|with)|applied (?:to|for)[^?]{0,40}before|worked (?:at|for)[^?]{0,40}before|(?:how|where) did you (?:hear|find|learn)|\breferr|graduat|18 years|security clearance|\bclearance\b|non-?compete|restrictive|bound by any agreement|government employee|post-government|years of experience|how many years/i;
 
+// A prompt whose answer is a **datum about the user** — which languages they speak, which tools
+// they use, how many years of something, their salary, notice, start date, location, visa or
+// citizenship status. It is a short answer they state, not prose anybody can compose, so it is a
+// `circumstance` row wherever it lands and never an `essay`/`optional_text` the writer may fill.
+//
+// The ten-posting round (private/eval-shots/ten/findings.md) is why this exists: Mistral's
+// required textarea "What spoken languages are you fluent in?" was classed `essay` — a textarea
+// with a question mark — handed to the writer, and answered on the live form from a GPU-inference
+// story that says nothing about languages. A fact is asked or it is not answered (AGENTS.md).
+//
+// Deliberately narrow on the generic openers: it matches "what is your", not "what's your", so
+// the same form's genuine essay prompt ("What's your most complex project with LLM?") stays an
+// essay, and `list`/`name` need the possessive/article that a request for an enumeration carries.
+export const FACT_SEEKING_RE =
+  /\b(?:spoken|programming|natural|foreign|human)\s+languages?\b|\blanguages?\b[^?]{0,30}\b(?:fluent|speak|proficien\w*)\b|\bfluent\b|\bproficien\w*\b|\bwhich\b[^?]{0,24}\b(?:tools?|frameworks?|languages?|libraries|technologies)\b|\bhow many\b|\byears of\b|\bwhat is your\b|\blist (?:the|your|all)\b|\bname (?:the|your)\b|\bsalary\b|\bnotice period\b|\bstart date\b|\bcitizenship\b|\bvisa\b/i;
+
+/** The controls whose fallback class is prose (`essay`/`optional_text`) and must yield to a fact. */
+const PROSE_TYPES = new Set(["text", "textarea"]);
+
 /**
  * classify(label, help, type, required) → FormPlan `class`.
  * Order matters: EEO first (never answered), then attestations, then the identity/narrative
- * split, then situation questions; anything unrecognised is `company_specific` → ask.
+ * split, then situation questions, then the fact-seeking prompts wearing a prose control;
+ * anything unrecognised is `company_specific` → ask.
  */
 export function classify(label, help = "", type = "text", required = false) {
   const name = cleanLabel(label);
@@ -135,6 +155,9 @@ export function classify(label, help = "", type = "text", required = false) {
   if (IDENTITY_RE.test(name)) return "identity";
   if (WHY_US_RE.test(name)) return "why_us";
   if (CIRCUMSTANCE_RE.test(body)) return "circumstance";
+  // A free-text box asking for a datum is a short-answer fact, never prose: it resolves from
+  // memory or it is asked, and the writer is never offered it (findings.md, Mistral).
+  if (PROSE_TYPES.has(type) && FACT_SEEKING_RE.test(name)) return "circumstance";
   if (type === "textarea") return required ? "essay" : "optional_text";
   if (!required && (type === "text" || type === "url")) return "optional_text";
   return "company_specific";

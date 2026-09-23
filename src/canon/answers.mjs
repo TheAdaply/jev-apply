@@ -32,7 +32,7 @@ import { OPENAI_MODEL } from "../config.mjs";
 import { loadSection, saveSection } from "../memory/store.mjs";
 import { isUserSourced, rowKey, stamp, validateRow } from "../memory/schema.mjs";
 import { getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { fullTimeYears, roleFamilyFor, workAuthCountries } from "../memory/derive.mjs";
+import { fullTimeYears, latestEducation, latestEmployment, roleFamilyFor, workAuthCountries } from "../memory/derive.mjs";
 import { factText } from "../plan/resolve.mjs";
 import { countryFromText } from "../schema/normalize.mjs";
 import { CANON_RULES } from "../jev/plan.mjs";
@@ -80,10 +80,6 @@ export const CONSTANTS = Object.freeze([
   { qid: "q.core.website", facts: ["f.identity.site_url"] },
   { qid: "q.core.portfolio", facts: ["f.identity.portfolio_url", "f.identity.site_url"] },
   { qid: "q.core.publications", facts: ["f.identity.publications_url", "f.identity.scholar_url"] },
-  { qid: "q.core.current_company", facts: ["f.employment.current"] },
-  { qid: "q.core.current_title", facts: ["f.employment.current_title"] },
-  { qid: "q.core.education_school", facts: ["f.education.school"] },
-  { qid: "q.core.education_field", facts: ["f.education.field"] },
   { qid: "q.core.education_degree", facts: ["f.education."], part: "degree" },
   { qid: "q.auth.nationality", facts: ["f.citizenship"] },
 ]);
@@ -197,6 +193,16 @@ const RULE_BACKING = Object.freeze([
   { qid: "q.core.address_working", helper: "statedPlace", needs: ["f.identity.address", "f.identity.location", "f.identity.city"] },
   { qid: "q.core.years_experience", helper: "fullTimeYears", needs: "full_time_years" },
   { qid: "q.core.years_experience_total", helper: "fullTimeYears", needs: "full_time_years" },
+  // Who the user works for, what they are called there and where they studied: a store written
+  // from a CV holds one dated row per role and per degree, the newest one changes without anybody
+  // editing memory, and a constant copied out of it states a current employer the day after that
+  // job ends. Read at fill time from the newest `since:` row instead, by the same rule the
+  // deterministic pass uses — including its refusal to answer a "current employer" label out of a
+  // role that has ended (docs/research/16-eval-judge-ten.md E1).
+  { qid: "q.core.current_company", helper: "latestEmployment", needs: "employment" },
+  { qid: "q.core.current_title", helper: "latestEmployment", needs: "employment" },
+  { qid: "q.core.education_school", helper: "latestEducation", needs: "education" },
+  { qid: "q.core.education_field", helper: "latestEducation", needs: "education" },
 ]);
 
 /** @type {ReadonlyArray<{qid:string, ref:string, helper:string, needs:string|string[]}>} */
@@ -225,6 +231,10 @@ function ruleBacking(mem, needs, pipeline) {
   // A count of nothing is not an answer: with no full-time employment fact on file the row is
   // omitted and `f.employment.*` is reported as what would fix it.
   if (needs === "full_time_years") return fullTimeYears(mem) > 0 ? "fact:f.employment" : null;
+  // The dated employment/education rows the two derivations above read. A store with none of them
+  // answers neither, and the prefix is reported as what would fix it.
+  if (needs === "employment") return latestEmployment(mem) ? "fact:f.employment" : null;
+  if (needs === "education") return latestEducation(mem) ? "fact:f.education" : null;
   return resolvePreference(mem, needs) ? `fact:${needs}` : null;
 }
 

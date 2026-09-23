@@ -23,7 +23,9 @@ import { fileURLToPath } from "node:url";
 
 import { classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
 import { countryFromText, countryInQuestion } from "../src/schema/normalize.mjs";
-import { optionStating } from "../src/canon/normalize.mjs";
+import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
+import { CANON_RULES, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
 import { finalize } from "../src/plan/decisions.mjs";
 import { eeoCanonical, resolveForm } from "../src/plan/resolve.mjs";
 
@@ -277,6 +279,169 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   check(
     "auto-draft: a why-us prompt is still drafted with nothing saved",
     finalize([{ qid: "w", class: "why_us", action: "ask", why: "no company answer saved", label: "Why DeepL?" }], { mem: drafting, context: { company: "DeepL" } })[0].action === "draft",
+  );
+}
+
+// ─── the ten-posting round (private/eval-shots/ten/findings.md) ────────────────────────────────
+// Mistral's required textarea "What spoken languages are you fluent in?" was classed `essay`,
+// handed to the writer, and answered on the live form out of a GPU-inference story. Spoken
+// languages are a personal fact: with none on file the row is an `ask`. Deterministic — the
+// classifier, `autoDraft` and the resolver, none of which needs Jev or a fixture.
+{
+  const LANGUAGES = "What spoken languages are you fluent in?";
+  // The same form's genuine essay prompt, which must keep drafting: the fix is about facts, not
+  // about textareas. Note the typographic apostrophe the board actually serves.
+  const PROJECT = "What’s your most complex project with LLM?";
+
+  check("classify: a spoken-languages textarea is a fact, not an essay", classify(LANGUAGES, "", "textarea", true) === "circumstance");
+  check("classify: the same form's project prompt is still an essay", classify(PROJECT, "", "textarea", true) === "essay");
+  check("classify: 'how many years of Python' in a text box is a fact too", classify("How many years of Python do you have?", "", "text", true) === "circumstance");
+
+  const mem = {
+    facts: [],
+    preferences: [{ id: "p.auto_draft", value: true, source: "user" }],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  const planned = (row) =>
+    finalize([{ qid: "q", action: "ask", why: "open prompt", ...row }], { mem, context: { company: "Mistral.ai" } })[0];
+
+  check(
+    "auto-draft: the spoken-languages row is never drafted",
+    planned({ class: classify(LANGUAGES, "", "textarea", true), label: LANGUAGES, story: "b.story.gpu_inference" }).action === "ask",
+  );
+  check(
+    "auto-draft: not even wearing the `essay` class it was given in that round",
+    planned({ class: "essay", label: LANGUAGES, story: "b.story.gpu_inference" }).action === "ask",
+  );
+  check(
+    "auto-draft: a why-us row on the same form still drafts",
+    planned({ class: "why_us", label: "Why do you want to join Mistral.ai?" }).action === "draft",
+  );
+
+  // …and end to end through the resolver: no languages fact on file, so the row is handed back
+  // with nothing written into it.
+  const form = {
+    job: { company: "Mistral.ai", title: "Applied Scientist, EMEA", location: "Paris, France" },
+    questions: [
+      { qid: "langs", label: LANGUAGES, class: classify(LANGUAGES, "", "textarea", true), type: "textarea", control: "textarea", required: true },
+    ],
+  };
+  const langs = resolveForm(form, { mem }).decisions.find((d) => d.qid === "langs");
+  check("resolve: with no languages fact on file the row is an ask, and empty", langs.action === "ask" && langs.value === undefined);
+}
+
+// ─── E1: the employment / education facts a real CV writes (docs/research/16-eval-judge-ten.md) ─
+// Four required rows on three real boards were handed back because the resolver read
+// `f.employment.current` / `f.employment.current_title` / `f.education.school` and a store written
+// from a CV holds one dated row per role instead. Deterministic: the derivations, the resolver and
+// the canonical rule, none of which needs Jev or a fixture.
+{
+  const now = new Date("2026-09-23T00:00:00Z");
+  const cv = (id, value, since) => ({ id, value, since, source: "cv.pdf#p1" });
+  const mem = {
+    facts: [
+      cv("f.employment.northwind", "Staff Inference Engineer — Northwind Compute, Mar 2024 – June 2026. Cut serving cost 30%.", "2024-03"),
+      cv("f.employment.lumenbyte", "Backend Engineer — Lumenbyte, Sept 2021 – Feb 2024. Ran the payments API.", "2021-09"),
+      cv("f.education.msc_coimbra", "Master of Science, Computer Science — University of Coimbra, Portugal (Sept 2019 – July 2021)", "2019-09"),
+    ],
+    preferences: [],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  const employment = latestEmployment(mem, now);
+  const education = latestEducation(mem, now);
+
+  check(
+    "employment: the newest `since:` role is the one read, and its own words state the parts",
+    employment.id === "f.employment.northwind" && employment.title === "Staff Inference Engineer" && employment.employer === "Northwind Compute",
+  );
+  check(
+    "employment: a role whose stated range has closed is the most recent one, not the current one",
+    employment.current === false && employment.until === "2026-06",
+  );
+  check(
+    "education: the newest degree states its school and its field",
+    education.school === "University of Coimbra" && education.field === "Computer Science",
+  );
+
+  const ask = (label) => ({ qid: "e", label, class: "identity", type: "text", required: true });
+  const form = (label) => ({ job: { company: "Scale AI", title: "Research Engineer", location: "San Francisco, CA", country: "US" }, questions: [ask(label)] });
+  const row = (label, store = mem) => resolveForm(form(label), { mem: store, now }).decisions[0];
+
+  check(
+    "employment: 'current or most recent job title' is answered from the newest role",
+    row("What is your current or most recent job title?").value === "Staff Inference Engineer",
+  );
+  check(
+    "employment: 'current or most recent employer' likewise, and as a check — it is read off prose",
+    row("Who is your current or most recent employer?").value === "Northwind Compute" && row("Who is your current or most recent employer?").action === "check",
+  );
+  check(
+    "employment: a bare 'Current company' is not answered with an employer the user has left",
+    row("Current company").action === "ask" && row("Current company").value === undefined,
+  );
+
+  const employed = { ...mem, facts: [cv("f.employment.westwind", "Inference Engineer — Westwind Labs, Jan 2025 – Present. Owns the serving stack.", "2025-01"), ...mem.facts] };
+  check(
+    "employment: a role the row says is open does answer 'Current company'",
+    row("Current company", employed).value === "Westwind Labs",
+  );
+
+  // The canonical route answers the same questions from the same facts, and draws the same line:
+  // snowflake's "Where have you most recently worked?" never reaches the deterministic pass.
+  const rule = (ref, label) => ruleAnswer(ref, { mem, label });
+  check(
+    "canon rule: q.core.current_company is evaluated at fill time, not stored as a constant",
+    CANON_RULES.get("q.core.current_company") === "employment.employer" && CANON_RULES.get("q.core.education_school") === "education.school",
+  );
+  check(
+    "canon rule: 'where have you most recently worked' resolves to the newest employer",
+    rule("employment.employer", "Where have you most recently worked?").value === "Northwind Compute",
+  );
+  check(
+    "canon rule: the same fact does not answer a label that asks only for a current employer",
+    rule("employment.employer", "Current employer") === null,
+  );
+  check(
+    "canon rule: the school and the field of study come back from the newest education row",
+    rule("education.school", "What college/university did you attend?").value === "University of Coimbra" &&
+      rule("education.field", "Field of study").value === "Computer Science",
+  );
+}
+
+// ─── E3: a topic qualifier is the question (docs/research/16-eval-judge-ten.md) ────────────────
+// "What's your most complex project with LLM?" matched the topic-free
+// `q.narrative.exceptional_work` and pasted a GPU-kernel physics story into a required field on an
+// LLM company's form, with four LLM projects on file.
+{
+  const PROJECT = "What’s your most complex project with LLM?";
+  const GPU_ANSWER = "The most exceptional thing I built was a GPU kernel for CERN's physics inference stack.";
+  const LLM_ANSWER = "I built a verifier-gated mixture-of-agents system that routes between language models.";
+
+  check("topics: a topic-free answer does not answer a prompt that names a topic", unmetTopics(PROJECT, GPU_ANSWER).join() === "llm");
+  check("topics: an answer that speaks to the topic passes", unmetTopics(PROJECT, LLM_ANSWER).length === 0);
+  check("topics: a prompt that narrows itself to nothing gates nothing", unmetTopics("Describe a project you are proud of", GPU_ANSWER).length === 0);
+
+  const mem = {
+    facts: [],
+    preferences: [],
+    answers: [],
+    documents: [],
+    stories: [
+      { id: "b.story.gpu", kind: "story", title: "GPU-accelerated inference for CERN's TMVA SOFIE", tags: ["gpu", "cuda", "cern"], text: "CUDA and ROCm kernels." },
+      { id: "b.story.moa", kind: "story", title: "Verifier-gated mixture-of-agents", tags: ["llm", "research"], text: "Routing between language models." },
+      { id: "b.story.phishing", kind: "story", title: "Dual-model phishing detector", tags: ["security", "nlp"], text: "A browser extension." },
+    ],
+  };
+  const ids = (label) => storyPool(mem, { label, type: "textarea" }).rows.map((r) => r.id);
+  check("story pool: a prompt naming a topic is offered only the items that carry it", ids(PROJECT).join() === "b.story.moa");
+  check("story pool: an unqualified prompt still sees every saved item", ids("Describe a project you are proud of").length === 3);
+  check(
+    "story pool: with nothing on file about the topic the pool is empty, and the row stays an ask",
+    ids("Tell us about your most complex embedded firmware project").length === 0,
   );
 }
 

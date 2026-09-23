@@ -566,6 +566,8 @@ async function singleRun(args, stores) {
       await draftRows({
         formPlan: plan.formPlan,
         decisions: plan.decisions,
+        slug: plan.slug,
+        jev: plan.jev,
         mem: stores.mem,
         context: plan.context,
         pipeline: stores.pipeline,

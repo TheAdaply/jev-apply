@@ -22,7 +22,7 @@ import { GATES } from "../jev/gates.mjs";
 import { loadSection, saveSection } from "../memory/store.mjs";
 import { mintId, stamp } from "../memory/schema.mjs";
 import { resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { fitsLimits } from "../schema/classes.mjs";
+import { FACT_SEEKING_RE, fitsLimits } from "../schema/classes.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
 import { applyDependencies, workAuthKind, yesNoOf } from "./resolve.mjs";
 
@@ -94,13 +94,14 @@ function enforceLimits(decisions) {
 /** The two classes the writer may draft from scratch (PLAN §2.2 step 10). */
 const DRAFT_CLASSES = new Set(["why_us", "essay"]);
 
-// A prompt that asks for a *fact* — which tool, how many, what is your X, list/name the … — is
-// answered by the user or it is not answered at all. Round 2 drafted "Python, PyTorch and CUDA"
-// into 1Password's "As a PM which AI tool are you using on daily or weekly basis?", on a Senior PM
-// posting: a correct "nothing on file answers this" became a confident wrong answer
-// (docs/research/13-eval-judge-round2.md §3 N3). `why_us` is exempt — it asks for a motivation,
-// never for a fact, and the posting's own text is its grounding.
-const FACT_SEEKING_RE = /\bwhich\b[^?]{0,24}\btools?\b|\bhow many\b|\bwhat is your\b|\blist\b|\bname the\b/i;
+// A prompt that asks for a *fact* — which tool, how many, what languages you speak, what is your
+// X — is answered by the user or it is not answered at all. Round 2 drafted "Python, PyTorch and
+// CUDA" into 1Password's "As a PM which AI tool are you using on daily or weekly basis?", on a
+// Senior PM posting (docs/research/13-eval-judge-round2.md §3 N3), and the ten-posting round then
+// drafted an answer about spoken languages from a GPU-inference story
+// (private/eval-shots/ten/findings.md). `classify()` now routes such a prompt to `circumstance`,
+// which the `DRAFT_CLASSES` test already refuses; this is the belt behind that brace, and it
+// covers `why_us` too — a "why us" that slips a fact into its wording is still a fact.
 
 /**
  * `p.auto_draft` on: a required "Why us?" or essay prompt with nothing saved behind it is drafted
@@ -118,14 +119,12 @@ export function autoDraft(decisions, { mem, context = {} } = {}) {
   if (!pref || yesNoOf(pref.value) !== "Yes") return decisions;
   for (const d of decisions) {
     if (d.action !== "ask" || !DRAFT_CLASSES.has(d.class)) continue;
+    if (FACT_SEEKING_RE.test(d.label ?? "")) continue;
     // `why_us` is unconditional. An essay is drafted only where something on file grounds it —
     // a story Jev matched or a canonical question the bank holds, i.e. exactly the rows that
     // would have been `kind: "expand"`. `kind: "narrative"` was the "nothing on file answers
     // this" case wearing a draft request, and it goes back to being an `ask`.
-    if (d.class !== "why_us") {
-      if (!d.story && !d.canon) continue;
-      if (FACT_SEEKING_RE.test(d.label ?? "")) continue;
-    }
+    if (d.class !== "why_us" && !d.story && !d.canon) continue;
     const kind = d.class === "why_us" ? "why_us" : "expand";
     d.action = "draft";
     d.source = "writer";

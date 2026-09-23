@@ -25,6 +25,10 @@ import { HostWriterRequired } from "../writer/backend.mjs";
 import { expand, groundingCheck, narrative, substitutionCheck, whyUs, wordCount } from "../writer/openai.mjs";
 import { jobBlock } from "../writer/prompts.mjs";
 import { slugify } from "../config.mjs";
+import { appendTrace } from "../browser/trace.mjs";
+import { noul, systemOne } from "../jev/client.mjs";
+import { GATES } from "../jev/gates.mjs";
+import { applicationSlug } from "./decisions.mjs";
 
 /** Stories offered to the writer as evidence for one answer. Two is the writer's own cap. */
 const MAX_STORIES = 2;
@@ -227,14 +231,88 @@ function ask(decision, why) {
   return decision;
 }
 
+// ─── the relevance gates ──────────────────────────────────────────────────────────────────────
+//
+// A draft that is fluent, inside the limit, grounded in the candidate's own material and naming
+// no other company can still be an answer to a *different question*. That is exactly what the
+// ten-posting round produced on Mistral's required "What spoken languages are you fluent in?":
+// 20 words composed out of a GPU-inference story, typed into a live employer's form and read
+// back as filled (private/eval-shots/ten/findings.md). Every check this module had passed,
+// because none of them asks the one question a reader would: *does this answer what was asked?*
+//
+// So the writer is bracketed by two Jev judgments — the only thing Jev does here, as everywhere
+// else, is select between "yes" and "no" about text it is shown:
+//
+//   1. before the writer is called: does the saved material named in `grounding_titles` answer
+//      what `prompt` asks? Below `GATES.askBelow` the row never reaches the writer at all and
+//      goes back as an `ask` (`grounding_does_not_answer`).
+//   2. after the text exists: does `draft` answer `prompt`? Below the gate the text is dropped
+//      and the row goes back as an `ask` (`draft_does_not_answer`).
+//
+// Both are appended to `applications/<slug>/trace.jsonl` like every other Jev call, so a refusal
+// is auditable after the fact. A gate that cannot be reached (no key, no network) refuses too:
+// an unverifiable draft is not a draft.
+//
+// `why_us` skips the first gate for the same reason it is exempt from `FACT_SEEKING_RE`: it asks
+// for a motivation, its grounding is the posting itself plus what the user says they are looking
+// for, and "does this saved material answer 'why us'?" is not a judgment about relevance. It
+// faces the second gate like every other row.
+
+/** Story titles and fact ids — what the material *is*, never the personal values it holds. */
+function groundingTitles(stories = [], facts = []) {
+  const out = [];
+  for (const s of stories) {
+    const title = String(s?.title ?? s?.id ?? "").trim();
+    if (title && !out.includes(title)) out.push(title);
+  }
+  for (const f of facts) {
+    const id = String(f?.id ?? "").trim();
+    if (id && !out.includes(id)) out.push(id);
+  }
+  return out.slice(0, 24);
+}
+
+/**
+ * One Noul, traced like `src/jev/plan.mjs` does, and billed to the same per-posting totals — a
+ * request the runner makes is a request the runner reports.
+ * @returns {Promise<number>} the probability.
+ */
+async function relevance({ stage, id, instructions, state, slug, signal, totals = null }) {
+  const questions = { [id]: noul(instructions) };
+  await appendTrace(slug, { op: "jev_request", stage, state, questions });
+  const result = await systemOne({ state, questions, signal });
+  await appendTrace(slug, {
+    op: "jev_response",
+    stage,
+    model: result.model,
+    ms: result.ms,
+    requests: result.requests,
+    usage: result.usage,
+    answers: result.answers,
+  });
+  if (totals) {
+    totals.requests += result.requests ?? 1;
+    totals.ms += result.ms ?? 0;
+    totals.usage.input_tokens += result.usage?.input_tokens ?? 0;
+    totals.usage.output_tokens += result.usage?.output_tokens ?? 0;
+    totals.stages?.push(stage);
+  }
+  const p = result.answers?.[id]?.noul;
+  if (typeof p !== "number") throw new Error("the relevance gate returned no probability");
+  return p;
+}
+
+const pct = (p) => p.toFixed(2);
+
 /**
  * Write every `draft` row that has no text yet. Mutates the Decisions it is given.
  *
  * @param {{formPlan:object, decisions:object[], mem:object, context:object, pipeline?:object,
- *          dry?:boolean, signal?:AbortSignal, onLog?:(line:string)=>void}} args
+ *          slug?:string, jev?:object, dry?:boolean, signal?:AbortSignal,
+ *          onLog?:(line:string)=>void}} args
  * @returns {Promise<object[]>} the rows that now carry a draft
  */
-export async function draftRows({ formPlan, decisions, mem, context = {}, pipeline = null, dry = false, signal = null, onLog = null }) {
+export async function draftRows({ formPlan, decisions, mem, context = {}, pipeline = null, slug = null, jev = null, dry = false, signal = null, onLog = null }) {
   const pending = (decisions ?? []).filter((d) => d.action === "draft" && d.value == null);
   if (!pending.length) return [];
 
@@ -244,6 +322,9 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
   const pool = usableStories(mem);
   const forbidden = otherCompanies(pipeline, job.company);
   const written = [];
+  // The relevance gates are traced under this posting like any other Jev call; the caller may
+  // pass the slug it already computed, and a dry run that has none derives the same one.
+  const traceSlug = slug ?? applicationSlug(formPlan);
   // Story ids an earlier draft on *this* page has already told. Two boxes three paragraphs apart
   // carrying the same anecdote is one application, one reader, one repetition
   // (docs/research/13-eval-judge-round2.md §3 N4).
@@ -278,6 +359,24 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
     // backend throws instead of answering and the host agent needs exactly this grounding.
     let grounding = [];
     try {
+      // Gate 1 — is the material this row would be written from even about what is being asked?
+      // Cheaper than the writer and, more to the point, the refusal is honest: "nothing on file
+      // answers this" is the correct outcome for a prompt no saved material covers.
+      if (kind !== "why_us") {
+        const offered = [...(d.story ? [pool.find((s) => s.id === d.story)] : []), ...named.stories, ...stories].filter(Boolean);
+        const p = await relevance({
+          stage: "draft_grounding",
+          id: `grounds_${d.qid}`,
+          instructions:
+            "Does the saved material listed in `grounding_titles` directly answer what `prompt` asks for? Answer yes only if that material states what the prompt asks about.",
+          state: { prompt: asked, grounding_titles: groundingTitles(offered, facts) },
+          slug: traceSlug,
+          signal,
+          totals: jev,
+        });
+        d._gate_grounding = Number(p.toFixed(3));
+        if (p < GATES.askBelow) throw new Error(`grounding_does_not_answer — nothing you have on file is about this (${pct(p)})`);
+      }
       if (kind === "why_us") {
         const sentence = request.sentence ?? null;
         grounding = [...(sentence ? [sentence] : []), ...stories.slice(0, MAX_STORIES), ...facts, jobBlock(job)];
@@ -322,6 +421,21 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
       const swap = substitutionCheck(text, forbidden);
       if (!swap.ok) throw new Error(`names another company you are applying to: ${swap.found.join(", ")}`);
 
+      // Gate 2 — the text exists, it fits, it is grounded and it names nobody else. The one
+      // question left is the one a reader asks first, and the round that produced a paragraph
+      // about GPU inference under "what languages are you fluent in?" failed exactly here.
+      const answersIt = await relevance({
+        stage: "draft_answers",
+        id: `answers_${d.qid}`,
+        instructions: "Does the text in `draft` answer what `prompt` asks for?",
+        state: { prompt: asked, draft: text },
+        slug: traceSlug,
+        signal,
+        totals: jev,
+      });
+      d._gate_draft = Number(answersIt.toFixed(3));
+      if (answersIt < GATES.askBelow) throw new Error(`draft_does_not_answer — the text does not answer this prompt (${pct(answersIt)})`);
+
       d.source = "writer";
       d.value = text;
       d.words = wordCount(text);
@@ -361,6 +475,8 @@ export function draftFor({ plan, stores, dry = false, onLog = null }) {
     async rows(decisions) {
       return draftRows({
         formPlan: plan.formPlan,
+        slug: plan.slug ?? null,
+        jev: plan.jev ?? null,
         decisions,
         mem: stores.mem,
         context: plan.context,

@@ -462,7 +462,9 @@ export async function captureShots({
   let conn = null;
   let session = null;
   let overridden = false;
-  let closed = false;
+  // Every exit assigns this one report, so the `finally` block below has something to record the
+  // tab's fate on whichever way the shoot ended.
+  let out = { ok: false, why: "the shoot never ran", ...empty };
   try {
     conn = await connect({ profileDir: path.join(home, "profile"), port, spawnIfMissing: false });
     const page = await findTab(conn.context, url);
@@ -509,23 +511,25 @@ export async function captureShots({
       if (at.y + at.inner >= at.height - 4) break;
     }
 
-    return { ok: viewports.length > 0, full, viewports, page: { ...metrics, shots: viewports.length }, closed };
+    out = { ok: viewports.length > 0, full, viewports, page: { ...metrics, shots: viewports.length } };
   } catch (err) {
-    return { ok: false, why: err.message, ...empty };
+    out = { ok: false, why: err.message, ...empty };
   } finally {
     if (session) {
       if (overridden) await session.send("Emulation.clearDeviceMetricsOverride").catch(() => {});
       await session.detach().catch(() => {});
     }
     // The tab outlives this process (D12) unless `close` was asked for: scrolled back to the top,
-    // and only then closed.
+    // and only then closed. The report is mutated here rather than returned from the `try`, which
+    // is evaluated *before* this block runs — a `closed` read there is always the value it had
+    // before the tab was touched.
     if (conn) {
       const page = await findTab(conn.context, url).catch(() => null);
       await page?.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
       if (close && page) {
         try {
           await page.close({ runBeforeUnload: false });
-          closed = true;
+          out.closed = true;
           log?.("tab closed");
         } catch (err) {
           log?.(`tab would not close: ${err.message}`);
@@ -534,6 +538,7 @@ export async function captureShots({
       await disconnect(conn.browser, { port, verify: false }).catch(() => {});
     }
   }
+  return out;
 }
 
 /** 0600 JSON, pretty enough to read in a diff. */
@@ -562,8 +567,13 @@ function median(values = []) {
  * three numbers a reader checks first (status, filled, asks) and the path to its evidence.
  * Rendered from the per-profile `run.json` manifests, so re-running one profile never drops the
  * other one's rows.
+ *
+ * `findings` is the round's hand-written verdict — what a reader of the screenshots concluded that
+ * no count can state. It is kept in `<round>/findings.md` and pasted in above the tables, because
+ * a finding typed straight into `index.md` is erased by the next `--index-only`, and a defect that
+ * disappears when the index is re-rendered is a defect nobody acts on.
  */
-export function renderIndex({ round, runs = [], generated = new Date().toISOString() }) {
+export function renderIndex({ round, runs = [], findings = null, generated = new Date().toISOString() }) {
   const rows = runs.flatMap((r) => (r.postings ?? []).map((p) => ({ ...p, profile: r.profile })));
   const byProfile = runs.map((r) => `${r.profile} ${r.postings?.length ?? 0}`).join(" · ");
   // What became of the tabs, from the rows themselves rather than from a constant: `--close`
@@ -580,6 +590,7 @@ export function renderIndex({ round, runs = [], generated = new Date().toISOStri
     `# eval-shots — ${round}`,
     "",
     `${rows.length} posting${rows.length === 1 ? "" : "s"} (${byProfile}) · generated ${generated}`,
+    ...(findings ? ["", String(findings).trim(), ""] : []),
     "",
     `Every posting was filled with \`node scripts/apply.mjs --url <posting> --no-submit --json\`; no Submit`,
     `control was clicked and ${fate}. Each`,
@@ -673,11 +684,18 @@ export function renderIndex({ round, runs = [], generated = new Date().toISOStri
         `${sum((p) => p.counts?.failed)} | ${sum((p) => p.counts?.disputed)} | ${sum((p) => p.ms)} | ` +
         `${money(spend((p) => p.usage?.jev?.usd))} | ${money(spend((p) => p.usage?.openai?.usd))} | ${money(spend((p) => p.usage?.usd_total))} |`,
     );
+    // A median of nothing is `—`, never 0: "no posting recorded this" and "every posting recorded
+    // zero" are different findings and the table must not merge them.
+    const mid = (pick) => {
+      const m = median(posts.map(pick));
+      return m == null ? "—" : Number.isInteger(m) ? String(m) : m.toFixed(1);
+    };
     lines.push(
-      `| | **medians** | | | | | ${median(posts.map((p) => p.counts?.filled))}/${median(posts.map((p) => p.counts?.total))} | ` +
-        `${median(posts.map((p) => p.counts?.checks))} | ${median(posts.map((p) => p.counts?.asks))} | ${median(posts.map((p) => p.counts?.drafted))} | ` +
-        `${median(posts.map((p) => p.counts?.failed))} | ${median(posts.map((p) => p.counts?.disputed))} | ${median(posts.map((p) => p.ms))} | ` +
-        `${money(median(posts.map((p) => p.usage?.jev?.usd)))} | ${money(median(posts.map((p) => p.usage?.openai?.usd)))} | ${money(median(posts.map((p) => p.usage?.usd_total)))} |`,
+      `| | **medians** | | | | | ${mid((p) => p.counts?.filled)}/${mid((p) => p.counts?.total)} | ` +
+        `${mid((p) => p.counts?.checks)} | ${mid((p) => p.counts?.asks)} | ${mid((p) => p.counts?.drafted)} | ` +
+        `${mid((p) => p.counts?.failed)} | ${mid((p) => p.counts?.disputed)} | ${mid((p) => p.ms)} | ` +
+        `${money(median(posts.map((p) => p.usage?.jev?.usd)))} | ${money(median(posts.map((p) => p.usage?.openai?.usd)))} | ` +
+        `${money(median(posts.map((p) => p.usage?.usd_total)))} |`,
     );
     lines.push("");
     for (const p of posts) {
@@ -690,7 +708,7 @@ export function renderIndex({ round, runs = [], generated = new Date().toISOStri
       const open = p.reset?.open;
       const byRunner = !open ? "" : open.reused ? (open.reloaded ? ", runner reloaded it" : ", runner re-used it **unreloaded**") : ", runner opened a fresh one";
       lines.push(
-        `  - \`${p.dir}/\` — ${shots.length ? shots.join(" · ") : "_no screenshot_"} · ` +
+        `  - \`${p.dir}/\` — ${shots.length ? shots.join(" · ") : `_no screenshot_ (${p.shots?.why ?? "not captured"})`} · ` +
           `expected.json (${p.counts?.total ?? 0} rows) · result.json` +
           (files.drafts ? ` · drafts.json (${p.drafts?.written ?? 0} written, ${p.drafts?.refused ?? 0} refused)` : "") +
           (p.run_at ? ` · shot ${p.run_at}` : "") +

@@ -212,6 +212,101 @@ export function fullTimeYears(mem, now = new Date()) {
 }
 
 /**
+ * The employment and education rows the user's own `since:` dates say are the most recent, and
+ * the parts those rows' own words state.
+ *
+ * A bench profile carries single-valued `f.employment.current` / `f.employment.current_title` /
+ * `f.education.school` rows; a store written from a real CV does not — it holds one descriptive
+ * row per role and per degree (`f.employment.<org>`, `f.education.<degree>_<school>`), each with
+ * a `since:`. Reading only the canonical ids is why three real boards were handed back a job
+ * title, an employer and a school the profile states outright
+ * (docs/research/16-eval-judge-ten.md E1). These walk the same list `fullTimeYears()` does and
+ * read the newest row.
+ *
+ * Nothing here infers. A part the row does not state comes back null, and `current` is true only
+ * where the row *says* the role has not ended (`until:` absent and the text's own date range open,
+ * "– Present"); a range that closed in the past makes this the **most recent** role, never the
+ * current one, and `ended` stays null when the row states no end at all.
+ *
+ * @returns {{id:string, since:string, title:string|null, employer:string|null, prose:boolean,
+ *            ended:boolean|null, until:string|null, current:boolean}|null}
+ */
+export function latestEmployment(mem, now = new Date()) {
+  return latestRow(mem, "f.employment.", now, (head, value) => ({
+    title: value?.role ?? value?.title ?? clause(beforeDash(head)),
+    employer: value?.company ?? value?.employer ?? clause(afterDash(head)),
+  }));
+}
+
+/**
+ * @returns {{id:string, since:string, school:string|null, field:string|null, degree:string|null,
+ *            prose:boolean, ended:boolean|null, until:string|null, current:boolean}|null}
+ */
+export function latestEducation(mem, now = new Date()) {
+  return latestRow(mem, "f.education.", now, (head, value) => {
+    // "Bachelor of Technology, Electrical and Electronics Engineering — IIT Patna, Bihar, India":
+    // the degree names itself before the first comma, the field after it, the school after the
+    // dash. A row written any other way states fewer parts, and the unstated ones stay null.
+    const left = beforeDash(head);
+    const comma = left.indexOf(",");
+    return {
+      degree: value?.degree ?? clause(left),
+      field: value?.field ?? (comma >= 0 ? clause(left.slice(comma + 1)) : null),
+      school: value?.school ?? value?.institution ?? clause(afterDash(head)),
+    };
+  });
+}
+
+/** The newest `since:` row under `prefix`, with `parts()` read off its headline. */
+function latestRow(mem, prefix, now, parts) {
+  let best = null;
+  for (const row of listFacts(mem, prefix)) {
+    const since = parseSince(row.since);
+    if (!since) continue; // a row with no date cannot be ranked, and ranking it by id would guess
+    if (!best || since.getTime() > best.since.getTime()) best = { row, since };
+  }
+  if (!best) return null;
+  const value = best.row.value;
+  const prose = typeof value === "string";
+  const head = prose ? headline(value) : "";
+  const end = statedEnd(best.row, now);
+  const read = parts(head, prose ? null : value);
+  for (const key of Object.keys(read)) if (!read[key]) read[key] = null;
+  return { id: best.row.id, since: String(best.row.since), ...read, prose, ...end, current: end.ended === false };
+}
+
+/** The first line of a fact, capped: a CV bullet's later sentences describe the work, not the row. */
+const headline = (text) => String(text ?? "").split("\n")[0].slice(0, 200);
+
+const DASH = /\s+[—–]\s+|\s+-\s+/;
+const beforeDash = (head) => head.split(DASH)[0] ?? "";
+const afterDash = (head) => (DASH.test(head) ? head.split(DASH).slice(1).join(" ") : "");
+
+/** One stated clause: up to the first comma, without a trailing parenthetical aside. */
+function clause(text) {
+  const stated = String(text ?? "").split(",")[0].replace(/\s*\([^()]*\)\s*$/, "").trim();
+  return stated || null;
+}
+
+const MONTH = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?";
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+/** "Mar 2026 – June 2026" · "Jan 2025 – Present" — a stated range, never a date found loose in prose. */
+const RANGE_RE = new RegExp(`${MONTH}\\s+\\d{4}\\s*[–—-]\\s*(?:(present|current|now|ongoing|date)\\b|(?:(${MONTH})\\s+)?(\\d{4})\\b)`, "i");
+
+/** Has this role/degree ended, per the row's own `until:` or its own stated date range? */
+function statedEnd(row, now) {
+  const until = parseSince(row?.value?.until ?? row?.until);
+  const today = new Date(now).getTime();
+  if (until) return { ended: until.getTime() < today, until: String(row?.value?.until ?? row?.until) };
+  const m = typeof row?.value === "string" ? RANGE_RE.exec(headline(row.value)) : null;
+  if (!m) return { ended: null, until: null };
+  if (m[1]) return { ended: false, until: null };
+  const month = m[2] ? MONTHS.indexOf(m[2].slice(0, 3).toLowerCase()) + 1 : 12;
+  const end = Date.UTC(Number(m[3]), month, 0); // day 0 of the next month = the last day of this one
+  return { ended: end < today, until: `${m[3]}-${String(month).padStart(2, "0")}` };
+}
+
+/**
  * The level boundaries in full-time years. The salary table may state its own
  * (`rule: {levels: {early: 1, senior: 3}}` in `salary-baselines.yaml`, the same way its `markets:`
  * block owns the market vocabulary); otherwise `LEVEL_YEARS` from `jev/gates.mjs` decides, because

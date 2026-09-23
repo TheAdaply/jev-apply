@@ -166,6 +166,11 @@ Live, end to end: real Greenhouse (Together AI) and Ashby (Baseten) forms filled
 deterministic resolve, Jev, then Playwright with every write read back — at **1–2 Jev requests per
 posting**, about **$0.0004 of Jev per posting**.
 
+Ten-posting real-profile run (`bench/results/accuracy-ten.md`, 136 fields, real Greenhouse and
+Ashby boards, `--no-submit`): **89.7%** of fields correct, median **12.7s** wall clock per posting,
+median **$0.00026** per posting. Full per-posting table and graph:
+[`bench/results/accuracy-ten.md`](bench/results/accuracy-ten.md).
+
 ## Working on it
 
 ```

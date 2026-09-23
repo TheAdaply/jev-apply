@@ -254,6 +254,7 @@ async function shootOne(posting, ctx) {
     url: posting.url,
     company: posting.company,
     ats: posting.ats,
+    family: posting.family ?? null,
     slug,
     dir: path.posix.join(ctx.profile, slug),
     status: run.status,
@@ -287,10 +288,14 @@ async function shootOne(posting, ctx) {
 /**
  * The round index is rendered from every profile's manifest, so one profile never hides another.
  *
- * Each row's counts are re-derived from the `expected.json` and `drafts.json` sitting in its
- * directory rather than trusted from the manifest: a row kept by the merge was tallied by
- * whatever version of `countRows` ran that day, and the index must not be able to disagree with
- * the artifact a reader opens next to it.
+ * Each row's counts, spend and draft tally are re-derived from the `expected.json`, `result.json`
+ * and `drafts.json` sitting in its directory rather than trusted from the manifest: a row kept by
+ * the merge was tallied by whatever version of `countRows` ran that day, and the index must not be
+ * able to disagree with the artifact a reader opens next to it. `usage` in particular is only ever
+ * read from `result.json`, so a money column in the index and the run's own stdout cannot drift.
+ *
+ * `family` lives on the postings file, not on the run: it is looked up from the list the manifest
+ * names so the index can group by role without the harness having to have recorded it.
  */
 async function rebuildIndex(round) {
   const roundDir = shotsDir({ round });
@@ -301,13 +306,21 @@ async function rebuildIndex(round) {
     if (!raw) continue;
     try {
       const manifest = JSON.parse(raw);
+      const families = new Map();
+      const source = manifest.postings_source;
+      if (source && /\.ya?ml$/i.test(source)) {
+        const list = await loadPostings(path.join(REPO_ROOT, source)).catch(() => null);
+        for (const row of list?.postings ?? []) if (row.family) families.set(row.url, row.family);
+      }
       manifest.postings = await Promise.all(
         (manifest.postings ?? []).map(async (p) => {
           const read = async (name) => JSON.parse(await readFile(path.join(roundDir, entry.name, p.slug, name), "utf8").catch(() => "null"));
-          const [rows, drafts] = await Promise.all([read("expected.json"), read("drafts.json")]);
+          const [rows, drafts, result] = await Promise.all([read("expected.json"), read("drafts.json"), read("result.json")]);
           return {
             ...p,
+            ...(p.family ? {} : families.has(p.url) ? { family: families.get(p.url) } : {}),
             ...(Array.isArray(rows) ? { counts: countRows(rows) } : {}),
+            ...(result?.usage ? { usage: result.usage } : {}),
             ...(drafts?.counts ? { drafts: drafts.counts, files: { ...(p.files ?? {}), drafts: "drafts.json" } } : {}),
           };
         }),
@@ -317,8 +330,11 @@ async function rebuildIndex(round) {
       log(`index: ${entry.name}/run.json is not readable JSON — skipped`);
     }
   }
+  // The round's hand-written verdict, if a reader left one: `findings.md` sits beside `index.md`
+  // and is pasted into it, so a defect the screenshots exposed survives the next re-render.
+  const findings = await readFile(path.join(roundDir, "findings.md"), "utf8").catch(() => null);
   const file = path.join(roundDir, "index.md");
-  await writeFile(file, renderIndex({ round, runs }), { mode: 0o600 });
+  await writeFile(file, renderIndex({ round, runs, findings }), { mode: 0o600 });
   return { file, runs, postings: runs.reduce((n, r) => n + (r.postings?.length ?? 0), 0) };
 }
 

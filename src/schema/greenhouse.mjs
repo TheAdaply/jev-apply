@@ -19,7 +19,7 @@
 //                     `sensitive` (skipped unless a global EEO preference exists), so the row keeps
 //                     the API field name.
 
-import { classify, cleanLabel, dependencyOn, htmlToText, parseLimits } from "./classes.mjs";
+import { classify, cleanLabel, htmlToText, parseLimits } from "./classes.mjs";
 
 const API = "https://boards-api.greenhouse.io/v1/boards";
 const UA = "jev-apply/0.1 (+https://github.com/theadaply/jev-apply)";
@@ -56,13 +56,9 @@ export async function fetchGreenhouse({ token, id }) {
 /** Raw Greenhouse JSON → FormPlan (PLAN §2.3). `url` defaults to the posting's `absolute_url`. */
 export function normalizeGreenhouse(raw, url) {
   const questions = [];
-  let previous = null;
   for (const q of raw.questions || []) {
     const row = formRow(q, "Application");
     if (!row) continue;
-    const dependency = dependencyOn(row, previous);
-    if (dependency) row.dependency = dependency;
-    previous = row;
     questions.push(row);
   }
   for (const q of raw.location_questions || []) {

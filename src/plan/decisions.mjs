@@ -22,10 +22,10 @@ import { traceDir } from "../browser/trace.mjs";
 import { GATES } from "../jev/gates.mjs";
 import { loadSection, saveSection } from "../memory/store.mjs";
 import { mintId, stamp } from "../memory/schema.mjs";
-import { resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { FACT_SEEKING_RE, fitsLimits } from "../schema/classes.mjs";
+import { resolvePreference } from "../memory/resolve.mjs";
+import { fitsLimits } from "../schema/classes.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
-import { applyDependencies, workAuthKind, yesNoOf } from "./resolve.mjs";
+import { applyDependencies, yesNoOf } from "./resolve.mjs";
 
 /** Internal planning fields never reach `decisions.json`. */
 const INTERNAL = /^_/;
@@ -95,22 +95,9 @@ function enforceLimits(decisions) {
 /** The two classes the writer may draft from scratch (PLAN §2.2 step 10). */
 const DRAFT_CLASSES = new Set(["why_us", "essay"]);
 
-// A prompt that asks for a *fact* — which tool, how many, what languages you speak, what is your
-// X — is answered by the user or it is not answered at all. Round 2 drafted "Python, PyTorch and
-// CUDA" into 1Password's "As a PM which AI tool are you using on daily or weekly basis?", on a
-// Senior PM posting (docs/research/13-eval-judge-round2.md §3 N3), and the ten-posting round then
-// drafted an answer about spoken languages from a GPU-inference story
-// (private/eval-shots/ten/findings.md). `classify()` now routes such a prompt to `circumstance`,
-// which the `DRAFT_CLASSES` test already refuses; this is the belt behind that brace, and it
-// covers `why_us` too — a "why us" that slips a fact into its wording is still a fact.
-
 /**
- * `p.auto_draft` on: a required "Why us?" or essay prompt with nothing saved behind it is drafted
- * by the writer instead of handed back. Round 1 handed four of them to the user — two required, on
- * real postings — because Jev correctly answered `none_of_these`: no saved story *is* a "why this
- * company", so the draft path was unreachable (judge §4.1). Facts are untouched by this: a draft is
- * written from the posting plus material the user already wrote, never from a guessed fact, and it
- * is shown under ► DRAFTED before anything is submitted.
+ * With p.auto_draft enabled, only a semantically selected narrative/company item can ground a
+ * draft. A missing or unresponsive item stays ask; the writer never substitutes another story.
  *
  * The Decision carries `draft_request` for `src/plan/execute.mjs`: `{kind, limits, grounding_ids,
  * prompt, help}`. `value` stays empty until the writer fills it.
@@ -120,19 +107,15 @@ export function autoDraft(decisions, { mem, context = {} } = {}) {
   if (!pref || yesNoOf(pref.value) !== "Yes") return decisions;
   for (const d of decisions) {
     if (d.action !== "ask" || !DRAFT_CLASSES.has(d.class)) continue;
-    if (FACT_SEEKING_RE.test(d.label ?? "")) continue;
-    // `why_us` is unconditional. An essay is drafted only where something on file grounds it —
-    // a story Jev matched or a canonical question the bank holds, i.e. exactly the rows that
-    // would have been `kind: "expand"`. `kind: "narrative"` was the "nothing on file answers
-    // this" case wearing a draft request, and it goes back to being an `ask`.
-    if (d.class !== "why_us" && !d.story && !d.canon) continue;
+    if (!["narrative", "company"].includes(d.understanding?.answer_kind)) continue;
+    if (!d.selected_item || d.selection_noul < GATES.answersGate || d.third_party || d.understanding.attestation || d.understanding.sensitive) continue;
     const kind = d.class === "why_us" ? "why_us" : "expand";
     d.action = "draft";
     d.source = "writer";
     d.draft_request = {
       kind,
       limits: d._limits ?? null,
-      grounding_ids: groundingIds(mem, kind, d),
+      grounding_ids: [d.selected_item],
       prompt: d.label ?? "",
       help: d._help ?? "",
     };
@@ -144,27 +127,6 @@ export function autoDraft(decisions, { mem, context = {} } = {}) {
   return decisions;
 }
 
-/**
- * The memory ids a draft is grounded on — ids, not text, so the writer reads the rows itself and
- * the frozen Decision stays small and auditable. Deterministic order, capped: what the user is
- * looking for, then the story Jev matched (if any), then their own material.
- */
-function groundingIds(mem, kind, decision) {
-  const ids = [];
-  const take = (list, n) => {
-    for (const id of list.slice(0, n)) if (id && !ids.includes(id)) ids.push(id);
-  };
-  const prefs = (mem?.preferences ?? []).map((r) => r?.id).filter((id) => typeof id === "string");
-  take(prefs.filter((id) => id === "p.looking_for" || id.startsWith("p.looking_for.")), 6);
-  if (decision.story) take([decision.story], 1);
-  const stories = usableStories(mem).map((r) => r?.id).filter(Boolean);
-  take(stories, kind === "why_us" ? 3 : 8);
-  take((mem?.facts ?? []).map((r) => r?.id).filter((id) => typeof id === "string" && id.startsWith("f.skill.")), 4);
-  if (kind !== "why_us") {
-    take((mem?.answers ?? []).filter((r) => r?.kind === "narrative").map((r) => r?.qid).filter(Boolean), 3);
-  }
-  return ids.slice(0, 16);
-}
 
 /** Strip internals and empty keys so the frozen record is exactly the CONTRACTS shape (+class/section/topic). */
 export function publicDecision(d) {
@@ -173,6 +135,7 @@ export function publicDecision(d) {
     if (INTERNAL.test(k) || v === undefined || v === null) continue;
     out[k] = v;
   }
+  if (d.class === "sensitive" && out.selected) out.selected = { ...out.selected, text: "<redacted:sensitive>" };
   return out;
 }
 
@@ -329,7 +292,11 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
         reopen.push(d);
       }
     }
-    if (remember) rows.push(memoryRow({ decision: d, question: q, remember, value: String(value), context }));
+    if (remember) {
+      const stored = memoryRow({ decision: d, question: q, remember, value: String(value), context });
+      if (stored) Object.assign(stored.row, { answers_questions: [q?.label ?? d.label], topics: d.understanding?.qualifiers ?? [] });
+      rows.push(stored);
+    }
   }
 
   // The parent of a conditional follow-up may be one of the rows just answered, so the dependency
@@ -362,7 +329,7 @@ function memoryRow({ decision, question, remember, value, context }) {
     // later application. One Yes/No settles one half; the other half arrives from the form's other
     // work-auth question (same answers file) or from what is already on file — `merge` below.
     if (/^f\.work_auth\./.test(id)) {
-      const half = workAuthHalf(decision.label ?? question?.label ?? "", value);
+      const half = workAuthHalf(decision.canon, value);
       if (half) return { section: "facts", row: { id, value: half, source: "user", updated }, merge: "object" };
     }
     return { section: "facts", row: { id, value, source: "user", updated } };
@@ -397,15 +364,14 @@ function memoryRow({ decision, question, remember, value, context }) {
  * when the answer is Yes and neither when it is No — not authorized, or authorized but sponsored,
  * and the form does not say which — so that case returns null and nothing is invented.
  */
-function workAuthHalf(label, value) {
+function workAuthHalf(canon, value) {
   const text = String(value ?? "");
   const yn = asYesNo(text) ?? (/^\s*yes\b/i.test(text) ? "yes" : /^\s*no\b/i.test(text) ? "no" : null);
   if (!yn) return null;
   const yes = yn === "yes";
-  const kind = workAuthKind(label);
-  if (kind === "sponsorship") return { needs_sponsorship_future: yes };
-  if (kind === "authorized") return { authorized_now: yes };
-  return yes ? { authorized_now: true, needs_sponsorship_future: false } : null;
+  if (["q.auth.sponsorship_now", "q.auth.sponsorship_future", "q.auth.require_visa_sponsorship_work_selected"].includes(canon)) return { needs_sponsorship_future: yes };
+  if (canon === "q.auth.authorized_in_country") return { authorized_now: yes };
+  return null;
 }
 
 /**
@@ -419,7 +385,7 @@ async function persistRows(rows) {
     const list = bySection.get(section);
     const key = section === "answers" ? (r) => r?.qid === row.qid && (r?.scope ?? "global") === (row.scope ?? "global") : (r) => r?.id === row.id;
     const at = list.findIndex(key);
-    const stored = section === "preferences" ? { id: row.id, value: row.value, source: "user", updated: row.updated } : row;
+    const stored = row;
     if (at === -1) list.push(stored);
     // A two-valued fact is completed, never replaced: answering "do you need sponsorship?" must
     // not erase the `authorized_now` half a second question (or an earlier run) already settled.

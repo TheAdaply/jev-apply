@@ -17,6 +17,7 @@ import { loadMemory, upsertRow } from "../src/memory/store.mjs";
 import { promotionHome } from "../src/memory/resolve.mjs";
 import { ID_CATALOGUE, mintId, nextHandle, rowKey, stamp } from "../src/memory/schema.mjs";
 import { yesNoOf } from "../src/plan/resolve.mjs";
+import { enrichRows } from "../src/memory/enrich.mjs";
 
 class Blocked extends Error {}
 
@@ -111,7 +112,7 @@ function takenIds(rows) {
 
 /** `upsertRow`, unless this is a dry run — then nothing touches disk and the row is only reported. */
 async function put(section, row, dryRun) {
-  if (!dryRun) await upsertRow(section, row);
+  if (!dryRun) await upsertRow(section, (await enrichRows(section, [row]))[0]);
 }
 
 // A catalogue id holds the *value*, not the sentence that stated it: `f.identity.city` filled

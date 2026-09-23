@@ -30,7 +30,7 @@
 // attempted" broken outright.
 
 import { readFile } from "node:fs/promises";
-import { classify, cleanLabel, dependencyOn, htmlToText, parseLimits } from "./classes.mjs";
+import { classify, cleanLabel, htmlToText, parseLimits } from "./classes.mjs";
 
 const ENDPOINT = "https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobPosting";
 const QUERY_PATH = new URL("../../eval/fixtures/ashby-query.graphql", import.meta.url);
@@ -126,15 +126,11 @@ function formQuestions(form, { survey = false } = {}) {
   const fallback = survey ? "Demographic Survey" : "Application";
   const out = [];
   const seen = new Set();
-  let previous = null;
   for (const section of sections) {
     const name = cleanLabel(section.title) || fallback;
     for (const entry of section.fieldEntries || []) {
       const row = formRow(entry, name, { survey });
       if (!row || seen.has(row.qid)) continue;
-      const dependency = dependencyOn(row, previous);
-      if (dependency) row.dependency = dependency;
-      previous = row;
       seen.add(row.qid);
       out.push(row);
     }

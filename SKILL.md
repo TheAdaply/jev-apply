@@ -73,7 +73,9 @@ true, the runner clicks Submit itself, waits for the ATS's own confirmation, and
 `--resume <slug>` re-attaches later and lists every field still not on the form, with its intended
 value. `--submit`/`--no-submit` override `p.auto_submit` for one run; `--detect-submit` locates the
 Submit control and its confirmation strategy and prints them without clicking, for a dry check
-against a real form.
+against a real form. A fresh `--url` run re-fills from scratch, so it refuses when the board has
+changed the form under a fill that was already read back — `--refill` is how you say to re-fill it
+anyway.
 
 ### The four-status contract
 One JSON object on stdout every time (`--json` suppresses the human-readable Decision table, which

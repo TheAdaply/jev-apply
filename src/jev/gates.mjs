@@ -13,6 +13,9 @@ export const GATES = {
   checkGap: 0.15,
   /** Noul probability at or above which a multi-select option is ticked (`src/jev/plan.mjs`). */
   noulSelect: 0.5,
+  answersGate: 0.6,
+  faithfulGate: 0.6,
+  verifyBelow: 0.5,
 };
 
 /**

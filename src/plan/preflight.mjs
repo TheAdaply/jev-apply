@@ -3,7 +3,7 @@
 // Everything else in this repo decides what to *put* on a form. This module decides whether what
 // is on the form may be *sent* — once, irreversibly, to a real employer. It is deliberately not a
 // second planner: it never edits a Decision, never asks a model anything and never reads the
-// network. It re-states the invariants of AGENTS.md as twelve refusals over the frozen record
+// network. It re-states the invariants of AGENTS.md plus semantic verification over the frozen record
 // plus (when the runner has one) the live required-control snapshot and the submit button's own
 // geometry, and every failure it reports names a row and one thing the user can do about it.
 //
@@ -33,7 +33,8 @@
 
 import { isWorkMode } from "../memory/derive.mjs";
 import { getFact } from "../memory/resolve.mjs";
-import { LOCATION_RE, conditionPolarity, yesNoOf } from "./resolve.mjs";
+import { GATES } from "../jev/gates.mjs";
+import { passingVerification, sensitiveRow } from "../verify/filled.mjs";
 
 /** A date control takes a date: `YYYY-MM-DD`, the only thing every board's picker reads back. */
 const ISO_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -160,12 +161,11 @@ export const RULES = [
     run: ({ decisions, questions, byQid }) => {
       const out = [];
       for (const q of questions) {
-        const dep = q?.dependency;
-        if (!dep?.parent) continue;
         const child = byQid.get(q.qid);
-        const parent = byQid.get(dep.parent);
-        if (!child || !parent || !writes(child)) continue;
-        if (parent.action !== "fill" && parent.action !== "check") {
+        const parentId = child?.understanding?.conditional_on ?? q?.dependency?.parent;
+        if (!parentId || !child || !writes(child)) continue;
+        const parent = byQid.get(parentId);
+        if (!parent || (parent.action !== "fill" && parent.action !== "check")) {
           out.push(
             fail(
               "dependency_child_filled",
@@ -175,15 +175,13 @@ export const RULES = [
           );
           continue;
         }
-        const wanted = conditionPolarity(q.label, dep.condition);
-        if (!wanted) continue;
-        const answered = yesNoOf(parent.option ?? parent.value);
-        if (answered === wanted) continue;
+        const active = child.understanding?.scores?.conditional_active;
+        if (Number.isFinite(active) && active >= GATES.noulSelect) continue;
         out.push(
           fail(
             "dependency_child_filled",
             child,
-            `${named(child)} is only asked when ${named(parent)} is ${wanted}${answered ? `, and you answered ${answered}` : ", and that row states no Yes or No"} — clear this row before submitting.`,
+            `${named(child)} has no passing judgment that its parent opened it — clear this row before submitting.`,
           ),
         );
       }
@@ -195,7 +193,7 @@ export const RULES = [
     needs: [],
     run: ({ decisions }) =>
       decisions
-        .filter((d) => writes(d) && LOCATION_RE.test(text(d.label)) && isWorkMode(d.option ?? d.value))
+        .filter((d) => writes(d) && ["q.core.location_current", "q.core.location", "q.core.city", "q.core.country"].includes(d.understanding?.asks_for ?? d.canon) && isWorkMode(d.option ?? d.value))
         .map((d) =>
           fail(
             "work_mode_as_location",
@@ -249,7 +247,7 @@ export const RULES = [
           if (!required || writes(d)) return false;
           // A conditional child its parent closed is not an empty required row: the form only
           // enforces it once the parent opens it.
-          return !(q?.dependency?.parent && d.action === "skip");
+          return !((d.understanding?.conditional_on ?? q?.dependency?.parent) && d.action === "skip");
         })
         .map((d) => fail("required_empty", d, `${named(d)} is required and the plan leaves it empty (${d.action}) — answer it before Submit.`));
     },
@@ -278,7 +276,7 @@ export const RULES = [
     needs: [],
     run: ({ decisions }) =>
       decisions
-        .filter((d) => d.class === "sensitive" && writes(d) && d.readback?.observed_matches === false)
+        .filter((d) => sensitiveRow(d) && (writes(d) || d.verified?.ok === false) && !passingVerification(d))
         .map((d) =>
           fail(
             "sensitive_readback",
@@ -324,6 +322,14 @@ export const RULES = [
         ),
       ];
     },
+  },
+  {
+    name: "semantic_verify",
+    needs: [],
+    run: ({ decisions }) => decisions
+      .filter((d) => !sensitiveRow(d) && (writes(d) || d.verified?.ok === false))
+      .filter((d) => !passingVerification(d))
+      .map((d) => fail("semantic_verify", d, `${named(d)} has no passing semantic verdict for the value on the page — re-answer or re-verify it before Submit.`)),
   },
 ];
 
@@ -371,6 +377,11 @@ export function preflight({ decisions = [], questions = [], mem = null, live = n
     }
     checked.push(rule.name);
     failures.push(...rule.run(ctx));
+  }
+  if (ctx.decisions.some((d) => !sensitiveRow(d) && (writes(d) || d.verified?.ok === false) && !Number.isFinite(d.verified?.noul))) {
+    unchecked.push({ rule: "semantic_verify", why: "a filled row has no reachable semantic verdict" });
+    const index = checked.indexOf("semantic_verify");
+    if (index !== -1) checked.splice(index, 1);
   }
   return { ok: failures.length === 0, failures, checked, unchecked };
 }

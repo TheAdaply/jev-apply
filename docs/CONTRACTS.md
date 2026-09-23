@@ -242,6 +242,48 @@ export async function priorSubmit(slug, frozen = null); // → {attempted:boolea
 `p.auto_submit` is resolved by the caller via the existing `resolvePreference(mem, "p.auto_submit",
 {company, role_family})` — no dedicated resolver function.
 
+## src/verify/filled.mjs (FRAMEWORK post-fill verification)
+```js
+export async function verifyFilled({ pairs, slug, signal, jev });
+// pairs: [{qid, question:{label,help,qualifiers}, filled_value, candidate, sensitive?}]
+// → {verdicts:{[qid]:{noul,ok}}, requests, usage}; one batched Jev noul per non-sensitive row.
+// `candidate` is the selected saved-item summary (`text`, `answers_questions`, `topics`),
+// or the user's explicit answer. Values come from DOM read-backs, not intended values.
+export async function verifyDecisions({page,ats,formPlan,decisions,slug,budget,signal,refresh,jev,clear});
+// → {verified,total,reverted,requests,usage}; writes d.verified={noul,ok}. Below verifyBelow,
+// or unreachable/invalid → ask; clears native text/select controls only when safe, reads that
+// clear back, and traces it. Unsafe-to-clear widgets remain ask and cannot pass preflight.
+// `refresh:true` reads the attached DOM again; --answers and --resume cannot reuse stale verdicts.
+export function verificationCounts(decisions); // → {ok,total}; includes masked sensitive equality
+```
+Sensitive values never enter the verification request. They require `readback.ok:true` and
+`observed_matches:true` (option-label equality); neither a redacted value nor a model guesses them.
+Request/response/error events are traced. The normal pipeline target is four requests; the hard
+posting limit is nine for full semantic conditional re-plans. Verification always runs, and `usage.over_budget`
+is true above four. `runBrowser` returns `verification`; `apply.mjs` folds its spend into usage and
+prints `verified:{ok,total}`. The summary carries `► VERIFIED n/m`.
+
+## src/plan/preflight.mjs
+`semantic_verify` refuses every written non-sensitive row without a finite passing
+`d.verified.noul >= GATES.verifyBelow` and `ok:true`, and retains failures on rows reverted to ask.
+Missing/unreachable verdicts also appear in `unchecked`; they never pass. `sensitive_readback`
+requires affirmative observed option-label equality, not merely absence of a mismatch.
+`submitGate` returns `clicked:false` on refusal. Existing provenance, writer, required-control,
+read-back and submit-obstruction guards remain in force.
+
+## Screenshot evaluation
+`expected.json` carries each row's `verified`, `resolution`, `store_had_it`, `invariant_gate`, and
+independent `grade` (`right|wrong|missed|couldnt`, null until judged). A separate batched saved-item
+selection audits availability against `applications/<slug>/eval-memory.json`, a frozen pre-run
+store; its requests are evaluation spend, not runner spend, and are traced as `eval_memory`.
+`verify.json` records the audit, verdicts, and metrics. An unreachable audit records
+`available:false` and `store_had_it:null`, never a false claim that memory had no answer.
+`missed` means an empty row memory answered, including a semantic rejection; `couldnt` means a
+blocked widget, an explicit `invariant_gate`, or absent memory. A semantic rejection alone is
+not an invariant gate and cannot hide a miss. Model verification
+never assigns the independent `right` grade. Metrics are `answer_accuracy=right/(right+wrong)`,
+`miss_rate=missed/store_had_it`, and `blocked_rate=couldnt/rows` (null for empty denominators).
+
 ## Decision record and files (PLAN §2.3)
 `applications/<slug>/{decisions.json, trace.jsonl, summary.md}`; `answers.json` (host → runner) `{ "<qid>": { value, remember_as:{kind,id,scope} } }`.
 `decisions.json`'s meta carries `submitted:boolean` and `submit_attempted:boolean`, written by `settle()`

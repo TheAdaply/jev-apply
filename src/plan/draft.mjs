@@ -19,7 +19,7 @@
 // into the control and reads it back like any other value, and the summary still lists it under
 // ► DRAFTED with its word count so the user sees what was written on their behalf before Submit.
 
-import { resolvePreference, usableStories } from "../memory/resolve.mjs";
+import { resolvePreference } from "../memory/resolve.mjs";
 import { fitsLimits, pickVariant } from "../schema/classes.mjs";
 import { HostWriterRequired } from "../writer/backend.mjs";
 import { expand, groundingCheck, narrative, substitutionCheck, whyUs, wordCount } from "../writer/openai.mjs";
@@ -32,14 +32,6 @@ import { applicationSlug } from "./decisions.mjs";
 
 /** Stories offered to the writer as evidence for one answer. Two is the writer's own cap. */
 const MAX_STORIES = 2;
-/** Facts offered as grounding. Enough for a paragraph; not the whole store. */
-const MAX_FACTS = 12;
-/** Tokens too common to mean anything when a story and a posting share them. */
-const STOPWORDS = new Set(
-  ("about above after again against because been before being below between both cannot could does doing during each from further have having here into itself more most other over same should some such than that their theirs them then there these they this those through under until very were what when where which while will with would your yours team teams work working role roles company companies candidate candidates experience experiences year years".split(
-    " "
-  ))
-);
 
 /** Which writer mode a row wants, when the planner did not say. */
 function kindOf(decision, question) {
@@ -99,104 +91,9 @@ export function groundFrom(mem, ids = [], ctx = {}) {
   return { facts, stories };
 }
 
-const tokens = (s) =>
-  String(s ?? "")
-    .toLowerCase()
-    .split(/[^a-z0-9+#.]+/)
-    .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
-
-const jobTokens = (job) => new Set(tokens(`${job?.title ?? ""} ${job?.description ?? ""}`));
-
-/** How much of a story's distinctive vocabulary the posting also uses. */
-function overlap(story, want) {
-  if (!want.size) return 0;
-  const mine = new Set(tokens(`${story?.title ?? ""} ${(story?.tags ?? []).join(" ")} ${story?.text ?? ""}`));
-  let hits = 0;
-  for (const t of mine) if (want.has(t)) hits += 1;
-  return hits;
-}
-
-const flatStory = (s) => ({ id: s.id, title: s.title ?? s.id, text: s.text ?? "" });
-
-/**
- * The stories this posting is most likely to want, by shared distinctive vocabulary with the job
- * text. Deterministic on purpose: which of the candidate's own stories to ground a draft in is a
- * ranking, and a ranking that two runs disagree on makes a draft unreproducible.
- */
-export function rankStories(stories, job, limit = MAX_STORIES) {
-  const want = jobTokens(job);
-  if (!want.size) return stories.slice(0, limit);
-  return stories
-    .map((s, i) => ({ s, i, hits: overlap(s, want) }))
-    .sort((a, b) => b.hits - a.hits || a.i - b.i)
-    .filter((r) => r.hits > 0)
-    .slice(0, limit)
-    .map((r) => flatStory(r.s));
-}
-
-/**
- * The saved rows that state what the candidate *wants* rather than what they did — `b.answer.*`
- * material tagged `motivation`. A "why this company" answer is a motivation question, and the one
- * row on file that is actually a why-us thesis was absent from every planner id list, which is
- * why three why-us drafts for three different companies were grounded in the same three
- * engineering anecdotes (docs/research/13-eval-judge-round2.md §3 N4).
- */
-const MOTIVATION_TAG = /^(motivation|why|values|looking[_ -]?for)$/i;
-
-export function motivationStories(pool = []) {
-  return pool.filter((s) => (s?.tags ?? []).some((t) => MOTIVATION_TAG.test(String(t)))).map(flatStory);
-}
-
-/**
- * The stories one draft is grounded in.
- *
- * The planner names ids; this decides which of them *this* posting gets and in what order. Three
- * rules, in order of precedence:
- *   1. a why-us row leads with the candidate's own motivation row, when they have one;
- *   2. everything else is ranked by overlap with the posting's own text, never by list position —
- *      taking the first N is what made three postings' grounding lists byte-identical;
- *   3. a story another draft on the same page already told is skipped, so a reader does not meet
- *      the same anecdote twice three paragraphs apart.
- * Rule 3 yields when it would leave the draft with nothing: repeating beats refusing, and the
- * writer is told what has already been used (`avoid_repeating`) either way.
- *
- * @param {{named?:object[], pool?:object[], job?:object, kind?:string, used?:Set<string>, limit?:number}} args
- */
-export function chooseStories({ named = [], pool = [], job = null, kind = "narrative", used = new Set(), limit = MAX_STORIES } = {}) {
-  const want = jobTokens(job);
-  const tagged = new Map((pool ?? []).map((s) => [s?.id, s]));
-  const rank = (list) =>
-    list
-      .map((s, i) => ({ s, i, hits: overlap(tagged.get(s?.id) ?? s, want) }))
-      .sort((a, b) => b.hits - a.hits || a.i - b.i)
-      .map((r) => r.s);
-
-  // Named ids are ranked, never dropped: the planner chose them, and a story that shares no
-  // vocabulary with the posting is still the candidate's own material.
-  const body = rank(named.length ? named.map(flatStory) : rankStories(pool, job, limit + used.size));
-  const head = kind === "why_us" ? rank(motivationStories(pool)).slice(0, 1) : [];
-
-  const out = [];
-  const take = (list, allowUsed) => {
-    for (const s of list) {
-      if (out.length >= limit) return;
-      if (!s?.id || out.some((o) => o.id === s.id)) continue;
-      if (!allowUsed && used.has(s.id)) continue;
-      out.push(s);
-    }
-  };
-  for (const allowUsed of [false, true]) {
-    take(head, allowUsed);
-    take(body, allowUsed);
-  }
-  return out;
-}
-
-/** `p.looking_for` and the skills, which is what a "why this company" answer is actually made of. */
-function defaultGrounding(mem, ctx) {
-  const ids = ["p.looking_for", ...(mem?.facts ?? []).map((f) => f.id).filter((id) => /^f\.(skill|employment|education)\./.test(id))];
-  const { facts } = groundFrom(mem, ids.slice(0, MAX_FACTS), ctx);
-  return facts;
+/** Selection already ranked these ids by responsiveness; the writer never searches memory. */
+export function chooseStories({ named = [], limit = MAX_STORIES } = {}) {
+  return named.slice(0, limit);
 }
 
 /** Every other company in the pipeline — the names a draft for this posting must never contain. */
@@ -327,7 +224,6 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
   const job = { ...(formPlan?.job ?? {}), role_family: context.role_family ?? null };
   const byQid = new Map((formPlan?.questions ?? []).map((q) => [q.qid, q]));
   const ctx = { company: context.company, role_family: context.role_family };
-  const pool = usableStories(mem);
   const forbidden = otherCompanies(pipeline, job.company);
   const written = [];
   // The relevance gates are traced under this posting like any other Jev call; the caller may
@@ -349,8 +245,8 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
     const asked = help ? `${prompt}\n${help}` : prompt;
 
     const named = groundFrom(mem, request.grounding_ids ?? [], ctx);
-    const stories = chooseStories({ named: named.stories, pool, job, kind, used, limit: MAX_STORIES });
-    const facts = named.facts.length ? named.facts : defaultGrounding(mem, ctx);
+    const stories = chooseStories({ named: named.stories, limit: MAX_STORIES });
+    const facts = named.facts;
     // What the reader has already met on this page, named so the writer can steer around it. The
     // list is only non-empty when the dedupe above had to yield, i.e. there was nothing else on
     // file to ground this row in.

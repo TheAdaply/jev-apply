@@ -20,7 +20,7 @@
 // the one case that never reaches a model at all — see resolveVocabulary for why.
 //
 // `blocked` is reserved for: no page, no form, CDP lost, three consecutive fields that would not
-// take a value (`no_progress`), and the per-posting budget (>40 Jev requests or >120 s). Every
+// take a value (`no_progress`), and the per-posting budget (>9 Jev requests or >120 s). Every
 // other failure is one `ask` row on an otherwise-filled form.
 
 import { existsSync } from "node:fs";
@@ -36,9 +36,10 @@ import { classify } from "../schema/classes.mjs";
 import { choice, systemOne, withNone, NONE } from "../jev/client.mjs";
 import { gate, runnerUpGap } from "../jev/gates.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
+import { verifyDecisions, passingVerification } from "../verify/filled.mjs";
 
 /** Stop rules and round caps (PLAN §2.2 steps 9 and 11). */
-export const LIMITS = { jevRequests: 40, wallMs: 120000, noChange: 3, deltaRounds: 2 };
+export const LIMITS = { jevRequests: 9, wallMs: 120000, noChange: 3, deltaRounds: 2 };
 
 const OPTION_WAIT_MS = 3500;
 /**
@@ -224,6 +225,8 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
       failed += 1;
       continue;
     }
+    delete d.verified;
+    delete d.verify_clear;
     const result = await setRow({ page, ats, formPlan, question, decision: d, slug, chooseOption });
     if (!result) continue; // turned into an `ask` before anything was written
     d.readback = {
@@ -272,27 +275,26 @@ export function optionChooser({ slug = null, budget = null, signal = null, onChe
   return async ({ question, value, labels, control }) => {
     if (!labels?.length || labels.length > MAX_LIVE_OPTIONS) return null;
     if (question?.class === "sensitive") return null;
-    if ((budget?.requests ?? 0) >= (budget?.limits?.jevRequests ?? Infinity)) return null;
+    if ((budget?.requests ?? 0) >= (budget?.limits?.jevRequests ?? Infinity) - 1) return null;
     const criteria = {};
     labels.forEach((label, i) => {
       criteria[`o${i}`] = String(label).slice(0, 180);
     });
     let answer = null;
     let requests = 1;
+    const state = { field: { label: question?.label ?? "", control, answer_text: String(value) } };
+    const questions = {
+      pick: choice("Which option in `criteria` states the same thing as `field.answer_text`?",
+        withNone(criteria, "No option offered by the form states that answer")),
+    };
+    await appendTrace(slug, { op: "jev_request", stage: "live_options", state, questions });
     try {
-      const res = await systemOne({
-        state: { field: { label: question?.label ?? "", control, answer_text: String(value) } },
-        questions: {
-          pick: choice(
-            "Which option in `criteria` states the same thing as `field.answer_text`?",
-            withNone(criteria, "No option offered by the form states that answer"),
-          ),
-        },
-        signal,
-      });
+      const res = await systemOne({ state, questions, signal });
+      await appendTrace(slug, { op: "jev_response", stage: "live_options", ...res });
       requests = res.requests ?? 1;
       answer = res.answers?.pick ?? null;
-    } catch {
+    } catch (err) {
+      await appendTrace(slug, { op: "jev_error", stage: "live_options", error: err.name });
       return null; // a model that cannot answer must not stop the fill; the row becomes an `ask`
     } finally {
       try {
@@ -614,6 +616,10 @@ export async function runBrowser({ context, formPlan, decisions, slug, budget, r
 
     const baseline = await snapshotRequired(page, { ats });
     await appendTrace(slug, { op: "snapshot", stage: "baseline", required: baseline.length, filled: baseline.filter((r) => r.filled).length });
+    if (!attach) for (const d of decisions) {
+      delete d.readback;
+      delete d.verified;
+    }
 
     // Step 10 — the writer, before the fill loop so a drafted answer is set, read back and traced
     // exactly like a value that came out of memory.
@@ -657,9 +663,11 @@ export async function runBrowser({ context, formPlan, decisions, slug, budget, r
       failed += next.failed;
     }
 
-    const state = await verify({ page, ats, formPlan, decisions, slug });
+    await verify({ page, ats, formPlan, decisions, slug });
+    const verification = await verifyDecisions({ page, ats, formPlan, decisions, slug, budget, refresh: attach });
+    const state = await inspect({ page, ats, formPlan, decisions });
     await appendTrace(slug, { op: "execute", filled, failed, added: added.length, ms: budget.elapsed() });
-    return { page, added, appeared, filled, failed, baseline, state };
+    return { page, added, appeared, filled, failed, baseline, state, verification };
   } catch (err) {
     if (err instanceof Blocked && !err.shot) err.shot = await captureFailure(page, { slug, mask: formPlan }, { qid: `blocked_${err.reason}` });
     throw err;
@@ -881,7 +889,8 @@ export function submitReadiness({ decisions = [], state = null } = {}) {
   const asks = decisions.filter((d) => d.action === "ask");
   const required_empty = state ? (state.unfilled?.length ?? 0) + (state.unknown?.length ?? 0) : 0;
   const sensitive = asks.filter((d) => d.class === "sensitive").length;
-  return { ready: asks.length === 0 && required_empty === 0, asks: asks.length, sensitive, required_empty };
+  const unverified = decisions.filter((d) => ["fill", "check", "draft"].includes(d.action) && (d.value != null || d.option != null) && !passingVerification(d)).length;
+  return { ready: asks.length === 0 && required_empty === 0 && unverified === 0, asks: asks.length, sensitive, required_empty, unverified };
 }
 
 /**

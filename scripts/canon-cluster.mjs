@@ -35,9 +35,7 @@ import { stringify } from "yaml";
 
 import { SEED, LAYERS, checkSeed } from "../src/canon/seed.mjs";
 import {
-  ALIASES,
   VOCABS,
-  aliasFor,
   canonicalOption,
   canonicalText,
   normalizeLabel,
@@ -256,7 +254,7 @@ function exactPass(groups, canon) {
   const byText = seedTextIndex(canon);
   let resolved = 0;
   for (const g of groups.values()) {
-    const qid = aliasFor(g.key, dominantType(g)) ?? byText.get(g.key) ?? null;
+    const qid = byText.get(g.key) ?? null;
     if (qid) {
       g.qid = qid;
       g.via = "exact";
@@ -981,7 +979,7 @@ async function main() {
 
   // 1. exact pass
   const exact = exactPass(groups, SEED);
-  log(`exact pass: ${exact}/${groups.size} label groups resolved by ${Object.keys(ALIASES).length} aliases + seed texts`);
+  log(`exact pass: ${exact}/${groups.size} label groups resolved by identical seed text`);
 
   // 2. Jev pass 1 — unresolved groups against the seed canon
   const seedRecords = new Map();

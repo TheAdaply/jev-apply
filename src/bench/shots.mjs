@@ -5,7 +5,7 @@
 // scores `trace.jsonl`, which is written by the same code that did the typing. This module
 // answers the question that trace cannot: **is the right value in the right box?** A read-back of
 // "Yes" proves a radio flipped; it does not prove the radio belonged to the question above it.
-// So for every posting it keeps four artefacts side by side under
+// So for every posting it keeps the evidence side by side under
 // `private/eval-shots/<round>/<profile>/<slug>/`:
 //
 //   full.png         the whole form, one image
@@ -33,7 +33,7 @@
 // left.
 
 import { spawn } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -44,9 +44,16 @@ import { OPENAI_MODEL, REPO_ROOT, slugify } from "../config.mjs";
 import { money } from "../plan/summary.mjs";
 import { fitsLimits, wordCount } from "../schema/classes.mjs";
 import { loadFormPlan } from "../schema/index.mjs";
-import { parseTrace } from "./metrics.mjs";
+import { parseTrace, rowResolution, judgmentMetrics } from "./metrics.mjs";
 import { fromUrl } from "./postings.mjs";
 import { parseResult } from "./run.mjs";
+import { GATES } from "../jev/gates.mjs";
+import { verificationCounts } from "../verify/filled.mjs";
+import { noul, NONE, systemOne } from "../jev/client.mjs";
+import { memoryItems } from "../understand/items.mjs";
+import { itemCandidates } from "../understand/prefilter.mjs";
+import { tracer } from "../browser/trace.mjs";
+import { normalizeSection } from "../memory/schema.mjs";
 
 /** What a `sensitive` row shows instead of its value, in `expected.json` and in the index. */
 export const REDACTED = "<redacted>";
@@ -131,7 +138,8 @@ const TERMINAL = new Set(["ready_to_submit", "needs_user", "blocked"]);
 export function runFill({ url, home, port, repoRoot = REPO_ROOT, secrets = {}, timeoutMs = 300_000, onLog = null }) {
   const started = Date.now();
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, ["scripts/apply.mjs", "--url", url, "--no-submit", "--json"], {
+    // A new evaluation explicitly replaces the prior round's reviewed form state.
+    const child = spawn(process.execPath, ["scripts/apply.mjs", "--url", url, "--refill", "--no-submit", "--json"], {
       cwd: repoRoot,
       env: { ...process.env, ...secrets, JEV_APPLY_HOME: home, JEV_CHROME_PORT: String(port) },
       stdio: ["ignore", "pipe", "pipe"],
@@ -255,6 +263,19 @@ export function expectedRows(decisions = [], fields = new Map()) {
       ...(typed || shown == null ? {} : { intended: shown }),
       source: d.source ?? null,
       why: d.why ?? null,
+      understanding: d.understanding ?? null,
+      understood_kind: d.understood_kind ?? d.understanding?.answer_kind ?? null,
+      canon: d.canon ?? d.understanding?.asks_for ?? null,
+      canonical_new: d.canonical_new ?? null,
+      third_party: d.third_party ?? null,
+      conditional_on: d.conditional_on ?? null,
+      selected_item: d.selected_item ?? null,
+      selection_noul: d.selection_noul ?? null,
+      option_noul: d.option_noul ?? null,
+      verified: d.verified ?? null,
+      verify_clear: d.verify_clear ?? null,
+      ...rowResolution(d),
+      grade: ["right", "wrong", "missed", "couldnt"].includes(d.grade) ? d.grade : null,
       readback: d.readback
         ? {
             ok: d.readback.ok === true,
@@ -285,7 +306,62 @@ export function countRows(decisions = []) {
     skipped: n("skip"),
     failed: decisions.filter((d) => d.readback && d.readback.ok !== true).length,
     disputed: decisions.filter((d) => SET_FAILED.test(d.why ?? "") && d.action !== "ask").length,
+    verified: verificationCounts(decisions),
   };
+}
+
+export async function snapshotMemory(home) {
+  const entries = await Promise.all(["facts", "preferences", "answers", "stories", "documents"].map(async (section) => {
+    try {
+      const raw = YAML.parse(await readFile(path.join(home, "memory", `${section}.yaml`), "utf8"));
+      return [section, normalizeSection(section, raw)];
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+      return [section, []];
+    }
+  }));
+  return Object.fromEntries(entries);
+}
+
+/** Independent, reproducible memory-availability audit. Never grades a visible fill as right. */
+export async function auditMemory({ decisions, mem, home, slug, job = {}, jev = systemOne }) {
+  const pool = memoryItems(mem, { company: job.company, job });
+  const state = { job, rows: {}, items: {}, candidate_groups: {} };
+  const questions = {};
+  for (const [index, d] of decisions.entries()) {
+    const kind = d.understanding?.answer_kind ?? "all";
+    const candidates = kind === "all" ? pool.slice(0, 200) : itemCandidates({ items: pool }, kind);
+    state.candidate_groups[kind] ??= candidates.map((item) => item.id);
+    state.rows[d.qid] = { label: d.label, candidate_group: kind, qualifiers: d.understanding?.qualifiers ?? [], about: d.understanding?.about ?? null };
+    for (const item of candidates) state.items[item.id] ??= { text: item.text, answers_questions: item.answers_questions };
+    questions[`has_${index}`] = noul(`Does any item in candidate_groups[rows[${JSON.stringify(d.qid)}].candidate_group] answer that row's exact question, including every qualifier and party? Judge the saved item text, not its ID. If no item does, choose false (${NONE}).`, { true: "Memory answers this exact question", false: `${NONE}: no item answers it` });
+  }
+  const trace = tracer(async (event) => {
+    const dir = path.join(home, "applications", slug);
+    await mkdir(dir, { recursive: true, mode: 0o700 });
+    await appendFile(path.join(dir, "trace.jsonl"), `${JSON.stringify(event)}\n`, { mode: 0o600 });
+  });
+  let result = { answers: {}, requests: 0, usage: {} };
+  if (Object.keys(questions).length) {
+    // This independent audit is outside the fill budget; systemOne splits oversized batches.
+    const traced = structuredClone(state);
+    for (const item of pool) if (item.id === "p.eeo" || item.id.startsWith("p.eeo.")) {
+      if (traced.items[item.id]) traced.items[item.id].text = REDACTED;
+    }
+    await trace({ op: "jev_request", stage: "eval_memory", state: traced, questions });
+    try {
+      result = await jev({ state, questions });
+    } catch (err) {
+      await trace({ op: "jev_error", stage: "eval_memory", error: err.name });
+      throw err;
+    }
+    await trace({ op: "jev_response", stage: "eval_memory", ...result });
+  }
+  const rows = decisions.map((d, index) => {
+    const store_had_it = result.answers[`has_${index}`]?.noul >= GATES.answersGate;
+    return { qid: d.qid, verified: d.verified ?? null, ...rowResolution({ ...d, store_had_it }) };
+  });
+  return { rows, metrics: judgmentMetrics(rows), requests: result.requests, usage: result.usage };
 }
 
 /** `src/plan/draft.mjs:251` turns a draft the writer would not stand behind back into an `ask`. */
@@ -613,6 +689,11 @@ export function renderIndex({ round, runs = [], findings = null, generated = new
     "demographics) carry `<redacted>` in place of both, so the row's **action** is what grades them:",
     "`ask` (no `p.eeo` on file) must be **empty** on the form, `fill`/`check` must carry the answer",
     "`p.eeo` holds. A sensitive control that is filled against an `ask` row is a broken invariant.",
+    "Grade each row `right`, `wrong`, `missed` (empty although memory answered it), or `couldnt`",
+    "(blocked widget, invariant gate, or no memory). `couldnt` is never a `missed`.",
+    "`verified` is the runner's semantic verdict, not the independent judge's ground truth.",
+    "`verify.json` records these verdicts and the frozen-store selection audit; filled rows remain",
+    "unjudged until a reviewer assigns `right` or `wrong`. Report answer_accuracy, miss_rate, blocked_rate.",
     "",
     "`value` is only ever set on a row the runner typed (`fill`/`check`/`draft`). A row that ended",
     "as `ask` or `skip` while still carrying a value — a set the control refused, or a pick re-gated",

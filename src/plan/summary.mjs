@@ -14,6 +14,7 @@
 import path from "node:path";
 
 import { PRICING } from "../config.mjs";
+import { verificationCounts } from "../verify/filled.mjs";
 
 const MAX_LINES = 20;
 const MAX_WIDTH = 150;
@@ -60,6 +61,8 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
 
   const filled = decisions.filter(isFilled).length;
   const lines = [header, `Filled ${filled} of ${decisions.length}${resume?.value ? ` · résumé: ${path.basename(resume.value)}` : ""}`];
+  const verified = verificationCounts(decisions);
+  lines.push(row("VERIFIED", `${verified.ok}/${verified.total}`));
   if (submit?.ok) lines.push(row("SUBMITTED", submitLine(submit)));
   // A preflight refusal never reached the button (`clicked:false`), so it must not read as a
   // click that went unanswered: the ► HELD line says what refused it and how many rows did.
@@ -242,6 +245,7 @@ export function usageReport({ started = null, ms_total = null, phases = {}, jev 
   const jevUsd = round6(rateCost(PRICING.jev, j));
   const openaiUsd = round6(openaiCost(o));
   return {
+    over_budget: j.requests > 4,
     ms_total: ms_total ?? (started ? Date.now() - started : 0),
     ms_schema: phases.schema ?? 0,
     ms_plan: phases.plan ?? 0,

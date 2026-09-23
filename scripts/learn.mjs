@@ -19,6 +19,7 @@ import { noticeRule, workAuthCountries } from "../src/memory/derive.mjs";
 import { eeoCanonical, nameSplit } from "../src/plan/resolve.mjs";
 import { EEO_VALUES, stamp, validateRow } from "../src/memory/schema.mjs";
 import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
+import { enrichRows, enrichMemory } from "../src/memory/enrich.mjs";
 
 class Blocked extends Error {}
 
@@ -49,6 +50,7 @@ function parseArgs(argv) {
     };
     if (flag === "--seed") args.seed = next();
     else if (flag === "--answers") args.answers = next();
+    else if (flag === "--backfill") args.backfill = true;
     else if (flag === "--resume") args.resumes.push(next());
     else if (flag === "--links" || flag === "--link") args.links.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
     else if (flag === "--help" || flag === "-h") args.help = true;
@@ -123,7 +125,7 @@ async function importSeed(dir) {
   for (const [file, section] of SEED_SECTIONS) {
     const rows = await readYaml(path.join(seedDir, file));
     if (!Array.isArray(rows) || !rows.length) continue;
-    const result = await mergeSection(section, rows);
+    const result = await mergeSection(section, await enrichRows(section, rows));
     const prev = report.sections[section];
     report.sections[section] = prev
       ? { added: prev.added + result.added, updated: prev.updated + result.updated, kept_user: prev.kept_user + result.kept_user, rejected: [...prev.rejected, ...result.rejected], rows: result.rows }
@@ -255,7 +257,7 @@ async function importResumes(files, links) {
   // `overwriteUser` stays false: a proposal never replaces something the user stated themselves.
   for (const section of ["documents", "facts", "stories"]) {
     if (!proposals[section].length) continue;
-    const result = await mergeSection(section, proposals[section]);
+    const result = await mergeSection(section, await enrichRows(section, proposals[section]));
     report.sections[section] = result;
     if (result.rejected.length) report.rejected.push(...result.rejected);
     log(`${section}: +${result.added} new, ${result.updated} updated, ${result.kept_user} kept (user), ${result.rejected.length} rejected`);
@@ -489,7 +491,7 @@ async function writeAnswers(file) {
       rejected.push(`${id}: ${problems[0]}`);
       continue;
     }
-    await upsertRow(section, row, { overwriteUser: true });
+    await upsertRow(section, (await enrichRows(section, [row]))[0], { overwriteUser: true });
     stored.push(id);
   }
   return { stored, rejected };
@@ -499,6 +501,7 @@ async function writeAnswers(file) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.backfill) { emit(await enrichMemory()); return; }
   if (args.help || (!args.seed && !args.resumes.length && !args.links.length && !args.answers)) {
     throw new Blocked(
       "usage: learn.mjs --seed DIR | learn.mjs --resume cv.pdf [--resume b.pdf] [--links url,url] | learn.mjs --answers answers.json",

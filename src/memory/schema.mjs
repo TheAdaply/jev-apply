@@ -210,6 +210,9 @@ export function validateRow(section, row) {
     if (value === undefined || value === null || value === "") problems.push(`${section}: missing ${key}`);
   }
   if (!rowKey(section, row)) problems.push(`${section}: row has no usable id`);
+  for (const field of ["answers_questions", "topics"]) {
+    if (row[field] !== undefined && (!Array.isArray(row[field]) || row[field].some(value => typeof value !== "string" || !value.trim()))) problems.push(`${section}: ${field} must be a list of nonempty strings`);
+  }
 
   if (row.scope !== undefined && !parseScope(row.scope)) problems.push(`${section}: bad scope ${JSON.stringify(row.scope)}`);
   if (row.since !== undefined && !parseSince(row.since)) problems.push(`${section}: bad since ${JSON.stringify(row.since)}`);

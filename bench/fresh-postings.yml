@@ -1,0 +1,317 @@
+# jev-apply — twelve postings the system has never seen, for the fresh-baseline capture
+#
+# Purpose: measure the runner on forms that no earlier round, no earlier shortlist and no earlier
+# application touched — the "any form, including one never seen" case that `docs/POSTMORTEM.md`
+# says the five judged rounds cannot answer, because every round after round 1 re-ran postings whose
+# failure classes had already been patched. Consumed by `scripts/eval-shots.mjs --postings`
+# (`src/bench/postings.mjs` reads `postings[]`); `controls` here is the inventory the live schema
+# reported on the verification date, not a scoring expectation.
+#
+# How the list was built (2026-09-24):
+#   1. Exclusion set, applied to *company* and to *URL*: every row of `bench/postings.yml` (together
+#      -ai, baseten, linear, tenstorrent, cohere, elevenlabs, cloudflare, confluent, faire, deepl,
+#      fireworks, figma, affirm, 1password), every row of `bench/ten-postings.yml` (together-ai,
+#      tenstorrent, graphcore, scale-ai, modal, d-matrix, decagon, cerebras, mistral, snowflake),
+#      every company named in `private/o1-candidates.md` (adds xai, anyscale, anthropic, isomorphic
+#      labs, coreweave, databricks, wayve, stability ai, etched, speechmatics), and every slug under
+#      `~/.config/jev-apply/applications/` (snowflake-deaebf03, mistral-ai-2ed434c7, cerebras-
+#      d654a704, decagon-c1ac7d78, d-matrix-f36b38d8, modal-7db771eb, scale-ai-4488520005,
+#      graphcore-8632581002, tenstorrent-4832276007, together-ai-5140763007, scale-ai-4534631005,
+#      together-ai-4385540007, spacexai-4533894007, fireworks-fc3845e6, baseten-db6477fc,
+#      baseten-7c9d2bb0, together-ai-5179372007, and the two `smoke-*` dirs). None of the twelve
+#      companies below appears in any of those four sources.
+#   2. Candidate boards came from `private/companies-seed.yml` + `corpus/companies-extra.yml`
+#      (the provider/token map), minus the exclusion set, minus every Lever board (`detectAts`
+#      supports greenhouse + ashby only). 222 live postings were then fetched through the repo's own
+#      schema slice — `loadFormPlan` (`src/schema/index.mjs`) — and scored on control rarity.
+#   3. Every row below was re-fetched through `loadFormPlan` on 2026-09-24 and returned a FormPlan,
+#      so all twelve are open on that date. The six Greenhouse rows were additionally fetched as
+#      served HTML: 200, zero redirects, `id="application-form"` present — hosted, not embedded.
+#   4. Excluded on inspection: AI-usage attestation forms (Perplexity's application carries one on
+#      every posting, so the whole board is out); postings located in India; embedded boards whose
+#      `absolute_url` leaves `job-boards.greenhouse.io` (mongodb, asana, sambanova, robinhood's
+#      canonical URL form is `boards.greenhouse.io/...?gh_jid=`, spotify/zoox/palantir = Lever).
+#   5. Also excluded, deliberately: any posting already present in `corpus/` as a question-text
+#      sample, because the canonical question bank was clustered from those labels. GitLab
+#      8490477002, Gusto 7656216, Discord 8769799002 and Harvey d78083d9 were each dropped for a
+#      same-template sibling on the same board for exactly that reason.
+#
+# Run rules: real profile (`~/.config/jev-apply`, CDP 9223), `--no-submit` on every child
+# (`src/bench/shots.mjs:runFill` hardcodes the flag — there is no `--submit`), tab closed after its
+# screenshots (`--close`). These are live employer forms and the user's real identity: the run
+# fills, photographs and walks away.
+#
+# NOT personal data: every field below is public job-board metadata.
+
+generated: 2026-09-24
+verified: 2026-09-24          # all 12 fetched through loadFormPlan and confirmed open on this date
+ats_supported: [greenhouse, ashby]
+
+# Greenhouse first, then Ashby; within each ATS, ascending on the number of questions the live
+# schema reported.
+postings:
+  - url: https://job-boards.greenhouse.io/twilio/jobs/7996774
+    company: twilio
+    family: ml_engineer
+    ats: greenhouse
+    title: Machine Learning Engineer
+    questions: 15
+    required: 13
+    controls: [text, tel, file, checkbox_group, checkbox_single, react_select, location, eeo]
+    notes: >-
+      Non-US row one: `Remote - Ireland`, so `job.country` normalizes to IE and the work-auth pair
+      must resolve from the user's IE answer, not their US one. Carries two *one-box* checkbox
+      groups whose only option is the literal "Acknowledge" — one classified `policy_gate` (the
+      Twilio privacy/processing notice) and one classified `company_specific` (the candidate
+      guidelines confirmation), i.e. two near-identical controls that the classifier splits into
+      two different gates; the `company_specific` one is the interesting half, because nothing in
+      the store speaks to it. Plus a 9-box required "How did you hear about Twilio?" checkbox
+      group and "What is the source of your right to work where this role is listed?", a 4-option
+      react-select that is a personal fact and must `ask` when not on file.
+
+  - url: https://job-boards.greenhouse.io/gitlab/jobs/8786095002
+    company: gitlab
+    family: backend
+    ats: greenhouse
+    title: Principal Engineer, Duo Agent Platform
+    questions: 18
+    required: 9
+    controls: [text, tel, file, react_select, long_option_list, eeo]
+    notes: >-
+      The long-option-list case, and the longest single control in either bench file: "What is your
+      current country of residence?" is a **197-option** required react-select, sitting next to a
+      5-option "What country would you be working from if offered the role?" whose labels are
+      *numbered* ("1 - United States", "2 - Canada", "3 - United Kingdom", "4 - Poland",
+      "5 - Other") — a value the store holds as "United States" has to match a label that does not
+      start with it. Four countries in one posting (CA/PL/UK/US, `job.country` = CA), a 7-option
+      sponsorship select, and the restrictive-agreement row ("Are you subject to any employment
+      agreements and/or post-employment restrictions…") that answers from
+      `p.legal.restrictive_agreements` and nothing else.
+
+  - url: https://job-boards.greenhouse.io/gusto/jobs/8073232
+    company: gusto
+    family: ml_engineer
+    ats: greenhouse
+    title: Software Engineer, ML Platform
+    questions: 23
+    required: 20
+    controls: [text, tel, file, checkbox_group, react_select, multi_select, location, hear_about, eeo]
+    notes: >-
+      20 of 23 rows required — the strictest form in the set, so one miss is the difference between
+      `ready_to_submit` and `needs_user`. The required "How did you hear about this opportunity?
+      (select all that apply)" is an 11-box Greenhouse *checkbox group*, the rendering
+      `src/schema/greenhouse.mjs` hard-overrides to `control:"checkbox"` and the one Figma got
+      wrong in `bench/postings.yml` row 12 — here the override should be right. Also a free-text
+      "Zip Code / Postal Code" with an instruction inside the label (non-US candidates enter
+      "00000"), a 4-option years-of-experience bucket, and a 12-option race/ethnicity *multi*
+      react-select among seven sensitive rows that must stay untouched unless `p.eeo` is on file.
+
+  - url: https://job-boards.greenhouse.io/remotecom/jobs/7799283003
+    company: remote-com
+    family: product_manager
+    ats: greenhouse
+    title: GTM Product Manager
+    questions: 23
+    required: 17
+    controls: [text, tel, file, react_select, long_option_list, textarea, dependent, hear_about, eeo]
+    notes: >-
+      Three policy gates on one form — a transparency/AI-in-hiring consent (2 options), a 1-option
+      "Privacy notice" acknowledgement, and a "Notice at Collection for California Job Applicants"
+      whose second option is "I am not a California resident" — all of which must `ask` unless an
+      explicit `p.legal.<slug>` row exists. Carries the set's second long list (a **282-option**
+      country select), a 10-option "How did you hear about Remote?", the non-compete row that
+      answers from `p.legal.restrictive_agreements`, a required *conditional* textarea ("If you
+      were previously employed by Remote, please share the email you used… If not, please put
+      N/A") that only makes sense after the row above it, a `sensitive` pronouns select, and a
+      required self-identification *consent* row. Location is the bare region "EMEA", so
+      `job.country` is null by design: the honest reading, and every country-scoped row on the
+      form has to survive it.
+
+  - url: https://job-boards.greenhouse.io/vercel/jobs/6199608004
+    company: vercel
+    family: infra_sre
+    ats: greenhouse
+    title: Software Engineer, Agentic Infrastructure
+    questions: 24
+    required: 12
+    controls: [text, tel, file, react_select, checkbox_single, multi_select, location, hear_about, long_option_list, eeo]
+    notes: >-
+      Two *one-option* react-selects, both required: a privacy-notice `policy_gate` and a
+      "Please double-check all the information provided above…" confirmation classified
+      `company_specific` — the single-option select is the react-select twin of `bench/postings.yml`
+      row 7's single checkbox, and neither has been run. Plus a 14-option "Where did you first hear
+      about this role?", a 9-option "Are you currently based in any of these countries?" (an
+      eligibility list, not a location autocomplete), a 5-option work-authorization row phrased as
+      *why* you are authorized rather than yes/no, a state-list question that packs eleven US states
+      into the label, and six optional EEO rows of which three are multi-selects (11-option
+      race/ethnicity, 8-option sexual orientation, 5-option gender).
+
+  - url: https://job-boards.greenhouse.io/discord/jobs/8656854002
+    company: discord
+    family: security
+    ats: greenhouse
+    title: Senior Software Engineer, Application Security
+    questions: 25
+    required: 17
+    controls: [text, tel, file, textarea, essay, react_select, location, multi_select, eeo]
+    notes: >-
+      The EEO-survey stress case: **eleven** sensitive rows, ten of them required, and they come in
+      two overlapping blocks — Discord asks Gender/Race/Veteran twice with different option sets
+      ("Decline To Self Identify" vs "I don't wish to answer") and then a third optional block
+      (Gender Identity, a 10-option Race-or-Ethnicity *multi*-select, LGBTQ+ membership). Nothing
+      here may be inferred from a name or a résumé; with `p.eeo` on file every one of them is an
+      attempted fill, without it every one is a single batched `ask`. Also the only writer-path row
+      in the Greenhouse half: a required "Why do you want to work at Discord?" textarea
+      (`why_us`), plus a "How did you hear about this job?" that is **free text**, not an option
+      list — the negative control for `hear_about` matching.
+
+  - url: https://jobs.ashbyhq.com/notion/06e1d3a8-2706-4ed9-9fe6-8b69607de18e/application
+    company: notion
+    family: security
+    ats: ashby
+    title: Security Engineer, Detection and Response, Dublin
+    questions: 10
+    required: 8
+    controls: [text, tel, file, radio, location, checkbox_group, hear_about]
+    notes: >-
+      The floor of this set and the second non-US row — Dublin, Ireland (`job.country` = IE) — so a
+      failure on ten rows is a runner problem, not a form problem. The optional 7-box "How did you
+      hear about this opportunity? (select all that apply)" is an Ashby MultiValueSelect rendered
+      as a checkbox group; the anchor-days row ("We work from our offices on Mondays, Tuesdays and
+      Thursdays…") is a circumstance question whose label buries the actual ask in an accommodation
+      offer; and "What pronouns would you like our team to use…" is `sensitive` and must stay empty.
+
+  - url: https://jobs.ashbyhq.com/harvey/1406ae6f-1dfc-4b5a-985d-cccbffe283e1/application
+    company: harvey
+    family: backend
+    ats: ashby
+    title: Senior Software Engineer, Backend
+    questions: 15
+    required: 12
+    controls: [text, tel, file, radio, location, dependent]
+    notes: >-
+      The conditional-child row. The office-location question is a 4-option ValueSelect whose last
+      option is "Other", and the row that follows it — "If you selected “Other,” please provide
+      additional details." — is an optional free-text child that is meaningless unless the parent
+      picked Other. Answering the child when the parent did not, or leaving it as an `ask` that
+      blocks the form when the parent picked a normal option, are two different wrong answers and
+      only one of them is visible in a trace. Also "Legal First and Last Name" as a single field
+      (the store holds two), "Pronouns" as a `sensitive` *text* row that must stay empty, and a
+      sponsorship select whose options are sentences ("Yes, I will require Harvey to sponsor my
+      employment") rather than Yes/No.
+
+  - url: https://jobs.ashbyhq.com/plaid/ce3b3add-47d9-402d-a31d-16ffd1d0adb4/application
+    company: plaid
+    family: data_engineer
+    ats: ashby
+    title: Senior Data Engineer - Data Engineering
+    questions: 17
+    required: 11
+    controls: [text, tel, file, radio, yesno, location, checkbox_group, multi_select, why_us]
+    notes: >-
+      The `why_us` row here is **not a textarea**: "Why are you interested in working at Plaid?
+      Select all that apply." is a required 5-box checkbox group that `classify` labels `why_us`,
+      so the writer path must not fire and the row has to be answered by option matching instead —
+      a draft written into a checkbox group is the failure this row is here to catch. Alongside it
+      a required 5-box "Preferred Location (In Office)" group, an opinion question with no right
+      answer ("how would you rate Plaid's position in AI compared to other tech companies?",
+      5-point scale, required), and a required free-text "Education History" that the store holds
+      as structured facts.
+
+  - url: https://jobs.ashbyhq.com/lambda/3fede5ab-bd58-4539-b846-f613c8bc81ff/application
+    company: lambda
+    family: gpu_performance
+    ats: ashby
+    title: Senior HPC Platform Hardware Engineer
+    questions: 17
+    required: 11
+    controls: [text, tel, file, radio, yesno, location, eeo]
+    notes: >-
+      Three *company_specific* yes/no screeners in a row — datacenter-hardware NPI tech-lead
+      experience, hands-on OEM/ODM/JDM/CM platform work, willingness to travel up to 15% — none of
+      which any canonical answer covers, so the correct behaviour is three `ask`s and not three
+      confident Yeses. Plus an "Interview Recording Consent" ValueSelect classified `policy_gate`
+      (answered only from an explicit `p.legal.<slug>`), an onsite-4-days-a-week row, and the
+      standard three-row Ashby EEO block.
+
+  - url: https://jobs.ashbyhq.com/lumaai/278788c5-a288-41d8-92ca-f07a82310173/application
+    company: luma-ai
+    family: research_scientist
+    ats: ashby
+    title: Research Scientist / Engineer – Performance Optimization
+    questions: 18
+    required: 5
+    controls: [text, tel, file, radio, location, checkbox_group, multi_select, long_option_list, hear_about, eeo]
+    notes: >-
+      Four checkbox groups on one form, three of them demographic: a **14-option** "How did you
+      discover us?" (the longest multi-select in either bench file), then 7-option sexual
+      orientation, 8-option ethnicity and 7-option community-membership groups, followed by a
+      second, single-select EEO block (Gender/Race/Veteran) that asks two of the same facts again
+      in a different vocabulary. Also the only form in the set asking an *age* bucket, which is
+      `sensitive` and must be treated like the rest of the demographic block. Only 5 of 18 rows are
+      required, so this row measures what the runner does when it is *allowed* to leave things
+      blank — an over-filling regression shows up here and nowhere else.
+
+  - url: https://jobs.ashbyhq.com/openai/7322d344-9325-4a92-8445-0a2c4e9272f8/application
+    company: openai
+    family: research_engineer
+    ats: ashby
+    title: Research Engineer, Retrieval & Search, Applied Engineering
+    questions: 20
+    required: 14
+    controls: [text, tel, file, date, radio, location, checkbox_single, long_option_list, eeo]
+    notes: >-
+      The only **date** control found on any fresh board (see `coverage.not_found` below):
+      "When can you start a new role?", required, an Ashby `Date` field — the control that had no
+      adapter branch until round 2 and that `classifyShape`'s date-class rung now reads. Expect
+      `control:"date"` and an ISO value read back; a prose value is the regression. Also two
+      one-box `policy_gate` attestations, both required — an Applicant Arbitration Agreement
+      acknowledgement and a "I hereby certify that I have not knowingly withheld any information…"
+      certification — which are signed statements about the user and must `ask` unless an explicit
+      `p.legal.<slug>` preference exists; a 7-option technical-domain preference; and two
+      quantitative free-text rows ("What percentage of time do you generally enjoy spending
+      coding?", "How many years of industry experience do you have?") that are numbers asked as
+      text. This posting carries **no** AI-usage attestation: the arbitration and certification
+      rows are ordinary legal gates.
+
+# What the live schemas reported across the twelve forms (2026-09-24).
+control_summary:
+  text: 12                # every form
+  file: 12                # résumé upload on every form
+  location: 11            # GH `#candidate-location` / Ashby `Location` autocomplete
+  tel: 12
+  eeo: 9                  # sensitive rows that must stay empty unless `p.eeo` is on file
+  react_select: 6         # every hosted-Greenhouse row
+  radio: 6                # every Ashby row
+  checkbox_group: 6       # twilio(2×1-box, 9-box) gusto(11) notion(7) plaid(2×5) luma(4) openai(2×1-box)
+  multi_select: 5         # pick-many, either rendering
+  hear_about: 5           # referral-source question (checkbox group or react-select)
+  long_option_list: 4     # >= 14 options in one control (197, 282, 14, 14)
+  policy_gate: 6          # twilio remote(×3) vercel lambda openai(×2)
+  dependent: 2            # remote-com (conditional textarea), harvey ("If you selected Other…")
+  textarea: 3             # discord `why_us`, remote-com conditional, openai optional
+  date: 1                 # openai — the only one on any fresh board
+  essay: 1                # discord "Why do you want to work at Discord?" → writer path
+
+coverage:
+  postings: 12
+  companies: 12           # every row a different employer
+  families: 9             # ml_engineer(×2) backend(×2) security(×2) product_manager infra_sre
+                          # data_engineer gpu_performance research_scientist research_engineer
+  ml_research_inference: 5   # twilio gusto luma lambda openai
+  backend_infra_data_security_pm: 7  # gitlab vercel discord remote-com gusto* plaid notion
+  greenhouse: 6           # twilio gitlab gusto remote-com vercel discord
+  ashby: 6                # notion harvey plaid lambda luma openai
+  non_us: 4               # twilio(IE) notion(IE) gitlab(CA/PL/UK/US) remote-com(EMEA → country null)
+  # Asked for and *not* found, with the evidence, rather than filled with a seen company:
+  not_found:
+    number: >-
+      No fresh board carries one. 222 live postings were fetched through `loadFormPlan` on
+      2026-09-24 (155 Ashby across 26 boards, 67 Greenhouse across 14 boards; three fetches timed
+      out and are not counted) and not one reported `control:"number"`; exactly one reported
+      `control:"date"`, the OpenAI row above. Across the whole 500-posting `corpus/`, only three companies ever ask a
+      numeric field — confluent ("Location - Zip Code"), fireworks ("initial compensation
+      expectations") and deepl — and all three are already in `bench/postings.yml`. The closest
+      fresh substitutes are in the set anyway: Gusto's "Zip Code / Postal Code" and OpenAI's
+      "percentage of time… coding" / "years of industry experience", all three numeric answers
+      routed through `setText`.

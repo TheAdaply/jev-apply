@@ -40,6 +40,8 @@ import { parseTrace } from "../src/bench/metrics.mjs";
 import { loadPostings } from "../src/bench/postings.mjs";
 import { assertBenchPort, loadSecrets, readArtifacts } from "../src/bench/run.mjs";
 import {
+  auditMemory,
+  snapshotMemory,
   captureShots,
   countRows,
   draftReport,
@@ -148,6 +150,7 @@ async function resolvePostings(list) {
 async function shootOne(posting, ctx) {
   const since = Date.now();
   log(`\n[${posting.n}/${ctx.total}] ${posting.company} · ${posting.ats} · ${posting.url}`);
+  const memory = await snapshotMemory(ctx.home);
 
   const reset = await resetTab({
     url: posting.url,
@@ -175,7 +178,18 @@ async function shootOne(posting, ctx) {
   const { decisions, trace, frozen } = await readArtifacts(ctx.home, result.slug ?? null);
   const traced = parseTrace(trace);
   const fields = await fieldIndex({ url: result.url ?? posting.url, trace: traced, extra: frozen?.extra ?? [] });
-  const expected = expectedRows(decisions, fields);
+  // Keep the availability judgment separate from the fill's model verdict and request budget.
+  if (!process.env.TYPESAFE_API_KEY && ctx.secrets.TYPESAFE_API_KEY) process.env.TYPESAFE_API_KEY = ctx.secrets.TYPESAFE_API_KEY;
+  await writeJson(path.join(ctx.home, "applications", slug, "eval-memory.json"), memory);
+  let audit;
+  try {
+    audit = await auditMemory({ decisions, mem: memory, home: ctx.home, slug, job: { company: posting.company, title: result.title } });
+  } catch (err) {
+    log(`    memory audit unavailable (${err.name}) — no missing-memory grades inferred`);
+    audit = { available: false, error: err.name, rows: decisions.map((d) => ({ qid: d.qid, store_had_it: null, verified: d.verified ?? null })), metrics: null, requests: null, usage: null };
+  }
+  const audited = new Map(audit.rows.map((row) => [row.qid, row]));
+  const expected = expectedRows(decisions.map((d) => ({ ...d, ...audited.get(d.qid) })), fields);
 
   // The runner's own witness that this form started blank. `resetTab` above can legitimately
   // no-op — no browser yet, no tab yet — and Chrome can then restore an earlier session's tab
@@ -208,6 +222,7 @@ async function shootOne(posting, ctx) {
   const counts = countRows(decisions);
 
   await writeJson(path.join(dir, "expected.json"), expected);
+  await writeJson(path.join(dir, "verify.json"), { ...audit, verified: countRows(decisions).verified });
   // `result.json` is the runner's own stdout, plus the two things a reader of *this* round asks it
   // for and the runner does not print in one place: `counts`, the Decision tally the index's
   // filled/asks/drafted/failed columns are computed from (the runner prints `filled` and lists
@@ -267,6 +282,7 @@ async function shootOne(posting, ctx) {
     reset: tab,
     integrity,
     drafts: drafts.counts,
+    judgments: audit.metrics,
     shots: { ok: shots.ok, ...(shots.why ? { why: shots.why } : {}), closed: shots.closed === true, viewports: shots.viewports, page: shots.page },
     files: {
       full: shots.full,
@@ -274,6 +290,7 @@ async function shootOne(posting, ctx) {
       expected: "expected.json",
       result: "result.json",
       drafts: "drafts.json",
+      verify: "verify.json",
     },
   };
 
@@ -339,6 +356,11 @@ async function rebuildIndex(round) {
 }
 
 // ─── entry ────────────────────────────────────────────────────────────────────────────────────
+if (process.argv.includes("--help")) {
+  process.stdout.write(`${USAGE}\n`);
+  process.exit(0);
+}
+
 
 const args = (() => {
   try {

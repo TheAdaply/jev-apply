@@ -10,9 +10,4 @@ export {
   cleanLabel,
   htmlToText,
   decodeEntities,
-  POLICY_GATE_RE,
-  SENSITIVE_RE,
-  IDENTITY_RE,
-  WHY_US_RE,
-  CIRCUMSTANCE_RE,
 } from "./classes.mjs";

@@ -5,37 +5,49 @@
 A correctness pass driven by five cold judgements of filled, screenshotted forms rather than by
 code review alone — the round-one/round-two eval-shots harness graded 136 real-profile Decision
 rows twice, once before and once after this release's fixes. `docs/POSTMORTEM.md` (new) is the
-resulting record: all 35 failure classes found across every graded round, 21 fixed in-tree and 14
-open, each with its root cause, why earlier checks missed it, and the guard that now catches it —
-no personal value, store path, or real answer text appears in it.
+resulting record: all 35 failure classes found across every graded round, 21 fixed in-tree and the
+remaining 14 closed this release — every guard column now reads "in place", none "REQUIRED" — each
+with its root cause, why earlier checks missed it, and the guard that catches it now. No personal
+value, store path, or real answer text appears in it.
 
 - `docs/POSTMORTEM.md` (new) — the failure-class ledger. §4 documents the nine ordered stages a
   fill now passes through before a submit click is even considered; §5 names what still cannot be
   verified automatically (a score-based captcha's silent rejection, whether a saved value is still
   true, option lists inside a closed `react_select`).
 - `src/plan/preflight.mjs`, `scripts/preflight.mjs` (new), `eval/fixtures/preflight-*.json` (new) —
-  the last gate before the click, judging what is *on the form* rather than what the plan intended:
-  `sensitive_source`, `policy_gate_source`, `draft_gates`, `fact_from_writer`,
+  the last gate before the click, judging what is *on the form* rather than what the plan intended,
+  now twelve refusals: `sensitive_source`, `policy_gate_source`, `draft_gates`, `fact_from_writer`,
   `dependency_child_filled`, `work_mode_as_location`, `prose_into_date_control`, `required_empty`
-  (from the page's own live snapshot when there is one), `readback_failed`, and `name_split_blind`.
-  A refusal is `blocked{reason:"preflight"}` with `clicked:false`, so the posting stays retryable —
-  not retroactive theatre: records frozen during the graded rounds still fail it today.
-- `src/plan/draft.mjs` — two Jev relevance gates bracket every writer call: does the saved material
-  answer this prompt, before the call; does the drafted text answer it, after. A draft with no
-  verdict on record is refused rather than submitted (`draft_gates`), and a fact-seeking textarea
-  (e.g. "what languages are you fluent in") is classified as a fact and never handed to the writer
-  in the first place.
+  (from the page's own live snapshot when there is one), `readback_failed`, `name_split_blind`,
+  `sensitive_readback` (B3 — a sensitive row's read-back now records `observed_matches` in place of
+  the value, and a false verdict refuses the submit), and `overlay_over_submit` (B12 —
+  `submitObstruction()` hit-tests the submit control's own box and refuses a click the board's own
+  cookie/consent overlay would intercept). A refusal is `blocked{reason:"preflight"}` with
+  `clicked:false`, so the posting stays retryable — not retroactive theatre: records frozen during
+  the graded rounds still fail it today.
+- `scripts/apply.mjs`, `src/plan/decisions.mjs` — `formFingerprint(formPlan)` freezes the shape of
+  the form a fill was reviewed against, and `refillGuard()` refuses a `--url` run that would re-fill
+  a posting whose shape has changed since, unless the new `--refill` flag says to do it anyway
+  (B1). Frozen decision rows carry `required` straight from the form's own schema (`withFormFacts`),
+  so "required and empty" is gradable later with no schema and no browser (B2).
+- `src/plan/execute.mjs` — a sensitive row's frozen record now carries `observed_matches:boolean`
+  instead of the value (B3); `#race` (and any row like it) is planned as a dependant of the row it
+  `mounts_after`, driven after its parent, and a control the page has not grown yet is deferred
+  rather than counted as a failed write (B8, `src/schema/greenhouse.mjs` `MOUNTS_AFTER`);
+  `submitObstruction()` reads the submit control's own geometry against every element covering it
+  (B12).
 - `src/plan/resolve.mjs`, `src/schema/normalize.mjs`, `src/schema/classes.mjs` — the guards behind
-  six of the postmortem's open findings: a question naming another organisation no longer derives
-  an answer from the user's own application pipeline (B4); a citizenship/work-authorization pair
-  now answers an export-control status row instead of leaving it blank (B5); a relocation
+  six more of the postmortem's open findings: a question naming another organisation no longer
+  derives an answer from the user's own application pipeline (B4); a citizenship/work-authorization
+  pair now answers an export-control status row instead of leaving it blank (B5); a relocation
   preference reaches a country the label names even when the country table can't map it (B6); a
   Yes/No confirmation or a categorical select is never fed the wrong-shaped value behind a sibling
   row (B7); a notice offering to redact a protected characteristic is classed `policy_gate`, not
   `sensitive` (B10); and a work-authorization `why` renders the fact's resolved value instead of its
   field name (B11).
-- `eval/plan.test.mjs` — 29 `guard:` assertions, one per named failure class in
-  `docs/POSTMORTEM.md`; B1, B2 and B14 additionally refuse at runtime.
+- `eval/plan.test.mjs` — 131 assertions, 0 failures, exit 0; 29 of them are the named `guard:`
+  lines, one per failure class in `docs/POSTMORTEM.md` §2, and B1, B3, B12 and B14 additionally
+  refuse at runtime, not just in the suite.
 - `bench/results/accuracy-ten.{md,json,png}` — the ten-posting, 136-field, real-profile accuracy
   report, now judged twice by two independent cold passes: **89.7% → 94.1%** correct (122 → 128 of
   136 rows), **97.1% → 98.1%** of filled fields correct. The report's per-posting table, three-panel

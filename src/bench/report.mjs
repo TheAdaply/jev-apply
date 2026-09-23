@@ -95,6 +95,12 @@ function totals(postings) {
     exercise_ms: sum((p) => p.exercised?.ms),
     exercise_jev_requests: sum((p) => p.exercised?.jev?.requests),
     exercise_usd: postings.some((p) => p.exercised) ? Math.round(sum((p) => p.exercised?.usd) * 1e6) / 1e6 : null,
+    judgments: (() => {
+      const keys = ["right", "wrong", "missed", "couldnt", "unjudged", "store_had_it", "rows"];
+      const c = Object.fromEntries(keys.map((key) => [key, sum((p) => p.judgments?.[key])]));
+      return { ...c, answer_accuracy: c.right + c.wrong ? c.right / (c.right + c.wrong) : null,
+        miss_rate: c.store_had_it ? c.missed / c.store_had_it : null, blocked_rate: c.rows ? c.couldnt / c.rows : null };
+    })(),
   };
 }
 
@@ -292,6 +298,9 @@ export function buildReport({ run, started, finished, postings, list, home, port
         `${seeded.constants ?? 0} constants · ${seeded.rules ?? 0} rules · ${seeded.policies ?? 0} policies · ${seeded.narratives ?? 0} narratives (${seeded.rows ?? 0} rows). ` +
         `${seeded.coverage_line ? `${seeded.coverage_line}.` : ""}${(seeded.missing ?? []).length ? ` Not pre-answered: ${seeded.missing.join("; ")}.` : ""}`
       : "Memory: the synthetic store only — the canonical bank was **not** pre-answered for this run.",
+    "",
+    `Judgments: ${sums.judgments.right} right · ${sums.judgments.wrong} wrong · ${sums.judgments.missed} missed (memory had it) · ${sums.judgments.couldnt} couldnt (blocked/no memory) · ${sums.judgments.unjudged} unjudged.`,
+    `answer_accuracy: ${sums.judgments.answer_accuracy ?? dash} · miss_rate: ${sums.judgments.miss_rate ?? dash} · blocked_rate: ${sums.judgments.blocked_rate ?? dash}. A semantic verdict is not independent ground truth.`,
     "",
   ];
 

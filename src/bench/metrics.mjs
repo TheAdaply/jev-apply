@@ -11,6 +11,43 @@
 //   * **Only this run counts.** A trace is append-only across every run against a posting, so
 //     every reader here filters on `since` — the wall clock just before the child was spawned.
 
+/** Resolution is evidence about an empty row, not a claim that a filled answer is right. */
+export function rowResolution(d) {
+  const store_had_it = typeof d.store_had_it === "boolean" ? d.store_had_it : null;
+  const invariant_gate = d.invariant_gate === true || d.class === "policy_gate" || d.class === "sensitive" ||
+    d.understanding?.attestation === true || d.understanding?.sensitive === true || d.understanding?.about === "third_party";
+  let resolution = d.resolution;
+  if (!resolution) {
+    if (["fill", "check", "draft"].includes(d.action) && (d.value != null || d.option != null)) resolution = "answered";
+    else if (d.readback?.ok === false) resolution = "blocked_widget";
+    else if (d.control === "unknown") resolution = "blocked_unsupported";
+    else if (d.verified?.ok === false || invariant_gate) resolution = "asked_gate";
+    else resolution = "asked_no_item";
+  }
+  return { resolution, store_had_it, invariant_gate };
+}
+
+export function judgmentMetrics(rows = []) {
+  const counts = { right: 0, wrong: 0, missed: 0, couldnt: 0, unjudged: 0, store_had_it: 0, rows: rows.length };
+  for (const row of rows) {
+    const evidence = rowResolution(row);
+    if (evidence.store_had_it) counts.store_had_it += 1;
+    let grade = row.grade;
+    if (!["right", "wrong", "missed", "couldnt"].includes(grade)) {
+      grade = evidence.resolution === "answered" ? "unjudged"
+        : evidence.invariant_gate || ["blocked_widget", "blocked_unsupported"].includes(evidence.resolution) ? "couldnt"
+        : evidence.store_had_it === null ? "unjudged" : evidence.store_had_it ? "missed" : "couldnt";
+    }
+    counts[grade] += 1;
+  }
+  return {
+    ...counts,
+    answer_accuracy: counts.right + counts.wrong ? counts.right / (counts.right + counts.wrong) : null,
+    miss_rate: counts.store_had_it ? counts.missed / counts.store_had_it : null,
+    blocked_rate: counts.rows ? counts.couldnt / counts.rows : null,
+  };
+}
+
 /** The report's columns, in the order they are printed. Anything else buckets into `unknown`. */
 export const CONTROL_TYPES = [
   "text",
@@ -316,6 +353,7 @@ export function summarize({ decisions = [], trace = [], since = 0, status = null
 
   return {
     fields: counts,
+    judgments: judgmentMetrics(decisions),
     controls,
     failures,
     // Every row handed back to the user, kept apart from `failures` (which also carries writes the

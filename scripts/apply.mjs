@@ -75,6 +75,7 @@ import { resolvePreference } from "../src/memory/resolve.mjs";
 import { normalizeUrl } from "../src/discover/dedupe.mjs";
 import { costLine, deltaUsage, newPhases, renderSummary, timed, usageReport } from "../src/plan/summary.mjs";
 import { usageTotals as writerSpend } from "../src/writer/openai.mjs";
+import { verificationCounts, verifyDecisions } from "../src/verify/filled.mjs";
 
 const USAGE = [
   "usage: apply.mjs --url <posting> | --tab | --queue <n> | --resume <slug> | --schema <file>",
@@ -233,13 +234,13 @@ function mergeFrozen(resolved, frozen) {
 }
 
 const sumJev = (a, b) => ({
-  requests: a.requests + b.requests,
-  ms: a.ms + b.ms,
+  requests: (a.requests ?? 0) + (b.requests ?? 0),
+  ms: (a.ms ?? 0) + (b.ms ?? 0),
   usage: {
-    input_tokens: a.usage.input_tokens + b.usage.input_tokens,
-    output_tokens: a.usage.output_tokens + b.usage.output_tokens,
+    input_tokens: (a.usage?.input_tokens ?? 0) + (b.usage?.input_tokens ?? 0),
+    output_tokens: (a.usage?.output_tokens ?? 0) + (b.usage?.output_tokens ?? 0),
   },
-  stages: [...a.stages, ...b.stages],
+  stages: [...(a.stages ?? []), ...(b.stages ?? [])],
 });
 
 /**
@@ -271,18 +272,32 @@ async function fill({ conn, plan, stores, budget, attach }) {
   // Step 10's drafts happen inside `runBrowser`; re-baselining here is what keeps a queue run's
   // per-posting OpenAI figures honest (planning is parallel, filling is sequential).
   plan.openaiBase = writerSpend();
+  const planned = structuredClone(plan.jev);
+  const before = jevSpend();
+  const requestBase = budget.requests;
+  const started = Date.now();
   const replan = replanFor({ plan, stores, budget });
   const draft = draftFor({ plan, stores, onLog: log });
   const args = { context: conn.context, formPlan: plan.formPlan, decisions: plan.decisions, slug: plan.slug, budget, replan, draft };
-  return timed(plan.phases, "browser", async () => {
-    try {
-      return await runBrowser({ ...args, attach });
-    } catch (err) {
-      if (!(attach && err instanceof Blocked && err.reason === "no_page")) throw err;
-      log("no open tab for this posting — opening a fresh one and filling the whole plan");
-      return runBrowser({ ...args, attach: false });
-    }
-  });
+  try {
+    return await timed(plan.phases, "browser", async () => {
+      try {
+        return await runBrowser({ ...args, attach });
+      } catch (err) {
+        if (!(attach && err instanceof Blocked && err.reason === "no_page")) throw err;
+        log("no open tab for this posting — opening a fresh one and filling the whole plan");
+        return runBrowser({ ...args, attach: false });
+      }
+    });
+  } finally {
+    const after = jevSpend();
+    plan.jev = sumJev(planned, {
+      requests: Math.max(after.requests - before.requests, budget.requests - requestBase),
+      ms: Date.now() - started,
+      usage: { input_tokens: after.input_tokens - before.input_tokens, output_tokens: after.output_tokens - before.output_tokens },
+      stages: ["browser"],
+    });
+  }
 }
 
 // ─── step 12: submit, when the user turned it on ──────────────────────────────────────────────
@@ -435,7 +450,8 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
     submit?.cause === "preflight"
       ? { status: "blocked", reason: "preflight", detail: submit.detail, failures: submit.preflight.failures }
       : submitOutcome(submit);
-  const status = outcome?.status ?? (questions.length ? "needs_user" : "ready_to_submit");
+  const verified = verificationCounts(decisions);
+  const status = outcome?.status ?? (questions.length || (!dryRun && verified.ok < verified.total) ? "needs_user" : "ready_to_submit");
   const usage = usageFor({ plan, started });
   const summary = renderSummary({ formPlan, decisions, slug, status, usage, submit });
   const extra = dedupeQuestions([...(plan.extra ?? []), ...(browser?.added ?? [])]);
@@ -486,6 +502,8 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
     company: formPlan.job.company,
     title: formPlan.job.title,
     filled: counts.filled,
+    ...(dryRun ? { rows: decisions.map(d => ({ qid: d.qid, label: d.label, understood_kind: d.understanding?.answer_kind ?? null, asks_for: d.understanding?.asks_for ?? null, canonical_new: d.canonical_new ?? null, qualifiers: d.understanding?.qualifiers ?? [], third_party: d.third_party ?? false, conditional_on: d.conditional_on ?? null, selected_item: d.selected_item ?? null, selection_noul: d.selection_noul ?? null, option_noul: d.option_noul ?? null, action: d.action })) } : {}),
+    verified: verificationCounts(decisions),
     ...(browser ? { set: browser.filled, failed: browser.failed, appeared: browser.added.length, tab: formPlan.url } : {}),
     asks: questions,
     checks: decisions.filter((d) => d.action === "check").map((d, i) => ({ handle: `c${i + 1}`, qid: d.qid, label: d.label, value: d.class === "sensitive" ? "••••" : d.option ?? d.value ?? null })),
@@ -836,6 +854,7 @@ async function resumeRun(args, stores) {
   let conn = null;
   let liveRows = null;
   let tab = null;
+  let verification = null;
   await timed(phases, "browser", async () => {
     try {
       conn = await connect({});
@@ -843,6 +862,12 @@ async function resumeRun(args, stores) {
       if (page) {
         tab = page.url();
         await waitForForm(page, { ats, timeout: 20000 }).catch(() => {});
+        const formPlan = await loadFormPlan(url);
+        formPlan.questions.push(...(frozen.extra ?? []).filter((q) => !formPlan.questions.some((known) => known.qid === q.qid)));
+        verification = await verifyDecisions({ page, ats, formPlan, decisions: frozen.decisions, slug: args.resume, refresh: true });
+        const { decisions: ignored, updated: priorUpdated, slug: priorSlug, ...meta } = frozen;
+        await freeze(args.resume, frozen.decisions, { ...meta, requests: verification.requests,
+          status: frozen.decisions.some((d) => d.action === "ask") || verification.verified < verification.total ? "needs_user" : "ready_to_submit" });
         liveRows = await snapshotRequired(page, { ats }).catch(() => null);
       }
     } catch (err) {
@@ -855,7 +880,8 @@ async function resumeRun(args, stores) {
   const rows = unfilled(frozen.decisions, { live: liveRows });
   const asked = needsUser(frozen.decisions, args.resume);
   const stillEmpty = (liveRows ?? []).filter((r) => !r.filled);
-  const status = asked.questions.length || stillEmpty.length ? "needs_user" : "ready_to_submit";
+  const checked = verificationCounts(frozen.decisions);
+  const status = asked.questions.length || stillEmpty.length || !verification || checked.ok < checked.total ? "needs_user" : "ready_to_submit";
   if (!args.json) {
     log("");
     for (const r of rows) log(`${pad(r.qid, 26)} | ${pad(r.label, 40)} | ${pad(r.action, 6)} | ${pad(r.value ?? "", 40)} | ${r.why ?? ""}`);
@@ -868,6 +894,7 @@ async function resumeRun(args, stores) {
     company: frozen.company ?? null,
     title: frozen.job ?? null,
     tab,
+    verified: checked,
     unfilled: rows,
     required_empty: stillEmpty.map((r) => ({ qid: r.qid, label: r.label })),
     asks: asked.questions,

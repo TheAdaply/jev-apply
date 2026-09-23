@@ -2,8 +2,16 @@
 
 Binding interfaces for parallel implementation. Each module is owned by one slice; other slices import by
 this contract only. Node ≥ 20, ESM `.mjs`, no build step. Every script: one JSON object on stdout, logs on
-stderr, exit 0 for all three statuses (`ready_to_submit` · `needs_user` · `blocked{reason}`), exit 1 only
-for programmer errors. See `docs/PLAN.md` §2.2–2.7 for behaviour.
+stderr, exit 0 for all four statuses (`submitted` · `ready_to_submit` · `needs_user` · `blocked{reason}`),
+exit 1 only for programmer errors. See `docs/PLAN.md` §2.2–2.7 for behaviour.
+
+## Statuses
+- `submitted` — `{status:"submitted", slug, confirmation:{detected:boolean, text?, url?, screenshot?},
+  filled, usage}`; the pipeline entry for this posting is set to `applied`.
+- `ready_to_submit` — nothing left to ask, and `p.auto_submit` is off/unset for this application.
+- `needs_user` — `{questions:[{qid, label, options?, remember_as:{kind,id,scope}, why}]}`.
+- `blocked{reason, detail?, screenshot?}` — includes `submit_failed` (Submit was clicked but no ATS
+  confirmation was detected within `SUBMIT.timeout`; the tab is left open, untouched).
 
 ## src/config.mjs
 ```js
@@ -59,6 +67,9 @@ export async function recordSchema(url, dir="eval/fixtures"); // saves raw JSON 
 ```
 `src/schema/classes.mjs` exports `classify(label, help, type, required)` and `parseLimits(label, help, maxlength)`,
 with the regex lists for `policy_gate` (AI-usage/attestation/arbitration/consent) and `sensitive` (EEO).
+Restrictive-agreements-style questions keep their existing `circumstance`/`core` class — they are not
+`policy_gate` — because `src/plan/resolve.mjs` resolves them from `p.legal.restrictive_agreements`
+instead of always asking.
 
 ## src/memory/*.mjs (private store at CONFIG_DIR/memory, YAML per section, atomic writes)
 ```js
@@ -66,6 +77,9 @@ export async function loadMemory();          // → { facts, preferences, docume
 export async function saveSection(name, rows);
 export function getFact(mem, id);            // → the whole fact row {id, value, since?, source, updated} | undefined
 export function resolvePreference(mem, id, { company, role_family });
+// recognized preference ids include p.auto_submit (boolean), p.eeo (object; canon/vocab-valued),
+// p.legal.restrictive_agreements and p.legal.previously_employed ("Yes"|"No", user-stated only, never
+// code-defaulted); shapes: references/memory-format.md (owned by the Eeo slice).
 // derive.mjs
 export function yearsSince(mem, factId, now);
 export function workAuth(mem, countryCode);  // → {authorized_now, needs_sponsorship_future, country, exact, fact, …}
@@ -79,11 +93,32 @@ Seed import: `scripts/learn.mjs --seed private/profile/memory-seed` copies the s
 ## src/writer/openai.mjs (OpenAI Responses API)
 ```js
 export async function extractResume({ text });                 // → { facts:[…], stories:[…] } with page provenance
-export async function narrative({ prompt, facts, stories, family, limits }); // → { short, medium, long }
-export async function expand({ story, question, limits, job });
-export async function whyUs({ sentence, stories, job });
+export async function narrative({ prompt, facts, stories, family, limits, avoid }); // → { short, medium, long }
+export async function expand({ story, question, limits, job, avoid });
+export async function whyUs({ sentence, stories, job, limits, facts, avoid }); // sentence optional: without one the
+//   thesis comes from the JOB block + the grounding (p.auto_draft); throws when both are empty
+//   `avoid`: titles of anecdotes another answer on this same application already told. Rendered by
+//   `prompts.avoidBlock()`; empty on every row the planner could ground in unused material.
 export function groundingCheck(text, groundingTexts);          // numbers/org names must appear in grounding
 export function substitutionCheck(text, otherCompanies);       // no other company's name
+```
+
+## src/plan/draft.mjs (PLAN §2.2 step 10 — the writer, as the runner calls it)
+```js
+export async function draftRows({ formPlan, decisions, mem, context, pipeline, dry, signal, onLog });
+// → the rows that now carry a draft. Mutates them: value/words/source:"writer"/why, `dry:true` in a
+//   dry run. A row it cannot ground, or that will not fit the field's `limits`, becomes `ask` with
+//   the reason — drafting never suspends "no personal fact is guessed".
+export function draftFor({ plan, stores, dry, onLog });  // → { rows(decisions) } — runBrowser's `draft` hook
+export function groundFrom(mem, ids, ctx);   // memory ids → { facts, stories } for the writer's prompts
+export function rankStories(stories, job, limit);  // deterministic: shared distinctive vocabulary, never a model
+export function motivationStories(pool);    // the `motivation`-tagged rows a why_us thesis is made of
+export function chooseStories({ named, pool, job, kind, used, limit });
+//   which stories one draft gets: why_us leads with a motivation row, the rest rank by overlap with
+//   this posting's own text, and anything `used` (told by an earlier draft on the same page) is
+//   skipped unless skipping it would leave the row with nothing. A written row records what it was
+//   actually handed as `grounding_used` (`grounding_ids` stays the planner's offer).
+export function otherCompanies(pipeline, company); // the names substitutionCheck must not find
 ```
 
 ## src/browser/*.mjs (Playwright library over CDP; PLAN D12)
@@ -91,10 +126,21 @@ export function substitutionCheck(text, otherCompanies);       // no other compa
 export async function connect({ profileDir = paths.profile, port = 9223 }); // spawns Chrome if needed, connectOverCDP → { browser, context }
 export async function openTab(context, url);   export async function findTab(context, urlPrefix);
 export async function disconnect(browser);    // never closes Chrome
-// adapters/greenhouse.mjs, adapters/ashby.mjs
-export async function setField(page, question, value, { trace }); // → { ok, observed, attempts }
+// adapters/index.mjs — the dispatcher. `detectControl` names the widget; an ATS adapter gets it only
+//   when its `HANDLES` claims that kind, and a question the ATS types `date` always goes to the
+//   shared ladder (no adapter tunes a date, and only `setDate` refuses prose).
+// controls.mjs — `classifyShape` reads a checkbox *group* from either witness (n boxes in the field,
+//   or two or more published options) and a date control from a date-named class; `isCheckboxGroup`
+//   re-asks both before `setControl` reaches for the Boolean rung.
+// adapters/greenhouse.mjs, adapters/ashby.mjs, adapters/generic.mjs
+export async function setField(page, question, value, { trace }); // → { ok, observed, attempts, strategy? }
 export async function uploadFile(page, question, filePath, { trace });
 export async function snapshotRequired(page);  // → [{qid?, selector, label, filled:boolean}]
+export async function eeoControls(page);       // greenhouse + ashby: the demographic block as rendered,
+//   → [{qid, label, section, selector, multiple, control, value}] — opens no menu, writes nothing
+export async function findSubmit(page);        // → {selector, text, strategy} | null — read-only, no click
+export async function confirmSubmitted(page, { timeout, url0 }); // → {detected:boolean, text?, url?, strategy?, reason?}
+export const CONFIRMATION = { url?: RegExp, text: RegExp, selectors: string[], toast?: string }; // printable strategy
 // trace.mjs — the only appender. `trace` is a slug, a function sink, or `{slug, mask}`.
 // appendTrace(slug, event) → applications/<slug>/trace.jsonl (0600 in a 0700 dir)
 // fieldEvent({op, question, value, result}) → the row; `class:"sensitive"` redacts observed *and* value_len
@@ -118,19 +164,66 @@ export async function providerFor(entry);    // {provider} | url | {url} → mod
 export async function loadPipeline(); export async function upsertJobs(jobs); export async function setStatus(id, status, note);
 export async function queue(ids); export async function nextQueued(n); export function render(pipeline); // → pipeline.md text
 // status ∈ found|queued|ready|applied|interview|offer|rejected|withdrawn|expired
+// found → applied is not a legal transition; a confirmed submit for a posting the user never queued
+// is stepped found → ready → applied. Pipeline write errors are logged, never fatal to a confirmed submit.
 ```
+
+## src/plan/execute.mjs (submit step; PLAN §2.2 steps 8½ and 12)
+```js
+export const SUBMIT = { timeout: 45000, captchaWaitMs: 5000 };
+export function submitReady({ decisions, state });         // → boolean: zero `ask` rows AND zero required-empty controls
+export async function detectSubmit({ context, formPlan }); // read-only: attaches the tab, returns {selector, text, confirmation} — no click (`--dry-run --detect-submit`)
+export const boardAdapter = (ats) => adapter;               // never throws; falls back to the generic adapter for an unrecognized page
+export function matchLiveControls(live, { questions, decisions }); // → {retry, novel} — pairs live-DOM EEO controls with plan Decisions
+export const runnable = (d) => boolean;   // fill/check, or a `draft` that already carries text; not yet read back ok
+export async function runBrowser({ context, formPlan, decisions, slug, budget, replan, draft, attach, rows });
+// `draft` is `{ rows(decisions) }` (src/plan/draft.mjs `draftFor`) — step 10, called before the fill
+// loop and again for anything a delta round discovers. A retried demographic row that commits gets
+// its pre-failure `why` restored, so the summary never reports a refusal the read-back contradicts.
+export async function submitApplication({ page, ats, formPlan, decisions, slug, timeout });
+// → { ok, clicked:boolean, selector, confirmation:{detected, text?, url?, screenshot?, strategy}, reason?, shot? }
+// writes a {op:"submit", stage:"attempt", …} trace row BEFORE the click
+export function submitOutcome(result);
+// → { status:"submitted", confirmation } | { status:"blocked", reason:"submit_failed", screenshot? }
+export async function priorSubmit(slug, frozen = null); // → {attempted:boolean, confirmed:boolean, sources:string[]}
+```
+`p.auto_submit` is resolved by the caller via the existing `resolvePreference(mem, "p.auto_submit",
+{company, role_family})` — no dedicated resolver function.
 
 ## Decision record and files (PLAN §2.3)
 `applications/<slug>/{decisions.json, trace.jsonl, summary.md}`; `answers.json` (host → runner) `{ "<qid>": { value, remember_as:{kind,id,scope} } }`.
+`decisions.json`'s meta carries `submitted:boolean` and `submit_attempted:boolean`, written by `settle()`
+*after* the confirmation wait — a process killed mid-wait leaves no record there even if the click
+already posted. `priorSubmit` is the double-submit guard's reader and consults both sources: the
+pre-click `{op:"submit", stage:"attempt"}` row `trace.jsonl` carries across every run (append-only), and
+`decisions.json`'s flags. `scripts/apply.mjs` refuses to click when `attempted` is true from either
+source — a click that landed but whose confirmation was missed must never be repeated. `submit_not_found`
+(the button itself was never located) writes neither marker, so it is the one submit failure that stays
+retryable.
+
+`Decision.action` includes `"draft"`: the writer owns that row (PLAN §2.2 step 10). A `draft` row
+that has text is typed into the control and read back like any other value, it stays a `draft` so the
+summary lists it under ► DRAFTED, and it never blocks Submit. The deterministic pass attaches
+`draft_request {kind:"why_us"|"expand"|"narrative", limits:{words?,chars?}|null, grounding_ids:string[],
+prompt:string, help:string}` — public, frozen into `decisions.json` — and `finalize(decisions, {mem,
+context})` is what turns a why-us/essay `ask` into one when `p.auto_draft` resolves true.
+
+`grounding_ids` is what the planner *offered*; `src/plan/draft.mjs` then ranks it against this
+posting and drops anything an earlier draft on the same page already told, and a row that ends up
+with text records the set it was actually handed as `grounding_used:string[]`. Both are frozen, and
+the pair is the only way to see from the JSON whether two answers on one application — or three
+applications to three companies — are telling the same story (round-2 judge §3 N4).
 
 ## CLI surface
-- `apply.mjs --url U | --tab | --queue N | --schema F` · `--answers F` · `--resume SLUG` · `--dry-run` · `--record-schema` · `--strict`
-- `learn.mjs --resume a.pdf [--resume b.pdf] --links … | --seed DIR`; `remember.mjs "<instruction>" [--scope …]`
+- `apply.mjs --url U | --tab | --queue N | --schema F` · `--answers F` · `--resume SLUG` · `--dry-run` ·
+  `--record-schema` · `--strict` · `--submit` (force Submit this run) · `--no-submit` (force stop at
+  `ready_to_submit`) · `--detect-submit` (dry check: prints the Submit selector + confirmation strategy,
+  no click)
+- `learn.mjs --resume a.pdf [--resume b.pdf] --links … | --seed DIR | --answers F`; `remember.mjs "<instruction>" [--scope …]`
 - `scan.mjs [--companies F]`; `pipeline.mjs list|queue <ids>|mark <id> <status>|prune|render`
 - `canon-scan.mjs [--families a,b] [--per-family 20]`; `canon-cluster.mjs`; `canon-eval.mjs`; `answers.mjs --families a,b`
 - `jev-smoke.mjs`; `install.mjs`
 
 ## Rules for every slice
-Only `ScaffoldJev` runs `npm install`; others wait for `node_modules/` (poll ≤5 min) or message it on `hub`.
 Never print key material. Never write user data under the repo (only `private/` and CONFIG_DIR). Run only
 your named check. Report deviations from these contracts explicitly.

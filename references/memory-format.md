@@ -50,8 +50,9 @@ Never model-written. `since:` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is stored instea
 ```
 
 **One id namespace.** Every identity fact the resolver reads is `f.identity.*` — `full_name`,
-`preferred_name`, `email`, `phone`, `city`, `location`, `address`, `pronouns`, `timezone`,
-`github_url`, `linkedin_url`, `site_url`, `x_twitter_url`, `publications_url` — the ids
+`first_name`, `last_name`, `preferred_name`, `full_name_native`, `email`, `phone`, `city`,
+`location`, `address`, `pronouns`, `timezone`, `start_date`, `github_url`, `linkedin_url`,
+`site_url`, `x_twitter_url`, `publications_url` — the ids
 `private/profile/memory-seed/facts.yaml` seeds and `src/plan/resolve.mjs` looks up by name.
 Two more pairs are asked for by name on real forms and have their own ids: the role with no end
 date is `f.employment.current` (the employer) plus `f.employment.current_title` (the title), and
@@ -71,6 +72,42 @@ pool for the smoke test, not store ids.)
 `f.identity.preferred_name` is written only when a document *states* a preferred name ("goes by",
 "known as"); a first name split out of `f.identity.full_name` is not one, and the résumé pass
 never invents it — a form that asks for a preferred name with no fact on file is an `ask`.
+
+**First and last name.** A Greenhouse form asks for the two halves separately, and splitting the
+stated full name at the first space is only right while the tokens are `<given> <family>`. When
+one of two tokens is a single letter it is an **initial**, and the initial is the family name
+whichever side it is written on — `R Sanchez` and `Sanchez R` both mean first name `Sanchez`, last
+name `R` (`nameSplit()` in `src/plan/resolve.mjs`). Explicit facts always win over the split:
+
+```yaml
+- id: f.identity.first_name     # stated, never derived — overrides any split
+  value: Sanchez
+  source: user
+  updated: 2026-01-31
+- id: f.identity.last_name
+  value: R
+  source: user
+  updated: 2026-01-31
+```
+
+`scripts/learn.mjs` reports the `g.identity.name_split` gap whenever the stated name has that
+shape and the two explicit rows are absent: it says which reading it will use and asks the user to
+confirm it or send the pair the other way round. `f.identity.full_name_native` is a separate fact
+for the "Full Legal Name in Native Language" field some boards ask for; nothing derives it from the
+Latin-script name.
+
+**Where the user is.** `f.identity.location` may hold a work mode rather than a place — a CV that
+says "Remote" says nothing about where its author lives. `locationFact()` (`src/memory/derive.mjs`)
+rejects `Remote`/`Hybrid`/`Anywhere`/`Distributed`/`On-site`… and falls back to `f.identity.city`;
+with neither on file the row is an `ask` carrying `remember_as: f.identity.city`. It is never typed
+into a board's location autocomplete, which is how one run committed a US city the candidate had no
+connection to on a form that declared no US work authorization
+(`docs/research/12-eval-judge-round1.md` §3.2).
+
+**When the user can start.** `f.identity.start_date` (`YYYY-MM-DD`) is what a **date** control
+receives; with no such fact the date is computed as today plus `p.notice_rule`. A date control
+never receives the notice rule's prose ("Available immediately") — the picker rejects it, stays
+open over the next field and commits nothing.
 
 Work authorization is **two-valued per target country** — `f.work_auth.<CC>`, with
 `f.work_auth.default` covering every country without its own row:
@@ -146,6 +183,125 @@ one scope has `value: null`.
 `resolvePreference(mem, "p.salary", {company: "Acme Inc.", role_family: "ml_engineer"})`
 → `{id, value, scope: "company:acme-inc", source, overridden: true}`, or `undefined` when nothing
 applies — again, the caller asks.
+
+### The preferences other code reads as a *shape*
+
+`validateRow("preferences", row)` (`src/memory/schema.mjs`) checks these where they are written
+rather than where they are used, so a typo cannot surface half an hour later as an unanswerable
+form row. Every one of them is user-stated; none is ever defaulted by code.
+
+```yaml
+- id: p.eeo                      # asked once at onboarding (learn.mjs gap g.eeo), used on every form
+  value:
+    gender: female               # male | female | non_binary | decline
+    hispanic_latino: "yes"       # yes | no | decline
+    race: two_or_more            # american_indian | asian | black | hispanic_latino |
+                                 # native_hawaiian | white | two_or_more | decline
+    veteran_status: veteran      # not_veteran | veteran | decline
+    disability_status: decline   # yes | no | decline
+    pronouns: they/them          # optional, free text — the user's own phrase, never derived
+    other_demographics: decline  # decline | ask — the stance for survey questions the five
+                                 # fields above do not answer (sexual orientation, transgender
+                                 # status, age band). Absent means `ask`.
+  source: user
+  updated: 2026-01-31
+- id: p.auto_submit              # asked once (gap g.auto_submit); absent is not "no", it is unanswered
+  value: true                    # true | false; company scope overrides global like any preference
+  overrides:
+    - {scope: "company:acme-inc", value: false}
+  source: user
+  updated: 2026-01-31
+- id: p.auto_draft               # asked once (gap g.auto_draft); absent is not "no", it is unanswered
+  value: true                    # true | false — may the writer draft "why us" / essay answers?
+  source: user
+  updated: 2026-09-23
+- id: p.legal.restrictive_agreements   # "Are you bound by a non-compete / non-solicit?"
+  value: "No"                          # "Yes" | "No"
+  source: user
+  updated: 2026-01-31
+- id: p.legal.previously_employed      # "Have you ever been employed here?" — only if the user says so
+  value: "No"                          # "Yes" | "No"; with no row, the pipeline answers instead
+  source: user
+  updated: 2026-01-31
+- id: p.accommodation                  # "Do you need an accommodation for the hiring process?"
+  value: "No"                          # free text, or a plain Yes/No the form's options can state.
+  source: user                         # The ONLY thing an accommodation prompt is answered from —
+  updated: 2026-01-31                  # never `p.eeo.disability_status` (judge round 2, N1).
+```
+
+**`p.eeo` is what fills a form's demographic block** (PLAN D10): `sensitiveRow()` in
+`src/plan/resolve.mjs` reads the field the question asks about, and `canon/vocab/eeo-*.yaml` maps
+the canonical value onto that form's own option wording — Greenhouse's official EEOC labels, its
+"U.S. Standard Demographic Questions" list, Ashby's and the UK census variants. `decline` is a
+stated answer, not a blank: it picks the form's "Decline to self-identify" / "I don't wish to
+answer" option. Where several of a form's options state one saved value, the plain wording wins
+over a qualified one ("Man" over "Transgender man, male, or masculine" — committing the qualified
+label would assert something the user did not say); where none is plainly the answer, a
+*single*-select goes to Jev with `none_of_these` and the gate decides, and a *multi*-select must
+not — request 3 scores each option on its own with no `none_of_these`, so "Asian" against a list
+split into East / South / Southeast could select three ancestries the user never claimed.
+
+`other_demographics: decline` is what answers those rows. It is the user's standing stance for a
+demographic question their saved block cannot answer **exactly**, and it covers three cases: a
+question outside the five fields (sexual orientation, transgender status, age band), a form that
+asks finer than they stated, and a list with no entry for what they stated. In each the form's own
+"Decline to self-identify" / "I don't wish to answer" option is picked, and only where the user has
+stated that stance — absent, every one of them is still an `ask`. A field with nothing on file is
+an `ask` carrying `remember_as: {kind: preference, id: "p.eeo.<field>", scope: global}` — never a
+guess, and never a skip. Ethnicity outranks race on a form that folds both into one select: with
+`hispanic_latino: yes`, a `Hispanic or Latino` option is the answer to the race question.
+
+A `p.eeo.<field>` row on its own is read as well as the whole mapping, and it may hold the form's
+own wording ("Male") rather than a token — that is what the host stores when the user answers one
+demographic row (`src/plan/decisions.mjs memoryRow()`), so the same vocabulary translates it back.
+`scripts/learn.mjs --answers answers.json` (`{"<memory id>": <value>}`, the ids the gaps name)
+writes these canonically: wording no vocabulary states is rejected and reported, never stored.
+
+Redaction is unchanged by any of this: a `class: sensitive` row is never photographed, its trace
+row carries neither its text nor its length, and the summary prints `••••`
+(`src/browser/trace.mjs`, `src/plan/summary.mjs`).
+
+**Pronouns are not one of the five.** `p.eeo.pronouns` is free text, and a `f.identity.pronouns`
+fact answers a pronouns field on its own — the volunteered phrase is read whether or not the rest
+of `p.eeo` was ever stated, which is the one demographic-looking field that is not gated on it.
+
+**`p.auto_submit`** is read by `scripts/apply.mjs` through `resolvePreference(mem,
+"p.auto_submit", {company, role_family})`: `true` (or `"yes"`/`"true"`/`"on"`/`"1"`) means click
+Submit once nothing is left to ask; anything else, **including an absent row**, stops at
+`ready_to_submit`.
+
+**`p.auto_draft`** is the same shape and the same rule (`resolvePreference`, company scope
+overrides global, absent means *unanswered*). `true` lets the writer draft the two classes nobody
+can answer from stored facts — `why_us` and required essay prompts — from the posting plus the
+user's own saved material; the Decision carries `draft_request: {kind, limits, grounding_ids,
+prompt, help}` and the draft is listed under ► DRAFTED before anything is submitted. Facts are
+untouched by it: a missing personal fact is still an `ask`, never a draft.
+
+**`p.legal.restrictive_agreements`** answers every "are you bound by a non-compete / non-solicit?"
+row from one global statement: a restriction binds the user wherever they apply, and the "If yes,
+please explain" row underneath is left blank when the answer is No. **`p.legal.previously_employed`
+is different**: "have you ever been employed **by this company**?" is a different question at every
+employer, so only a company-scoped override answers it — a global value is ignored on purpose and
+the row falls back to the pipeline derivation (`appliedBeforeFor`), which answers per company or
+asks.
+
+**`p.legal.<slug>` — the standing answer to an acknowledgement.** Besides the two stances above,
+the `p.legal.*` namespace holds one `"Yes"`/`"No"` row per attestation the user has decided to
+stand behind: `p.legal.privacy_policy_ack`, `p.legal.background_check_consent`,
+`p.legal.interview_recording_consent`, `p.legal.arbitration_ack`, `p.legal.ai_usage_ack`,
+`p.legal.retention_consent`, `p.legal.terms_ack`, `p.legal.application_truthful_ack`,
+`p.legal.export_control_ack`. A form row classed `policy_gate` ("Please review and acknowledge our
+Candidate Privacy Policy", "I understand that an offer is conditional on a background check") is
+answered from **that row and nothing else** — no canonical answer, no neighbouring preference, no
+derivation — and with nothing on file it is an `ask` carrying the id that closes it everywhere
+(`policyGateRow()` and `policySlug()` in `src/plan/resolve.mjs`). The slug comes from the gate's
+subject, not the company's wording, so one stored answer covers every board that asks it. The
+older per-gate ids (`p.privacy_consent`, `p.background_check`, `p.recording_consent`,
+`p.arbitration`, `p.ai_usage`, `p.application_truthful`) are **no longer read**: they were
+consumed through the canonical answer bank, which is what ticked two legal attestations on the
+user's behalf in round 1 (`docs/research/12-eval-judge-round1.md` §3.1). Those seven `q.legal.*`
+questions are no longer authored into `answers.yaml` at all (`POLICIES` in
+`src/canon/answers.mjs`) — the class decides, not the answer bank.
 
 ## `documents.yaml` — the files a form uploads
 
@@ -324,10 +480,24 @@ overwrite a row whose `source` is `user` (pass `{overwriteUser: true}` to mean i
   `ready_to_submit`, or `blocked` with a `reason` for a usage error. `gaps[]` is the six day-1
   questionnaire items minus those already answered, plus anything knowably absent
   (`g.identity.city`). A gap is never filled with a default.
-- `scripts/remember.mjs "<instruction>" [--scope …]` — one Jev request (a `choice` for the row kind,
-  and a `choice` over concrete scopes unless `--scope` says) writes the row with `source: user` and
-  prints `{status, kind, id, scope}`: `ready_to_submit` when written, `needs_user` when the scope of
-  a preference or correction is below `GATES.askBelow`. Ids minted from the instruction are
-  `f.user.<slug>` / `p.user.<slug>`; promoted drafts become `b.kept.<slug>` stories or `answers`
-  rows (company-specific ones forced to `company:<slug>`, deduped against an existing answer for the
-  same question with one Noul); corrections take the next `c<N>` handle.
+- `scripts/remember.mjs "<instruction>" [--scope …] [--id <memory id>] [--dry-run]` — **one** Jev
+  request carrying three choices: the row kind, the memory **id** it belongs to, and (unless
+  `--scope` says) the scope. It writes the row with `source: user` and prints
+  `{status, kind, id, scope}` — `ready_to_submit` when written, `needs_user` when the id or the
+  scope of a preference is below `GATES.askBelow`. `--dry-run` runs the same selection and reports
+  the row it would write without touching disk; `--id` answers the `needs_user` and skips the id
+  choice entirely.
+- The id choice runs over `ID_CATALOGUE` (`src/memory/schema.mjs`) plus every id already in
+  `facts.yaml`/`preferences.yaml`, with an explicit `none_of_these`. The catalogue is the set of
+  ids the resolver actually reads, each with the one line that distinguishes it; `shape: yes_no`
+  ids (`p.legal.*`, `p.relocation`, the switches) store a plain Yes/No and refuse anything else,
+  and `shape: text` ids store the user's own words with the stating lead-in removed
+  ("I currently live in Lisbon, Portugal" → `f.identity.city: Lisbon, Portugal`). Without it the
+  script minted `f.user.i_currently_live_in_<city>` — a valid row no form rule ever reads.
+  Structured ids (`p.eeo` as a block, `p.salary`, `p.notice_rule`, `p.looking_for`,
+  `f.work_auth.<CC>`) are deliberately out of the catalogue: a spoken sentence cannot build one.
+- Only when the choice answers `none_of_these` **above** the gate is an id minted from the
+  instruction — `f.user.<slug>` / `p.user.<slug>`. Below the gate the script asks instead, naming
+  the id it would mint (`new:f.user.<slug>`). Promoted drafts become `b.kept.<slug>` stories or
+  `answers` rows (company-specific ones forced to `company:<slug>`, deduped against an existing
+  answer for the same question with one Noul); corrections take the next `c<N>` handle.

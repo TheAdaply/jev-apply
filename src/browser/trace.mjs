@@ -57,21 +57,44 @@ export function traceSlug(trace) {
   return null;
 }
 
+// Wrappers a combobox renders its *committed text* into. The field's own `selector` points at the
+// input the adapters type into, and on a react-select board that input is a 3px-wide hidden sliver
+// (`input.select__input`, measured at w:3 h:24 on job-boards.greenhouse.io): painting it over hides
+// nothing, while the `.select__single-value` / `.select__multi-value__label` chips beside it stay
+// perfectly readable. Measured, not theorised — a failure screenshot from an unrelated row showed
+// the filled demographic answers in plain text. So each sensitive selector is masked *with* the
+// rendered control around it, via `:has()`, which Playwright's CSS engine supports.
+const MASK_WRAPPERS = [
+  ".select-shell",
+  ".select__control",
+  '[class*="select-shell"]',
+  '[class*="ashby-application-form-field"]',
+  "fieldset",
+  "label",
+];
+
 /**
- * Every EEO/demographic control a failure screenshot must not photograph.
+ * Every EEO/demographic control a failure screenshot must not photograph, as selectors.
  * The caller passes its FormPlan (or a ready list of selectors) as `{ trace: { slug, mask } }`;
  * `mask` may be a FormPlan, its `questions` array, or selector strings. Only `class:"sensitive"`
- * questions contribute, and each contributes its own `selector` — the same field the adapters set.
+ * questions contribute, and each contributes its own `selector` *and* the rendered wrappers that
+ * carry its committed text — a wrapper pattern that matches nothing costs nothing.
  */
 export function maskSelectors(mask) {
   const rows = Array.isArray(mask) ? mask : Array.isArray(mask?.questions) ? mask.questions : mask ? [mask] : [];
   const out = [];
+  const add = (selector) => {
+    const field = selector.trim();
+    if (!field) return;
+    out.push(field);
+    for (const wrapper of MASK_WRAPPERS) out.push(`${wrapper}:has(${field})`);
+  };
   for (const row of rows) {
     if (typeof row === "string") {
-      if (row.trim()) out.push(row.trim());
+      add(row);
       continue;
     }
-    if (row?.class === "sensitive" && typeof row.selector === "string" && row.selector.trim()) out.push(row.selector.trim());
+    if (row?.class === "sensitive" && typeof row.selector === "string") add(row.selector);
   }
   return [...new Set(out)];
 }

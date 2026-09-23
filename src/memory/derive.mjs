@@ -76,6 +76,55 @@ export function noticeRule(mem, ctx = {}) {
   return { kind: rule.kind ?? null, days, text: rule.text ?? null, scope: pref.scope, source: pref.source ?? null };
 }
 
+// A location fact may hold a work mode rather than a place: `learn.mjs` writes what the document
+// stated, and a CV that says "Remote" says nothing about where its author lives. Typing one into a
+// form's geocoder is how a run committed a US city the candidate has no connection to, on a form
+// that declared no US work authorization two fields above (docs/research/12-eval-judge-round1.md
+// §3.2). Anchored at the start, so "Remote (per GitHub profile)" is caught with its note attached.
+const WORK_MODE_RE = /^(?:remote(?:ly)?|anywhere|any ?where|global(?:ly)?|worldwide|distributed|flexible|hybrid|in[- ]?office|on[- ]?site|onsite|wfh|work from home|n\/?a)\b/i;
+
+/** Is this stated locality a work mode ("Remote", "Hybrid") rather than a place? */
+export function isWorkMode(value) {
+  return WORK_MODE_RE.test(String(value ?? "").trim());
+}
+
+/**
+ * The place the user states they are, as the fact row that states it: `f.identity.location` when it
+ * names somewhere, else `f.identity.city`. A work mode is not a place and is skipped, so a caller
+ * with nothing left asks for the city rather than filling a location field with "Remote".
+ * @returns {object|null} the fact row (so callers can cite its id), or null → ask
+ */
+export function locationFact(mem) {
+  for (const id of ["f.identity.location", "f.identity.city"]) {
+    const row = getFact(mem, id);
+    const text = row?.value == null ? "" : String(row.value).trim();
+    if (!text || isWorkMode(text)) continue;
+    return row;
+  }
+  return null;
+}
+
+const ISO_DATE_RE = /(\d{4})-(\d{2})-(\d{2})/;
+
+/**
+ * The date a date control should receive, as `YYYY-MM-DD`: the stated `f.identity.start_date` when
+ * there is one, else today plus the notice period. Never prose — a sentence typed into a date
+ * control leaves the picker open over the next field and commits nothing (judge §3.5).
+ * @returns {{value:string, why:string, fact?:string}|null} null → ask
+ */
+export function startDate(mem, ctx = {}, now = new Date()) {
+  const fact = getFact(mem, "f.identity.start_date");
+  const stated = ISO_DATE_RE.exec(String(fact?.value ?? ""));
+  if (stated) return { value: stated[0], why: fact.id, fact: fact.id };
+  const rule = noticeRule(mem, ctx);
+  if (!rule || rule.days == null) return null;
+  const day = new Date(now.getTime() + rule.days * DAY_MS);
+  return {
+    value: stamp(day),
+    why: `p.notice_rule (${rule.kind}) — ${rule.days === 0 ? "available now" : `${rule.days} days from today`}`,
+  };
+}
+
 /** Which saved role family this posting belongs to, by title phrase (`p.looking_for.role_families`). */
 export function roleFamilyFor(mem, job = {}) {
   if (job.role_family) return job.role_family;

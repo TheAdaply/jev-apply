@@ -21,8 +21,10 @@ import { traceDir } from "../browser/trace.mjs";
 import { GATES } from "../jev/gates.mjs";
 import { loadSection, saveSection } from "../memory/store.mjs";
 import { mintId, parseScope, stamp } from "../memory/schema.mjs";
+import { resolvePreference, usableStories } from "../memory/resolve.mjs";
+import { fitsLimits } from "../schema/classes.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
-import { workAuthKind } from "./resolve.mjs";
+import { applyDependencies, workAuthKind, yesNoOf } from "./resolve.mjs";
 
 /** Internal planning fields never reach `decisions.json`. */
 const INTERNAL = /^_/;
@@ -55,15 +57,113 @@ export function summaryPath(slug) {
  * numbers that survive the freeze — confidence and the runner-up gap — so this pass re-applies the
  * same two thresholds to rows that arrive from `decisions.json` and to rows a later stage rescored.
  * Nothing here invents a verdict for a row that was never scored.
+ *
+ * Given `{mem, context}` it also settles the two things that need the store rather than a score:
+ * an answer longer than the field's stated limit is shown before Submit instead of committed, and
+ * — when the user has turned `p.auto_draft` on — a "why us"/essay prompt nobody saved an answer for
+ * becomes a `draft` for the writer rather than a question handed back (PLAN §2.2 step 10).
  */
-export function finalize(decisions) {
-  return decisions.map((d) => {
-    const out = { ...d };
-    if (out.action !== "fill" || typeof out.confidence !== "number") return out;
-    if (out.confidence < GATES.askBelow) out.action = "ask";
-    else if (typeof out.gap === "number" && out.gap < GATES.checkGap) out.action = "check";
-    return out;
+export function finalize(decisions, { mem = null, context = null } = {}) {
+  const out = decisions.map((d) => {
+    const row = { ...d };
+    if (row.action !== "fill" || typeof row.confidence !== "number") return row;
+    if (row.confidence < GATES.askBelow) row.action = "ask";
+    else if (typeof row.gap === "number" && row.gap < GATES.checkGap) row.action = "check";
+    return row;
   });
+  enforceLimits(out);
+  if (mem) autoDraft(out, { mem, context });
+  return out;
+}
+
+/**
+ * An answer longer than the field asks for is never truncated and never committed silently: the
+ * row is downgraded to `check` so it is read before Submit. Round 1 put 140 words into a field
+ * printed "In 100 words or less" and reported it as filled (judge §3.11).
+ */
+function enforceLimits(decisions) {
+  for (const d of decisions) {
+    if (d.action !== "fill" || typeof d.value !== "string" || !d._limits) continue;
+    const fit = fitsLimits(d.value, d._limits);
+    if (fit.ok) continue;
+    d.action = "check";
+    d.why = `${d.why} — ${fit.count} ${fit.over} against this field's ${fit.limit}-${fit.over.slice(0, -1)} limit; shorten before Submit`;
+  }
+}
+
+/** The two classes the writer may draft from scratch (PLAN §2.2 step 10). */
+const DRAFT_CLASSES = new Set(["why_us", "essay"]);
+
+// A prompt that asks for a *fact* — which tool, how many, what is your X, list/name the … — is
+// answered by the user or it is not answered at all. Round 2 drafted "Python, PyTorch and CUDA"
+// into 1Password's "As a PM which AI tool are you using on daily or weekly basis?", on a Senior PM
+// posting: a correct "nothing on file answers this" became a confident wrong answer
+// (docs/research/13-eval-judge-round2.md §3 N3). `why_us` is exempt — it asks for a motivation,
+// never for a fact, and the posting's own text is its grounding.
+const FACT_SEEKING_RE = /\bwhich\b[^?]{0,24}\btools?\b|\bhow many\b|\bwhat is your\b|\blist\b|\bname the\b/i;
+
+/**
+ * `p.auto_draft` on: a required "Why us?" or essay prompt with nothing saved behind it is drafted
+ * by the writer instead of handed back. Round 1 handed four of them to the user — two required, on
+ * real postings — because Jev correctly answered `none_of_these`: no saved story *is* a "why this
+ * company", so the draft path was unreachable (judge §4.1). Facts are untouched by this: a draft is
+ * written from the posting plus material the user already wrote, never from a guessed fact, and it
+ * is shown under ► DRAFTED before anything is submitted.
+ *
+ * The Decision carries `draft_request` for `src/plan/execute.mjs`: `{kind, limits, grounding_ids,
+ * prompt, help}`. `value` stays empty until the writer fills it.
+ */
+export function autoDraft(decisions, { mem, context = {} } = {}) {
+  const pref = resolvePreference(mem, "p.auto_draft", { company: context?.company, role_family: context?.role_family });
+  if (!pref || yesNoOf(pref.value) !== "Yes") return decisions;
+  for (const d of decisions) {
+    if (d.action !== "ask" || !DRAFT_CLASSES.has(d.class)) continue;
+    // `why_us` is unconditional. An essay is drafted only where something on file grounds it —
+    // a story Jev matched or a canonical question the bank holds, i.e. exactly the rows that
+    // would have been `kind: "expand"`. `kind: "narrative"` was the "nothing on file answers
+    // this" case wearing a draft request, and it goes back to being an `ask`.
+    if (d.class !== "why_us") {
+      if (!d.story && !d.canon) continue;
+      if (FACT_SEEKING_RE.test(d.label ?? "")) continue;
+    }
+    const kind = d.class === "why_us" ? "why_us" : "expand";
+    d.action = "draft";
+    d.source = "writer";
+    d.draft_request = {
+      kind,
+      limits: d._limits ?? null,
+      grounding_ids: groundingIds(mem, kind, d),
+      prompt: d.label ?? "",
+      help: d._help ?? "",
+    };
+    d.why = `${kind === "why_us" ? "drafting from the posting" : "drafting from your saved material"} — p.auto_draft (${pref.scope})`;
+    d._open = false;
+    delete d.value;
+    delete d.remember_as;
+  }
+  return decisions;
+}
+
+/**
+ * The memory ids a draft is grounded on — ids, not text, so the writer reads the rows itself and
+ * the frozen Decision stays small and auditable. Deterministic order, capped: what the user is
+ * looking for, then the story Jev matched (if any), then their own material.
+ */
+function groundingIds(mem, kind, decision) {
+  const ids = [];
+  const take = (list, n) => {
+    for (const id of list.slice(0, n)) if (id && !ids.includes(id)) ids.push(id);
+  };
+  const prefs = (mem?.preferences ?? []).map((r) => r?.id).filter((id) => typeof id === "string");
+  take(prefs.filter((id) => id === "p.looking_for" || id.startsWith("p.looking_for.")), 6);
+  if (decision.story) take([decision.story], 1);
+  const stories = usableStories(mem).map((r) => r?.id).filter(Boolean);
+  take(stories, kind === "why_us" ? 3 : 8);
+  take((mem?.facts ?? []).map((r) => r?.id).filter((id) => typeof id === "string" && id.startsWith("f.skill.")), 4);
+  if (kind !== "why_us") {
+    take((mem?.answers ?? []).filter((r) => r?.kind === "narrative").map((r) => r?.qid).filter(Boolean), 3);
+  }
+  return ids.slice(0, 16);
 }
 
 /** Strip internals and empty keys so the frozen record is exactly the CONTRACTS shape (+class/section/topic). */
@@ -181,6 +281,12 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
     }
     if (remember) rows.push(memoryRow({ decision: d, question: q, remember, value: String(value), context }));
   }
+
+  // The parent of a conditional follow-up may be one of the rows just answered, so the dependency
+  // pass runs again: a child blanked because nobody had answered its parent yet comes back exactly
+  // as it was planned, and one whose parent now says the other thing stays blank
+  // (src/plan/resolve.mjs applyDependencies).
+  applyDependencies(out, formPlan?.questions ?? []);
 
   const stored = rows.filter(Boolean);
   if (persist && stored.length) await persistRows(stored);

@@ -826,9 +826,22 @@ async function writeYaml(file, header, value) {
   await writeFile(file, `${HEADER}${header ? `# ${header}\n` : ""}${YAML(value)}`, "utf8");
 }
 
-async function resetDir(dir) {
+/**
+ * Wipe a generated directory. `keep` names the files this generator does not own: `canon/vocab/`
+ * also holds the hand-maintained `eeo-*.yaml` fill maps (the ones `src/plan/resolve.mjs` reads to
+ * turn a stored `p.eeo` value into a form's own option wording), and a regeneration that deleted
+ * them would silently stop every demographic row from filling.
+ */
+async function resetDir(dir, { keep = null } = {}) {
+  const kept = [];
+  if (keep) {
+    for (const file of await readdir(dir).catch(() => [])) {
+      if (keep.test(file)) kept.push([file, await readFile(path.join(dir, file), "utf8")]);
+    }
+  }
   await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
+  for (const [file, text] of kept) await writeFile(path.join(dir, file), text, "utf8");
 }
 
 /** Strip the private bookkeeping fields before a record is serialized. */
@@ -1124,7 +1137,11 @@ async function main() {
   // 9. write
   const out = args.out;
   await mkdir(out, { recursive: true });
-  await Promise.all([resetDir(path.join(out, "families")), resetDir(path.join(out, "vocab")), resetDir(path.join(out, "templates"))]);
+  await Promise.all([
+    resetDir(path.join(out, "families")),
+    resetDir(path.join(out, "vocab"), { keep: /^eeo-.+\.yaml$/ }),
+    resetDir(path.join(out, "templates")),
+  ]);
 
   await writeYaml(
     path.join(out, "questions.yaml"),

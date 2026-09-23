@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>jev-apply submit fixture — application form</title>
+<!--
+  The offline form `scripts/submit-smoke.mjs` fills and submits, so the submit step is proven
+  without ever clicking Submit on somebody's real careers page (AGENTS.md / bench safety rails:
+  a real posting is only ever taken as far as the `--detect-submit` dry check).
+
+  Shaped like the hosted Greenhouse board, because that is what the tuned adapter looks for:
+
+    form#application-form    the application form, with the fields in it
+    #submit_app              the Submit button, reading "Submit application"
+    data-sitekey             a captcha the page references *before* the script that defines
+                             `window.grecaptcha` has loaded — the real board injects it lazily,
+                             and clicking in that window posts a form with no token. The badge
+                             and `window.grecaptcha` appear 700 ms in, so `waitForCaptcha` has
+                             something to wait for.
+    form#job-alerts          a decoy: a second form with its own submit button, *after* the
+                             application form in the DOM. "The last submit button on the page"
+                             would subscribe the candidate to a newsletter instead of applying;
+                             the generic rule picks the form holding the fields and the Ashby
+                             rule requires the button to say "Submit application".
+
+  Three outcomes, by query string, so one file covers the whole verdict table:
+
+    (none)          submits: 400 ms later the browser lands on submit-thanks.html
+    ?fail=banner    an error banner appears and nothing navigates   → blocked{submit_failed}
+    ?fail=captcha   a captcha challenge appears and nothing navigates → blocked{submit_failed}
+
+  Nothing here posts anywhere: the submit handler always calls preventDefault() and the "success"
+  path is an ordinary in-page navigation to a sibling file.
+-->
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; max-width: 720px; }
+  .field { margin: 0 0 18px; }
+  label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input[type=text], input[type=email], textarea { width: 320px; padding: 6px; }
+  button { padding: 8px 16px; font: inherit; }
+  #submit_error { border: 1px solid #b00020; background: #fde8ec; color: #7a0016; padding: 10px 12px; margin: 0 0 16px; }
+  #captcha_challenge { position: fixed; top: 80px; left: 40px; width: 400px; height: 580px; border: 1px solid #888; background: #fff; z-index: 40; }
+  .grecaptcha-badge { position: fixed; right: 0; bottom: 20px; width: 70px; height: 60px; background: #eee; visibility: hidden; }
+  #job-alerts { margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; }
+  .note { color: #666; }
+</style>
+</head>
+<body>
+<h1>Senior Fixture Engineer</h1>
+<p class="note">Fixture Corp · Remote</p>
+
+<div id="submit_error" role="alert" class="error-banner" hidden>
+  There was an error processing your application. Please try again.
+</div>
+
+<form id="application-form" data-sitekey="fixture-site-key">
+  <div class="field">
+    <label for="first_name">First Name *</label>
+    <input type="text" id="first_name" name="first_name" required>
+  </div>
+  <div class="field">
+    <label for="last_name">Last Name *</label>
+    <input type="text" id="last_name" name="last_name" required>
+  </div>
+  <div class="field">
+    <label for="email">Email *</label>
+    <input type="email" id="email" name="email" required>
+  </div>
+  <div class="field">
+    <label for="question_90001">Why do you want to work here?</label>
+    <textarea id="question_90001" name="question_90001" rows="3"></textarea>
+  </div>
+  <button type="submit" id="submit_app">Submit application</button>
+</form>
+
+<form id="job-alerts">
+  <div class="field">
+    <label for="alerts_email">Not ready to apply? Get job alerts</label>
+    <input type="email" id="alerts_email" name="alerts_email">
+  </div>
+  <button type="submit" id="subscribe">Subscribe</button>
+</form>
+
+<script>
+  // The board injects its captcha after the form renders; until then `window.grecaptcha` is
+  // undefined and the badge does not exist.
+  setTimeout(() => {
+    const badge = document.createElement("div");
+    badge.className = "grecaptcha-badge";
+    badge.textContent = "protected by reCAPTCHA";
+    document.body.append(badge);
+    window.grecaptcha = { execute: () => Promise.resolve("fixture-token") };
+  }, 700);
+
+  const mode = new URLSearchParams(location.search).get("fail");
+
+  const showBanner = () => {
+    document.getElementById("submit_error").hidden = false;
+  };
+
+  const showCaptcha = () => {
+    // The real challenge is an iframe titled "recaptcha challenge expires in two minutes"; the
+    // always-present invisible badge iframe is titled "reCAPTCHA" and must never be mistaken
+    // for it, which is why the detector keys on "recaptcha challenge".
+    const frame = document.createElement("iframe");
+    frame.id = "captcha_challenge";
+    frame.title = "recaptcha challenge expires in two minutes";
+    frame.src = "data:text/html,<body style='font:14px sans-serif'>Select all images with traffic lights</body>";
+    document.body.append(frame);
+  };
+
+  document.getElementById("application-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const button = document.getElementById("submit_app");
+    button.disabled = true;
+    button.textContent = "Submitting…";
+    setTimeout(() => {
+      if (mode === "captcha") {
+        showCaptcha();
+      } else if (mode) {
+        showBanner();
+      } else {
+        location.href = "submit-thanks.html";
+        return;
+      }
+      button.disabled = false;
+      button.textContent = "Submit application";
+    }, 400);
+  });
+
+  document.getElementById("job-alerts").addEventListener("submit", (event) => {
+    event.preventDefault();
+    // A click here is a bug in the submit-control detection, so it has to be visible.
+    document.title = "SUBSCRIBED — the runner clicked the wrong button";
+  });
+</script>
+</body>
+</html>

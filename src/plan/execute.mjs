@@ -24,12 +24,14 @@
 // other failure is one `ask` row on an otherwise-filled form.
 
 import { existsSync } from "node:fs";
+import { mkdir, readFile } from "node:fs/promises";
+import nodePath from "node:path";
 
-import { atsFromUrl, handles, resolveSelector, setField, snapshotRequired, uploadFile, waitForForm } from "../browser/adapters/index.mjs";
+import { adapters, atsFromUrl, handles, resolveSelector, setField, snapshotRequired, uploadFile, waitForForm } from "../browser/adapters/index.mjs";
 import { detectControl, waitForOptions } from "../browser/controls.mjs";
 import { findTab, openTab, pagesOf } from "../browser/chrome.mjs";
-import { norm, normLabel, pace } from "../browser/readback.mjs";
-import { appendTrace, captureFailure } from "../browser/trace.mjs";
+import { norm, normLabel, pace, sleep, waitUntil } from "../browser/readback.mjs";
+import { appendTrace, captureFailure, maskSelectors, traceDir, tracePath } from "../browser/trace.mjs";
 import { classify } from "../schema/classes.mjs";
 import { choice, systemOne, withNone, NONE } from "../jev/client.mjs";
 import { gate, runnerUpGap } from "../jev/gates.mjs";
@@ -128,10 +130,21 @@ export async function activeAtsTab(context) {
 
 // ─── filling ──────────────────────────────────────────────────────────────────────────────────
 
-/** Rows the executor still has work for: planned to be set, not yet set successfully. */
-export const runnable = (d) => (d.action === "fill" || d.action === "check") && d.readback?.ok !== true;
+/**
+ * Rows the executor still has work for: planned to be set, not yet set successfully. A `draft`
+ * row counts once the writer has put text on it (step 10) — it is typed into the control and read
+ * back like any other value, and stays a `draft` so the summary still shows it under ► DRAFTED.
+ */
+export const runnable = (d) =>
+  (d.action === "fill" || d.action === "check" || (d.action === "draft" && (d.value != null || d.option != null))) &&
+  d.readback?.ok !== true;
 
 function markAsk(d, why, { shot = null, options = null } = {}) {
+  // What the row was before the form refused it. A demographic control that is simply not in the
+  // DOM yet is retried by step 8½, and a retry that *commits* has to undo this `ask` completely —
+  // the `why` included, or the summary tells the user "the form would not take it" about a value
+  // the trace and the screenshot both show set (judged on scale-ai/4534631005, 2026-09-23).
+  if (d.action !== "ask") d._was = { action: d.action, why: d.why };
   d.action = "ask";
   d.why = why;
   d.confidence = undefined;
@@ -174,7 +187,9 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
     if (result.ok) {
       filled += 1;
       delete d.shot;
-      if (thin.has(d.qid) && d.action !== "ask") {
+      // A `draft` stays a draft: it is already listed for the user under ► DRAFTED, and a thin
+      // option margin on a drafted row is not a different kind of "look at this".
+      if (thin.has(d.qid) && d.action !== "ask" && d.action !== "draft") {
         d.action = "check";
         d.why = `${d.why} — matched to the form's own wording, worth a look`;
       }
@@ -276,6 +291,10 @@ async function setRow({ page, ats, formPlan, question, decision, slug, chooseOpt
   // What the control *is*, before anything is typed into it. The FormPlan's `control` was a guess
   // made offline from the ATS schema; where the two disagree the DOM wins, both are written to the
   // trace, and the plan row is corrected so the frozen decisions describe the form that exists.
+  //
+  // `question.type` is *not* corrected: it is the ATS's own field type, and for a date control
+  // rendered as a bare text input it is the only thing that still says "date" after this line —
+  // which is what `adapters/index.setField` routes on.
   const selector = await resolveSelector(page, ats, question);
   const detected = await detectControl(page, selector, { question });
   if (!detected.agreed) {
@@ -285,7 +304,8 @@ async function setRow({ page, ats, formPlan, question, decision, slug, chooseOpt
       planned: detected.planned,
       control: detected.control,
       why: detected.why,
-      route: handles(ats, detected.control) ? ats : "generic",
+      // The same rule `adapters/index.setField` applies, so the trace names the module that ran.
+      route: question.type !== "date" && handles(ats, detected.control) ? ats : "generic",
     });
     question.control = detected.control;
   }
@@ -510,12 +530,18 @@ export async function verify({ page, ats, formPlan, decisions, slug }) {
  * Steps 8–11 for one posting. Mutates `decisions` (read-backs, failed rows → `ask`) and returns
  * the conditional questions it discovered, so the caller can freeze them with the plan.
  *
+ * `draft` is step 10's writer, injected the same way `replan` is and for the same reason: this
+ * module drives the DOM and decides nothing. It is handed the rows the planner marked `draft`,
+ * puts text on the ones it can ground and turns the rest into `ask` — then the fill loop below
+ * types the result into the control and reads it back like any other value.
+ *
  * @param {{context:object, formPlan:object, decisions:object[], slug:string, budget:object,
- *          replan?:{questions?:Function}, attach?:boolean, rows?:object[]|null}} args
+ *          replan?:{questions?:Function}, draft?:{rows?:Function}, attach?:boolean,
+ *          rows?:object[]|null}} args
  * @returns {Promise<{page:object, added:object[], filled:number, failed:number, appeared:object[],
  *                    baseline:object[], state:object}>}
  */
-export async function runBrowser({ context, formPlan, decisions, slug, budget, replan = null, attach = false, rows = null }) {
+export async function runBrowser({ context, formPlan, decisions, slug, budget, replan = null, draft = null, attach = false, rows = null }) {
   const ats = formPlan?.ats ?? atsFromUrl(formPlan?.url) ?? null;
   const url = formPlan?.url;
   if (!url) throw new Blocked("no_page", "the plan carries no posting URL");
@@ -534,12 +560,25 @@ export async function runBrowser({ context, formPlan, decisions, slug, budget, r
     const baseline = await snapshotRequired(page, { ats });
     await appendTrace(slug, { op: "snapshot", stage: "baseline", required: baseline.length, filled: baseline.filter((r) => r.filled).length });
 
+    // Step 10 — the writer, before the fill loop so a drafted answer is set, read back and traced
+    // exactly like a value that came out of memory.
+    if (draft?.rows) await draft.rows(rows ?? decisions);
+
     const first = await executeRows({ page, ats, formPlan, decisions, slug, budget, rows });
     let filled = first.filled;
     let failed = first.failed;
 
-    // Conditional follow-ups: re-plan only what the form grew, at most twice (step 9).
+    // Step 8½ — the demographic block as the *page* renders it. The Greenhouse schema does not
+    // describe that block field for field (`#hispanic_ethnicity` is published by no schema row,
+    // and `#race` is not in the DOM until the ethnicity question is answered), so this is the
+    // only pass that can reach it. It answers nothing itself: every row goes through `replan`,
+    // i.e. the same resolver and `p.eeo` preference a schema row would.
     const added = [];
+    const live = await fillLiveSensitive({ page, ats, formPlan, decisions, slug, budget, replan, added });
+    filled += live.filled;
+    failed += live.failed;
+
+    // Conditional follow-ups: re-plan only what the form grew, at most twice (step 9).
     const appeared = [];
     for (let round = 1; replan?.questions && round <= LIMITS.deltaRounds; round += 1) {
       budget.check();
@@ -556,6 +595,8 @@ export async function runBrowser({ context, formPlan, decisions, slug, budget, r
       formPlan.questions.push(...novel);
       const planned = await replan.questions(novel);
       decisions.push(...planned);
+      // A conditional essay only exists once the form is half-filled; it gets the writer too.
+      if (draft?.rows) await draft.rows(planned);
       const next = await executeRows({ page, ats, formPlan, decisions, slug, budget, rows: planned.filter(runnable) });
       filled += next.filled;
       failed += next.failed;
@@ -568,4 +609,503 @@ export async function runBrowser({ context, formPlan, decisions, slug, budget, r
     if (err instanceof Blocked && !err.shot) err.shot = await captureFailure(page, { slug, mask: formPlan }, { qid: `blocked_${err.reason}` });
     throw err;
   }
+}
+
+// ─── the demographic block the schema does not describe ───────────────────────────────────────
+//
+// Measured on togetherai/5179372007: the board renders `#hispanic_ethnicity`, which the
+// Greenhouse API publishes no question for, and it does not render `#race` at all until that
+// ethnicity question is answered (the EEO-1 flow asks ethnicity first). A runner driving only the
+// schema's rows therefore misses one control entirely and reports the other as "not on the page".
+//
+// So the block is read off the page (`adapters/greenhouse.eeoControls`, which opens no menu and
+// writes nothing), matched against the rows the plan already has, and filled in two rounds — the
+// second round is what catches a control that mounts in response to the first answer. Nothing
+// here decides an answer: a control the plan has no row for goes through `replan`, so `p.eeo` and
+// the gates decide exactly as they do for a schema row. An adapter with no `eeoControls` (Ashby,
+// generic) skips the whole pass.
+
+const indexKey = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/** Both sides' spellings of one control: the normalizer files `demographic_<id>`, the DOM says `<id>`. */
+const keysFor = (row) => {
+  const qid = indexKey(row?.qid);
+  return [qid, qid.replace(/^demographic/, ""), `demographic${qid}`, indexKey(row?.label)].filter(Boolean);
+};
+
+/**
+ * Live controls → what to do with each. Pure, so the rule is testable without a browser.
+ *
+ * `retry` is a control the plan already has an answer for that has not been committed yet — the
+ * `#race` case, where the row was marked `ask` only because the control was not in the DOM when
+ * the fill loop reached it. `novel` is a control no plan row describes. A row that is already
+ * read back ok, and a row the plan has no value for, are both left exactly alone: the first is
+ * done, the second is the user's to answer.
+ *
+ * @returns {{retry:Array<{live:object, question:object, decision:object}>, novel:object[]}}
+ */
+export function matchLiveControls(live, { questions = [], decisions = [] } = {}) {
+  const byKey = new Map();
+  for (const q of questions) for (const key of keysFor(q)) if (key && !byKey.has(key)) byKey.set(key, q);
+  const byQid = new Map(decisions.map((d) => [d.qid, d]));
+
+  const retry = [];
+  const novel = [];
+  for (const row of live) {
+    if (!row?.selector) continue;
+    const question = keysFor(row).map((key) => byKey.get(key)).find(Boolean) ?? null;
+    if (!question) {
+      novel.push({
+        qid: row.qid,
+        label: row.label || row.qid,
+        section: row.section || null,
+        required: false,
+        type: row.multiple ? "multi_select" : "single_select",
+        control: row.control,
+        selector: row.selector,
+        class: "sensitive",
+      });
+      continue;
+    }
+    const decision = byQid.get(question.qid);
+    if (!decision || decision.readback?.ok === true) continue;
+    // Only a row that already carries the answer `p.eeo` resolved may be driven again; a row with
+    // no value is an open question, and reviving it would be this file deciding one.
+    if (decision.value == null && decision.option == null) continue;
+    retry.push({ live: row, question, decision });
+  }
+  return { retry, novel };
+}
+
+async function fillLiveSensitive({ page, ats, formPlan, decisions, slug, budget, replan = null, added = [] }) {
+  const out = { filled: 0, failed: 0 };
+  const adapter = boardAdapter(ats);
+  if (typeof adapter.eeoControls !== "function") return out;
+
+  const seen = new Set();
+  for (let round = 1; round <= LIMITS.deltaRounds; round += 1) {
+    budget.check();
+    const live = (await adapter.eeoControls(page).catch(() => [])).filter((r) => r?.selector && !seen.has(r.qid));
+    if (!live.length) break;
+    for (const row of live) seen.add(row.qid);
+
+    const { retry, novel } = matchLiveControls(live, { questions: formPlan.questions, decisions });
+    const rows = [];
+    const retried = [];
+    for (const { live: row, question, decision } of retry) {
+      // The page is the authority on where the control is and what kind it is.
+      question.selector = row.selector;
+      question.control = row.control;
+      question.type = row.multiple ? "multi_select" : "single_select";
+      if (decision.action === "ask") decision.action = "check";
+      retried.push(decision);
+      rows.push(decision);
+    }
+    if (novel.length && replan?.questions) {
+      // qid and control only: a demographic question's own wording stays out of the trace.
+      await appendTrace(slug, { op: "delta", stage: "sensitive", round, questions: novel.map((q) => ({ qid: q.qid, control: q.control })) });
+      formPlan.questions.push(...novel);
+      const planned = await replan.questions(novel);
+      decisions.push(...planned);
+      added.push(...novel);
+      rows.push(...planned.filter(runnable));
+    }
+    if (!rows.length) continue;
+
+    try {
+      const result = await executeRows({ page, ats, formPlan, decisions, slug, budget, rows });
+      out.filled += result.filled;
+      out.failed += result.failed;
+      for (const d of retried) restoreRetried(d);
+    } catch (err) {
+      // A demographic block the adapter cannot drive must not cost the user the application: the
+      // rows are already `ask` with their screenshots, and `no_progress` here means "this block
+      // would not take a value", not "the page is dead". Every other stop rule still throws.
+      if (!(err instanceof Blocked && err.reason === "no_progress")) throw err;
+      await appendTrace(slug, { op: "delta", stage: "sensitive", round, blocked: "no_progress", detail: err.message });
+      for (const d of retried) restoreRetried(d);
+      budget.noChange = 0;
+      break;
+    }
+  }
+  return out;
+}
+
+/**
+ * The retry's verdict, written back over the first attempt's. A control that was only missing
+ * from the DOM is now set: the row goes back to what it was before `markAsk` touched it, so the
+ * summary reports the `p.eeo` source it was filled from, not "the form would not take it" about
+ * a value the read-back shows committed. A row the retry did not reach is still an open question
+ * and is put back the way it came in.
+ */
+function restoreRetried(d) {
+  const was = d._was;
+  delete d._was;
+  if (d.readback?.ok === true) {
+    if (was) {
+      d.action = was.action === "ask" ? "check" : was.action;
+      d.why = was.why;
+    }
+    return;
+  }
+  if (d.action !== "ask") {
+    markAsk(d, was?.why ?? d.why);
+    delete d._was;
+  }
+}
+
+// ─── submit ───────────────────────────────────────────────────────────────────────────────────
+//
+// The runner clicks Submit only when the user's own `p.auto_submit` preference says so *and* the
+// form has nothing left to ask (`submitReadiness`). `scripts/apply.mjs` owns that decision; this
+// module owns the mechanics, identically for every board:
+//
+//   findSubmit   the adapter's control, or nothing — never a guess at which button applies
+//   captcha wait Greenhouse injects its reCAPTCHA script after the form renders, and a click
+//                before `window.grecaptcha` exists posts a form with no token: the board answers
+//                that with an error banner, which from outside is indistinguishable from a
+//                rejected application
+//   click        scrolled into view, real mouse move, the fill loop's own 150–400 ms cadence
+//   confirm      poll the adapter's confirmation rules for ≤45 s, stopping early the moment the
+//                page says it failed (a visible captcha *challenge* or an error banner)
+//
+// A submit that is not confirmed is never reported as success and never retried: it becomes
+// `blocked{reason:"submit_failed"}` with a screenshot, and the tab is left exactly as it is so
+// the user can finish by hand.
+
+export const SUBMIT = { timeoutMs: 45000, captchaWaitMs: 5000, pollMs: 500, clickTimeoutMs: 15000 };
+
+/** What a visible banner has to say for the page to count as "not submitted". */
+const FAILURE_RE = /error|try again|captcha/i;
+
+/**
+ * The adapter module for a board, with `generic` as the answer for a page that has no ATS at all
+ * (a fixture, an unrecognised careers page). Unlike `adapters/index.mjs`'s `adapterFor`, this one
+ * never throws: the passes that use it — the live demographic block, submit detection, submit —
+ * all have a working generic implementation.
+ */
+export const boardAdapter = (ats) => adapters[String(ats ?? "").toLowerCase()] ?? adapters.generic;
+
+/** The confirmation rules an adapter would apply, as printable strings (`--detect-submit`). */
+export function describeConfirmation(ats) {
+  const c = boardAdapter(ats).CONFIRMATION ?? {};
+  return {
+    strategy: c.strategy ?? null,
+    ...(c.url ? { url: c.url.source } : {}),
+    ...(c.text ? { text: c.text.source } : {}),
+    ...(c.selectors?.length ? { selectors: c.selectors } : {}),
+    ...(c.toast?.length ? { toast: c.toast } : {}),
+    form_gone_required: c.formGone === true,
+  };
+}
+
+/**
+ * May this application be submitted? Zero questions left for the user and zero required controls
+ * still empty — including the ones the plan never knew about (a conditional follow-up the form
+ * grew while it was being filled). Anything else, and the user looks at the form first.
+ *
+ * `sensitive` is reported, never subtracted: a demographic row the resolver could not map (a
+ * multi-select where the saved answer matches three of the form's options) is an open question
+ * about the user even though the control itself is optional, and auto-submitting past it would
+ * answer it by omission. The count exists so the caller can say *which* question is holding the
+ * click, not so it can ignore it.
+ */
+export function submitReadiness({ decisions = [], state = null } = {}) {
+  const asks = decisions.filter((d) => d.action === "ask");
+  const required_empty = state ? (state.unfilled?.length ?? 0) + (state.unknown?.length ?? 0) : 0;
+  const sensitive = asks.filter((d) => d.class === "sensitive").length;
+  return { ready: asks.length === 0 && required_empty === 0, asks: asks.length, sensitive, required_empty };
+}
+
+/**
+ * Has Submit already been clicked for this application? The one question that must never be
+ * answered optimistically: a second click sends a second application, which no user can take back.
+ *
+ * Two sources, because each alone has a hole:
+ *  - `decisions.json` (`frozen`) carries `submitted` / `submit_attempted`, but it is written by
+ *    `settle()` **after** the confirmation wait — kill the process during those 45 s and the click
+ *    that already posted leaves no record there at all;
+ *  - `trace.jsonl` carries the `stage:"attempt"` row appended *before* the click, and it is
+ *    append-only across runs, so it survives exactly that crash. It is also the file a user may
+ *    delete, which is why the frozen record is still read.
+ *
+ * A failure that never reached the button (`submit_not_found`) writes neither an attempt row nor
+ * `clicked:true`, so it stays retryable.
+ *
+ * @returns {Promise<{attempted:boolean, confirmed:boolean, sources:string[]}>}
+ */
+export async function priorSubmit(slug, frozen = null) {
+  const out = { attempted: false, confirmed: false, sources: [] };
+  if (!slug) return out;
+
+  if (frozen?.submitted === true || frozen?.submit_attempted === true) {
+    out.attempted = true;
+    out.confirmed = frozen.submitted === true;
+    out.sources.push("decisions.json");
+  }
+
+  const raw = await readFile(tracePath(slug), "utf8").catch(() => null);
+  if (raw) {
+    for (const line of raw.split("\n")) {
+      if (!line.trim()) continue;
+      let row = null;
+      try {
+        row = JSON.parse(line);
+      } catch {
+        continue; // a truncated last line is not a reason to forget a click
+      }
+      if (row?.op !== "submit") continue;
+      if (row.stage !== "attempt" && row.clicked !== true && row.ok !== true) continue;
+      out.attempted = true;
+      if (row.ok === true) out.confirmed = true;
+      if (!out.sources.includes("trace.jsonl")) out.sources.push("trace.jsonl");
+    }
+  }
+  return out;
+}
+
+/**
+ * `p.auto_submit`'s stored value → may the runner click Submit at all? Pure, so the scope
+ * resolution (company > role_family > global) stays with the caller and only the reading of the
+ * value lives here.
+ *
+ * Everything that is not an explicit yes is a **no**: absent, null, an empty string, "maybe",
+ * an object with no answer. Auto-submit is the one preference where a wrong default sends an
+ * application nobody approved, so it is never inferred (AGENTS.md: no personal decision is
+ * defaulted).
+ */
+export function autoSubmitOn(value) {
+  const raw = value && typeof value === "object" ? value.answer ?? value.value : value;
+  if (raw === true) return true;
+  return ["yes", "true", "on", "1"].includes(String(raw ?? "").trim().toLowerCase());
+}
+
+/** ≤5 s for a lazily injected captcha script, and only on a page that references one at all. */
+async function waitForCaptcha(page, timeout = SUBMIT.captchaWaitMs) {
+  const referenced = await page
+    .evaluate(() => Boolean(document.querySelector('script[src*="recaptcha"], script[src*="hcaptcha"], .grecaptcha-badge, [data-sitekey]')))
+    .catch(() => false);
+  if (!referenced) return { referenced: false, ready: null, waited_ms: 0 };
+  const started = Date.now();
+  const ready = await waitUntil({
+    read: () =>
+      page
+        .evaluate(() => Boolean(window.grecaptcha || window.hcaptcha || document.querySelector(".grecaptcha-badge")))
+        .catch(() => false),
+    ok: (v) => v === true,
+    timeout,
+    every: 250,
+  });
+  return { referenced: true, ready: ready === true, waited_ms: Date.now() - started };
+}
+
+/**
+ * The page saying "not submitted": a captcha *challenge* on screen, or a visible banner that
+ * reads like a failure. Two things this must never do, because both would fail every real
+ * Greenhouse submission:
+ *  - scan the whole page: every board carries "This site is protected by reCAPTCHA …" in its
+ *    footer, which the `captcha` half of FAILURE_RE matches. Only the banner elements
+ *    (`ALERT_SELECTORS`) are read, and the captcha boilerplate is dropped even when it turns up
+ *    inside one;
+ *  - treat the invisible reCAPTCHA badge as a challenge — `CAPTCHA_SELECTORS` names the bframe
+ *    popup only, and `readSignals` requires it to be visible and larger than 40×40.
+ */
+const CAPTCHA_BOILERPLATE = /protected by recaptcha|privacy policy and terms of service apply/i;
+
+function submitFailure(signals) {
+  if (signals?.captcha) {
+    return { cause: "captcha_challenge", detail: "a captcha challenge is on screen — the runner never solves one" };
+  }
+  const banner = (signals?.alerts ?? []).find((line) => FAILURE_RE.test(line) && !CAPTCHA_BOILERPLATE.test(line));
+  return banner ? { cause: "error_banner", detail: banner } : null;
+}
+
+/**
+ * Click Submit and wait for the board to confirm it.
+ *
+ * @param {{page:object, ats?:string|null, formPlan?:object|null, slug?:string|null,
+ *          timeout?:number}} args
+ * @returns {Promise<{ok:boolean, selector:string|null, button?:string,
+ *   confirmation:{detected:boolean, strategy?:string, url?:string, text?:string, screenshot?:string},
+ *   reason?:string, cause?:string, detail?:string, shot?:string, ms:number}>}
+ *   `ok:false` is always `reason:"submit_failed"` — the caller turns it into `blocked` and leaves
+ *   the tab open. The per-posting budget is deliberately not charged here: submission happens
+ *   after step 11, and a board that takes 40 s to answer is not a runaway fill loop.
+ */
+export async function submitApplication({ page, ats = null, formPlan = null, slug = null, timeout = SUBMIT.timeoutMs }) {
+  const board = ats ?? formPlan?.ats ?? atsFromUrl(page?.url?.() ?? "") ?? null;
+  const adapter = boardAdapter(board);
+  const started = Date.now();
+
+  const control = await adapter.findSubmit(page);
+  if (!control) {
+    return failSubmit({
+      page,
+      slug,
+      formPlan,
+      control: null,
+      cause: "submit_not_found",
+      detail: `no submit control on this form (${board ?? "generic"} rules)`,
+      ms: Date.now() - started,
+    });
+  }
+
+  const captcha = await waitForCaptcha(page);
+  const button = page.locator(control.selector).first();
+
+  // The attempt is recorded **before** the click, not after the verdict. A click that lands and
+  // whose confirmation is then missed (a slow board, a lost tab) is the one state that can send
+  // an application twice: the next run reads this row — and the `submit_attempted` flag the
+  // caller freezes from it — and refuses to click again.
+  await appendTrace(slug, { op: "submit", stage: "attempt", selector: control.selector, button: control.text, found_by: control.strategy, captcha, url: page.url?.() ?? null });
+
+  let clickError = null;
+  let clicked = false;
+  try {
+    await button.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
+    await pace(page, button);
+    await button.click({ timeout: SUBMIT.clickTimeoutMs });
+    clicked = true;
+  } catch (err) {
+    // A click that races the confirmation navigation throws *after* the page is already gone, so
+    // the verdict still comes from the wait below; this is only reported if nothing lands. The
+    // attempt counts as made either way — the throw does not prove the click did not register.
+    clickError = String(err?.message ?? err).split("\n")[0].slice(0, 160);
+  }
+
+  const selectors = adapter.CONFIRMATION?.selectors ?? [];
+  const toast = adapter.CONFIRMATION?.toast ?? [];
+  const deadline = Date.now() + timeout;
+  let confirmation = { detected: false };
+  let failure = null;
+  for (;;) {
+    const signals = await adapters.generic.readSignals(page, { selectors, toast });
+    confirmation = await adapter.confirmSubmitted(page, { signals });
+    if (confirmation.detected) break;
+    // Confirmation first, failure second: a receipt page that happens to carry the word "error"
+    // somewhere in its footer is still a receipt.
+    failure = submitFailure(signals);
+    if (failure) break;
+    if (Date.now() >= deadline) break;
+    await sleep(SUBMIT.pollMs);
+  }
+
+  const ms = Date.now() - started;
+  if (!confirmation.detected) {
+    return failSubmit({
+      page,
+      slug,
+      formPlan,
+      control,
+      captcha,
+      clicked: true,
+      cause: failure?.cause ?? (clickError ? "click_failed" : "no_confirmation"),
+      detail: failure?.detail ?? clickError ?? confirmation.reason ?? `no confirmation within ${Math.round(timeout / 1000)}s`,
+      ms,
+    });
+  }
+
+  const screenshot = await submittedShot(page, slug, formPlan);
+  const record = {
+    detected: true,
+    strategy: confirmation.strategy ?? adapter.CONFIRMATION?.strategy ?? null,
+    ...(confirmation.url ? { url: confirmation.url } : {}),
+    ...(confirmation.text ? { text: confirmation.text } : {}),
+    ...(screenshot ? { screenshot } : {}),
+  };
+  await appendTrace(slug, { op: "submit", ok: true, clicked, selector: control.selector, button: control.text, found_by: control.strategy, captcha, confirmation: record, ms });
+  return { ok: true, clicked: true, selector: control.selector, button: control.text, confirmation: record, captcha, ms };
+}
+
+/**
+ * One shape for every way a submit can fail: a screenshot, a trace row, `reason:"submit_failed"`.
+ * `clicked` is the fact the next run needs — a failure *before* the click (no control on the
+ * form) may be retried freely; a failure after one may not, because the board may have taken it.
+ */
+async function failSubmit({ page, slug, formPlan, control, cause, detail, captcha = null, clicked = false, ms }) {
+  const shot = await captureFailure(page, { slug, mask: formPlan }, { qid: "submit" });
+  const row = {
+    op: "submit",
+    ok: false,
+    clicked,
+    selector: control?.selector ?? null,
+    button: control?.text ?? null,
+    reason: "submit_failed",
+    cause,
+    detail,
+    ...(captcha ? { captcha } : {}),
+    confirmation: { detected: false },
+    ...(shot ? { shot } : {}),
+    ms,
+  };
+  await appendTrace(slug, row);
+  return {
+    ok: false,
+    clicked,
+    reason: "submit_failed",
+    cause,
+    detail,
+    ...(shot ? { shot } : {}),
+    selector: control?.selector ?? null,
+    ...(control?.text ? { button: control.text } : {}),
+    confirmation: { detected: false },
+    ms,
+  };
+}
+
+/**
+ * The receipt: `applications/<slug>/submitted.png`, with every `sensitive` control painted over
+ * first. An in-place confirmation still has the filled form under it, and a filled demographic
+ * block is never photographed (AGENTS.md).
+ */
+async function submittedShot(page, slug, formPlan) {
+  if (!slug || !page || page.isClosed?.()) return null;
+  const file = nodePath.join(traceDir(slug), "submitted.png");
+  try {
+    await mkdir(nodePath.dirname(file), { recursive: true, mode: 0o700 });
+    const mask = maskSelectors(formPlan).map((selector) => page.locator(selector));
+    await page.screenshot({ path: file, timeout: 10000, ...(mask.length ? { mask } : {}) });
+    return file;
+  } catch {
+    return null;
+  }
+}
+
+/** One submit result → the status the host reads (`apply.mjs`, `scripts/submit-smoke.mjs`). */
+export function submitOutcome(result) {
+  if (!result) return null;
+  return result.ok
+    ? { status: "submitted", confirmation: result.confirmation }
+    : {
+        status: "blocked",
+        reason: "submit_failed",
+        ...(result.shot ? { screenshot: result.shot } : {}),
+        ...(result.detail ? { detail: result.detail } : {}),
+        ...(result.cause ? { cause: result.cause } : {}),
+      };
+}
+
+/**
+ * `--dry-run --detect-submit`: which control *would* be clicked and how the confirmation would be
+ * recognised, read off the live page. Nothing is filled, nothing is clicked, nothing is written
+ * to the page — this is the only submit path that is safe against a real posting.
+ */
+export async function detectSubmit({ context, formPlan, slug = null, timeout = 30000 }) {
+  const ats = formPlan?.ats ?? atsFromUrl(formPlan?.url) ?? null;
+  const url = formPlan?.url;
+  if (!url) throw new Blocked("no_page", "the plan carries no posting URL");
+  const { page } = await openPosting(context, url, { reload: false });
+  if (!page) throw new Blocked("no_page", `no tab could be opened for ${url}`);
+  const adapter = boardAdapter(ats);
+  await adapter.waitForForm(page, { timeout }).catch(() => {});
+  const control = await adapter.findSubmit(page);
+  const out = {
+    ats,
+    url: page.url(),
+    would_click: control ? { selector: control.selector, text: control.text, found_by: control.strategy } : null,
+    confirmation: describeConfirmation(ats),
+    clicked: false,
+  };
+  if (slug) await appendTrace(slug, { op: "submit_detect", ...out });
+  return out;
 }

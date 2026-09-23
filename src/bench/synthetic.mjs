@@ -82,9 +82,33 @@ function facts() {
 
 /** The six day-1 answers plus the stances that are otherwise lazily asked at first sight. */
 const preferences = ({ eeo = false } = {}) => [
+  // Synthetic demographics, and deliberately not any real person's. Every field is a canonical
+  // `p.eeo` token (src/memory/schema.mjs EEO_VALUES); the runner turns each one into whatever
+  // wording the form in front of it uses (canon/vocab/eeo-*.yaml).
   ...(eeo
-    ? [{ id: "p.eeo_policy", value: { answer: "Decline to self-identify" }, source: "user", updated: SEEDED }]
+    ? [
+        {
+          id: "p.eeo",
+          value: {
+            gender: "female",
+            hispanic_latino: "no",
+            race: "white",
+            veteran_status: "veteran",
+            disability_status: "yes",
+            other_demographics: "decline",
+          },
+          source: "user",
+          updated: SEEDED,
+        },
+      ]
     : []),
+  // Never true for the bench: a measurement run must not submit anybody's application, and
+  // `apply.mjs` treats an absent row as "do not submit" anyway (PLAN §2.4 item 8).
+  { id: "p.auto_submit", value: false, source: "user", updated: SEEDED },
+  // Drafting *is* measured: a "why this company" box the runner hands back is the difference
+  // between `ready_to_submit` and `needs_user` on most real postings, and a draft is written
+  // from this profile's own stories and the posting's own text — never submitted.
+  { id: "p.auto_draft", value: true, source: "user", updated: SEEDED },
   { id: "p.notice_rule", value: { kind: "weeks", weeks: 4, text: "4 weeks' notice" }, source: "user", updated: SEEDED },
   {
     id: "p.salary",
@@ -108,11 +132,10 @@ const preferences = ({ eeo = false } = {}) => [
   },
   { id: "p.resume_by_role_family", value: { default: "doc.resume.bench" }, source: "user", updated: SEEDED },
   { id: "p.contact", value: { email: "robin.sanchez@bench.invalid", phone: "+351912000000" }, source: "user", updated: SEEDED },
-  // No `p.eeo_policy` on purpose. Without one the resolver *skips* every demographic row
-  // (PLAN D10, and the product's default), which is what the bench wants to measure: opting in
-  // made Greenhouse's demographic react-selects the first thing the runner touched, three of
-  // them returned `no_options_rendered`, and the `no_progress` stop rule ended the run before a
-  // single application question was reached. The EEO block is its own experiment, not this one.
+  // No `p.eeo` unless `--eeo` is passed. Without one the resolver *asks* every demographic row
+  // (PLAN D10: filled from `p.eeo`, asked once when it is absent, never skipped), so the bench's
+  // default run still writes to no demographic control — which is the invariant `report.mjs`
+  // checks — while the `--eeo` run measures the block being driven end to end.
   { id: "p.relocation", value: { willing: true }, source: "user", updated: SEEDED },
   { id: "p.in_office", value: { answer: "Yes" }, source: "user", updated: SEEDED },
   { id: "p.how_heard", value: "Company careers page", source: "user", updated: SEEDED },
@@ -123,7 +146,7 @@ const preferences = ({ eeo = false } = {}) => [
   { id: "p.background_check", value: "Yes", source: "user", updated: SEEDED },
   { id: "p.privacy_consent", value: "Yes", source: "user", updated: SEEDED },
   { id: "p.recording_consent", value: "Yes", source: "user", updated: SEEDED },
-  { id: "p.restrictive_agreements", value: "No", source: "user", updated: SEEDED },
+  { id: "p.legal.restrictive_agreements", value: "No", source: "user", updated: SEEDED },
   { id: "p.export_control", value: "No", source: "user", updated: SEEDED },
   { id: "p.government_official", value: "No", source: "user", updated: SEEDED },
   { id: "p.conflict_of_interest", value: "No", source: "user", updated: SEEDED },
@@ -269,11 +292,11 @@ async function mergeAnswerSection(home, rows) {
  * Create (or refresh) the benchmark home. Idempotent: the same bytes every time, and nothing
  * under `applications/` is touched, so a bench run's artifacts survive the next setup.
  *
- * `eeo: true` adds the global EEO stance, which turns every demographic row from `skip` into
- * `fill` — the separate experiment (`bench.mjs --eeo`) that measures whether the demographic
- * block can be driven at all. It is off by default because it is not the product's default and
- * because three demographic selects failing in a row ends a posting under the `no_progress` stop
- * rule before a single application question is reached.
+ * `eeo: true` adds a synthetic `p.eeo` (five canonical values plus the `decline` stance for the
+ * survey questions they do not cover), which turns every demographic row from `ask` into `fill` —
+ * the separate experiment (`bench.mjs --eeo`) that measures the demographic block being driven
+ * end to end. It is off by default so the default run writes to no demographic control at all,
+ * which is the invariant `src/bench/report.mjs` checks.
  *
  * @param {string} home absolute path, e.g. `/tmp/jev-bench`
  * @param {{eeo?: boolean}} [opts]

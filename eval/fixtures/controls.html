@@ -26,8 +26,17 @@
     checkbox (1 option)    a multi-select with exactly one value — an acknowledgement — rendered
                            as one box in a `<fieldset class="checkbox" id="…[]">`. Its answer is
                            the option's own sentence, not "yes", and declining selects nothing.
+    checkbox group         two shapes. `#field_langs` is Greenhouse's: n boxes sharing one
+                           `name="langs[]"`. `[data-field-path=cb_communities]` is Ashby's
+                           MultiValueSelect: every box carries its *own* option label as its
+                           `name` and its own generated id, so no two members share anything a
+                           name-scoped count can see and only the enclosing fieldset says how many
+                           options the question has.
     tel                    a number field whose country lives in a separate <select>.
-    date                   one masked text input (MM/DD/YYYY) and one native input[type=date].
+    date                   three: one masked text input (MM/DD/YYYY), one native input[type=date],
+                           and Ashby's — no type, no id, no name, no pattern, and a placeholder
+                           ("Pick date...") that states no format, so the class is the only thing
+                           that identifies it as a date control at all.
 
   Nothing here posts anywhere: submit is counted and cancelled, so a stray click is visible in the
   smoke output rather than silent.
@@ -153,6 +162,23 @@
     </fieldset>
   </div>
 
+  <!-- Ashby's MultiValueSelect, copied from the live DeepL form (2026-09-23): the option label is
+       the input's `name`, the id is `<form-uuid>_<field-uuid>-labeled-checkbox-N`, and the boxes
+       sit in a bare fieldset inside the field entry. Counted by `name` this is five separate
+       one-box fields; counted by fieldset it is one five-option question. Reading it the first
+       way is what drove four live groups down the Boolean rung and lost every answer
+       (`not_boolean`, docs/research/13-eval-judge-round2.md §3 N2). -->
+  <div class="field" data-field-path="cb_communities">
+    <fieldset class="_container_1258i_28 _fieldEntry_1e3gg_28">
+      <legend>Which of the following communities do you belong to? Please select all that apply.</legend>
+      <label for="cb_comm_0"><input type="checkbox" id="cb_comm_0" name="Neurodiverse"> Neurodiverse</label>
+      <label for="cb_comm_1"><input type="checkbox" id="cb_comm_1" name="Parent"> Parent</label>
+      <label for="cb_comm_2"><input type="checkbox" id="cb_comm_2" name="Veteran"> Veteran</label>
+      <label for="cb_comm_3"><input type="checkbox" id="cb_comm_3" name="Refugee or immigrant"> Refugee or immigrant</label>
+      <label for="cb_comm_4"><input type="checkbox" id="cb_comm_4" name="I prefer not to answer"> I prefer not to answer</label>
+    </fieldset>
+  </div>
+
   <div class="field">
     <label for="agree"><input type="checkbox" id="agree" name="agree"> I agree to the terms</label>
   </div>
@@ -176,6 +202,17 @@
   <div class="field">
     <label for="start_date">Earliest start</label>
     <input type="text" id="start_date" name="start_date" placeholder="MM/DD/YYYY" pattern="\d{2}/\d{2}/\d{4}">
+  </div>
+
+  <!-- Ashby's date control: `input.ashby-application-form-input-date`, no type, no id, no name,
+       no pattern, placeholder "Pick date...". Every format rule misses it, so it was detected as
+       plain text and a *sentence* was committed into it with a green read-back
+       (docs/research/13-eval-judge-round2.md §2 item 5). Its FormPlan row deliberately carries no
+       `type: "date"` in the smoke, so detection is the only thing that can save it. -->
+  <div class="field" data-field-path="ashby_start">
+    <label for="ashby_start">What is your earliest possible/desired start date?</label>
+    <input class="_input_gc9ve_28 _greedy_gc9ve_61 ashby-application-form-input-date"
+           placeholder="Pick date..." autocomplete="off">
   </div>
 
   <div class="field">

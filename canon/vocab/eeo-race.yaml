@@ -1,0 +1,108 @@
+# hand-maintained — NOT written by scripts/canon-cluster.mjs (preserved across its resetDir).
+# See canon/vocab/eeo-gender.yaml for
+# the shape and why these values differ from the corpus-clustering tokens in q.eeo.*.yaml.
+#
+# The EEO fill map for `p.eeo.race`. Two label families are covered: the EEO-1 categories
+# Greenhouse's EEOC block and every US government form use (long "(Not Hispanic or Latino)"
+# suffixes included) and the finer "U.S. Standard Demographic Questions" list Greenhouse ships
+# with newer boards. A suffixed EEO-1 label is mapped by the race it names, never by the
+# parenthetical — "White (Not Hispanic or Latino)" is `white`, and the ethnicity half of that
+# sentence is `p.eeo.hispanic_latino`'s job.
+#
+# Several labels may map to one saved value (the demographic list splits `asian` into East/South/
+# Southeast). That is not a tie to break here: the resolver hands the form's own options to Jev
+# with `none_of_these` and the gate decides, exactly as it does for any other select.
+field: race
+asks:
+  - "\\brace\\b"
+  - "racial"
+  - "ethnic(ity)?\\b"
+values:
+  american_indian: American Indian or Alaska Native
+  asian: Asian
+  black: Black or African American
+  hispanic_latino: Hispanic or Latino
+  native_hawaiian: Native Hawaiian or Other Pacific Islander
+  white: White
+  two_or_more: Two or more races
+  decline: Decline to self-identify
+aliases:
+  # —— EEO-1 categories (Greenhouse EEOC, Workday, Lever) ————————————————————————
+  "American Indian or Alaska Native": american_indian
+  "American Indian or Alaskan Native": american_indian
+  "American Indian or Alaska Native (Not Hispanic or Latino)": american_indian
+  "Native American/Alaska Native/First Nations": american_indian
+  "Indigenous, American Indian or Alaska Native": american_indian
+  "Indigenous Peoples (Canada)": american_indian
+  "Asian": asian
+  "Asian (Not Hispanic or Latino)": asian
+  "Black or African American": black
+  "Black or African American (Not Hispanic or Latino)": black
+  "African American/Black": black
+  "Black or of African descent": black
+  "Hispanic or Latino": hispanic_latino
+  "Hispanic or Latine": hispanic_latino
+  "Hispanic, Latinx or of Spanish Origin": hispanic_latino
+  "Hispanic, Latinx, or Spanish origin": hispanic_latino
+  "Native Hawaiian or Other Pacific Islander": native_hawaiian
+  "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)": native_hawaiian
+  "Native Hawaiian or Pacific Islander": native_hawaiian
+  "Pacific Islander or Native Hawaiian": native_hawaiian
+  "White": white
+  "White (Not Hispanic or Latino)": white
+  "White or European": white
+  "White/Caucasian": white
+  "Two or More Races": two_or_more
+  "Two or More Races (Not Hispanic or Latino)": two_or_more
+  "Bi-Racial/Mixed Race - Having 2 or more racial/ethnic groups": two_or_more
+  # —— Greenhouse "U.S. Standard Demographic Questions" and Ashby's finer lists ——————
+  "East Asian": asian
+  "South Asian": asian
+  "Southeast Asian": asian
+  "East Asian (Chinese, Japanese, Korean, Mongolian, Tibetan, Taiwanese, etc.)": asian
+  "South Asian (Bangladeshi, Bhutanese, Indian, Nepali, Pakistani, Sri Lankan)": asian
+  "Southeast Asian (Burmese, Cambodian, Filipino, Hmong, Indonesia, Laotian, Malaysian, Mien, Singaporean, Thai, Vietnamese)": asian
+  # —— UK / Ireland census wording (Ashby boards with a UK entity) ————————————————
+  "Asian/Asian British: Any other Asian background": asian
+  "Asian/Asian British: Bangladeshi": asian
+  "Asian/Asian British: Chinese": asian
+  "Asian/Asian British: Indian": asian
+  "Asian/Asian British: Pakistani": asian
+  "Black/Black British: African": black
+  "Black/Black British: Caribbean": black
+  "Black/Black British: Any other Black/ African / Caribbean background": black
+  "Mixed: Any other mixed background": two_or_more
+  "Mixed: White and Asian": two_or_more
+  "Mixed: White and Black African": two_or_more
+  "Mixed: White and Black Caribbean": two_or_more
+  "White: Any other White background": white
+  "White: English/Welsh/Scottish/Northern Irish/British": white
+  "White: Irish": white
+  # —— declines ————————————————————————————————————————————————————————————
+  "Decline To Self Identify": decline
+  "Decline to self-identify": decline
+  "I don't wish to answer": decline
+  "I do not wish to answer": decline
+  "I prefer not to disclose": decline
+  "Prefer not to disclose": decline
+  "Prefer not to say": decline
+match:
+  # Ordered: every rule that could be wrong-footed by a "(Not Hispanic or Latino)" suffix runs
+  # before the hispanic rule, so the suffix never steals a label from the race it qualifies.
+  - ["^(decline|prefer not|choose not|i prefer not|i (do not|don't) (wish|want)|not disclos)", decline]
+  - ["two or more|multiracial|mixed race|^mixed:|bi-?racial|more than one race", two_or_more]
+  - ["american indian|alaska native|alaskan native|first nations|indigenous", american_indian]
+  - ["native hawaiian|pacific islander", native_hawaiian]
+  - ["middle eastern|north african", null]
+  - ["black|african american|african descent|caribbean|black british", black]
+  - ["asian", asian]
+  - ["white|caucasian|european", white]
+  - ["hispanic|latin[oax]|spanish origin", hispanic_latino]
+unmapped:                               # no canonical value carries these
+  - Middle Eastern or North African
+  - Arab
+  - I prefer to self-describe
+  - Another race, ethnicity, or origin
+  - A group not listed
+  - Any other ethnic group
+  - Other

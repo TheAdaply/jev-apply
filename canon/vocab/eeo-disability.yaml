@@ -1,0 +1,50 @@
+# hand-maintained — NOT written by scripts/canon-cluster.mjs (preserved across its resetDir).
+# See canon/vocab/eeo-gender.yaml for
+# the shape and why these values differ from the corpus-clustering tokens in q.eeo.*.yaml.
+#
+# The EEO fill map for `p.eeo.disability_status`. Covers the OFCCP CC-305 self-identification form
+# Greenhouse renders verbatim (the long "or have a history/record of" wording, which changes every
+# time the form is revised) and the plain Yes/No the demographic survey asks.
+field: disability_status
+asks:
+  - "disabilit"
+  - "\\bdisabled\\b"
+  - "chronic condition"
+  - "cc-?305"
+values:
+  "yes": Yes, I have a disability, or have had one in the past
+  "no": No, I do not have a disability and have not had one in the past
+  decline: I do not want to answer
+aliases:
+  "Yes": "yes"
+  "Yes, I have a disability, or have had one in the past": "yes"
+  "Yes, I have a disability, or have had one in the past (or have a history/record of having a disability)": "yes"
+  "Yes, I Have A Disability, Or Have A History/Record Of Having A Disability": "yes"
+  "Yes, I have (or previously had) a disability": "yes"
+  "I have a disability": "yes"
+  "No": "no"
+  "No, I do not have a disability and have not had one in the past": "no"
+  "No, I don't have a disability, or a history/record of having a disability": "no"
+  "No, I Don't Have A Disability, Or A History/Record Of Having A Disability": "no"
+  "No, I do not have a disability": "no"
+  "None of these apply": "no"
+  "I do not want to answer": decline
+  "I don't want to answer": decline
+  "I don't wish to answer": decline
+  "I do not wish to answer": decline
+  "I Don't Wish To Answer": decline
+  "Decline to self-identify": decline
+  "Decline To Self Identify": decline
+  "Prefer not to say": decline
+  "Prefer not to disclose": decline
+match:
+  - ["^(decline|prefer not|choose not|i prefer not|i (do not|don't) (wish|want)|not disclos)", decline]
+  - ["^(no\\b|none of these)|i (do not|don't) have a disability", "no"]
+  - ["^yes\\b|i have (\\(or previously had\\) )?a disability|history/record of having a disability", "yes"]
+unmapped:                               # a specific condition, or the user's own words — never ours
+  - I prefer to self-describe
+  - Blindness
+  - Chronic illness or pain
+  - Deaf or hard of hearing
+  - Wheelchair user
+  - Other, please specify...

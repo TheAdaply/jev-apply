@@ -73,6 +73,12 @@ const PLACEHOLDER_RE = /^(|-+|\u2014+|select(\s|$).*|choose(\s|$).*|please\s+sel
 const LOADING_RE = /^(loading|searching|fetching|\u2026|\.\.\.)/i;
 const EMPTY_RE = /^(no\s+(results|options|matches|matching)|nothing\s+found|type\s+to\s+search|start\s+typing)/i;
 const DATE_HINT_RE = /(^|[^a-z])(mm|dd|yy(yy)?|jj|aaaa|month|day|year)([^a-z]|$)/i;
+// Ashby names its date input by class and nothing else: `input.ashby-application-form-input-date`
+// carries no `type=date`, no pattern and a placeholder ("Pick date…") that states no format, so
+// every wording rule above misses it and the plain-text rung took the field — which is how a
+// sentence was committed into a date control (docs/research/13-eval-judge-round2.md §2 item 5).
+// The boundaries matter: "candidate", "validate" and "update" must not be read as dates.
+const DATE_CLASS_RE = /(^|[^a-z])(date|datepicker|calendar)([^a-z]|$)/i;
 
 // ─── detection ────────────────────────────────────────────────────────────────────────────────
 
@@ -143,10 +149,28 @@ function readShape(selector) {
     [labelFor(el.id), at(el, "aria-label"), el.closest("label"), fieldLabel]
       .map((n) => clean(typeof n === "string" ? n : n?.textContent))
       .find(Boolean) ?? "";
+  // How many boxes this one question actually offers. A shared `name` is one witness, never the
+  // only one: Ashby names each checkbox of a MultiValueSelect after its *own* option label
+  // ("Bisexual", "Veteran", "United Kingdom"), so a name-scoped count says 1 for a seven-box
+  // question, the field is classified as a standalone checkbox, and the answer meets the Boolean
+  // rung as `not_boolean` — four rows lost across two postings
+  // (docs/research/13-eval-judge-round2.md §3 N2). So the widest honest scope wins: a shared-name
+  // count, the field container's own boxes, and the boxes inside the semantic group the member
+  // sits in (`fieldset`/`role=group`) when that group is the field container or inside it.
+  // Nothing is counted page-wide: with no container at all a lone Boolean would otherwise be
+  // read as a member of every unrelated checkbox on the form.
+  const semantic = el.closest('fieldset, [role="group"], [role="radiogroup"]');
+  const grouped = semantic && (semantic === scope || scope.contains(semantic)) ? semantic : scope;
+  const countIn = (node, sel) => (node && node !== document.body ? node.querySelectorAll(sel).length : 0);
   const group =
     type === "radio" || type === "checkbox"
-      ? (name ? scope.querySelectorAll(`input[type="${type}"][name="${CSS.escape(name)}"]`).length : 0) ||
-        scope.querySelectorAll(`input[type="${type}"]`).length
+      ? Math.max(
+          name && scope !== document.body
+            ? scope.querySelectorAll(`input[type="${type}"][name="${CSS.escape(name)}"]`).length
+            : 0,
+          countIn(scope, `input[type="${type}"]`),
+          countIn(grouped, `input[type="${type}"]`),
+        )
       : 0;
   return {
     tag,
@@ -209,9 +233,13 @@ export function classifyShape(shape, { options = 0 } = {}) {
   if (s.type === "file") return { control: "file", why: 'input[type="file"]' };
   if (s.type === "radio") return { control: "radio", why: `radio group of ${Math.max(s.group, 1)}` };
   if (s.type === "checkbox") {
-    return s.group > 1
-      ? { control: "checkbox_group", why: `${s.group} checkboxes in one field` }
-      : { control: "checkbox", why: "single checkbox" };
+    // Two independent witnesses, either sufficient. The DOM one (n boxes in the field) is the
+    // usual one; the schema one is what rescues a board whose members share nothing in the DOM —
+    // a published vocabulary of two or more options is a pick-many question by definition, and a
+    // Boolean never has one.
+    if (s.group > 1) return { control: "checkbox_group", why: `${s.group} checkboxes in one field` };
+    if (options > 1) return { control: "checkbox_group", why: `${options} options published for a checkbox field` };
+    return { control: "checkbox", why: "single checkbox" };
   }
   if (["date", "month", "week", "datetime-local"].includes(s.type)) return { control: "date", why: `input[type="${s.type}"]` };
   if (s.type === "number") return { control: "number", why: 'input[type="number"]' };
@@ -234,6 +262,11 @@ export function classifyShape(shape, { options = 0 } = {}) {
   if (["text", "search", "email", "url", ""].includes(s.type) && s.tag === "input") {
     if (DATE_HINT_RE.test(s.format || "") && /[/.\-]/.test(s.format || "")) {
       return { control: "date", why: `text input formatted "${s.format}"` };
+    }
+    // The widget says what it is in its class list even when it states no format at all.
+    if (DATE_CLASS_RE.test(s.className) || DATE_CLASS_RE.test(s.testid)) {
+      const named = String(s.className).split(/\s+/).find((c) => DATE_CLASS_RE.test(c)) || "date";
+      return { control: "date", why: `date-named text input (.${named})` };
     }
     if (s.inputmode === "numeric" || s.inputmode === "decimal") return { control: "number", why: `inputmode=${s.inputmode}` };
     if (placeNamed) return { control: "text", why: "location-named plain text input" };
@@ -417,6 +450,20 @@ const fail = (reason, observed = "", attempts = 1) => ({ ok: false, observed, at
 const matchesWanted = (observed, want) => Boolean(observed) && pickOption([observed], want) !== null;
 
 /**
+ * Is this checkbox field a pick-many *group* rather than a standalone Boolean? Either witness is
+ * enough: the FormPlan published two or more options for it, or the live field holds two or more
+ * boxes. `detectControl` already answers this when it reads the field itself; this re-asks
+ * because an adapter may hand in a `detected` it computed without the question's option list,
+ * and because the Boolean rung silently loses a whole answer when it is wrong (`not_boolean`,
+ * docs/research/13-eval-judge-round2.md §3 N2). One option is *not* a group: a one-value
+ * `multi_value_multi_select` is an acknowledgement, and `setSingleCheckbox` is written for it.
+ */
+export function isCheckboxGroup(question, detected = null) {
+  const options = Array.isArray(question?.options) ? question.options.length : 0;
+  return options > 1 || Number(detected?.evidence?.group ?? 0) > 1;
+}
+
+/**
  * Set one control, whatever it is. The ATS adapters call this for every kind they do not tune
  * themselves; `adapters/generic.mjs` calls it for all of them.
  *
@@ -437,6 +484,17 @@ export async function setControl(page, question, value, opts = {}) {
   const container = await containerFor(page, input);
   const ctx = { selector, detected, input, container, chooseOption: opts.chooseOption ?? null };
 
+  // A date field the DOM renders as a bare text input. Ashby's `input.ashby-application-form-
+  // input-date` carries no `type=date` and a placeholder ("Pick date…") that names no format, so
+  // detection calls it text and the plain-text rung typed a *sentence* into it — the picker sat
+  // open over the next field and the read-back passed, because a text input takes anything
+  // (fireworks/fc3845e6, 2026-09-23). The schema knew: `type: "date"` comes off the ATS's own
+  // field type. So the plan wins here, and `setDate`'s `unparsable_date` guard is what prose
+  // meets instead of a green read-back.
+  if (question?.type === "date" && ["text", "unknown"].includes(detected.control)) {
+    return setDate(page, question, value, ctx);
+  }
+
   switch (detected.control) {
     case "file":
       return fail("file controls go through uploadFile()");
@@ -454,7 +512,9 @@ export async function setControl(page, question, value, opts = {}) {
     case "radio":
       return setRadioGroup(page, question, value, ctx);
     case "checkbox":
-      return setSingleCheckbox(page, question, value, ctx);
+      return isCheckboxGroup(question, detected)
+        ? setCheckboxGroup(page, question, value, ctx)
+        : setSingleCheckbox(page, question, value, ctx);
     case "checkbox_group":
       return setCheckboxGroup(page, question, value, ctx);
     case "location":
@@ -548,15 +608,21 @@ export function parseDateParts(value, order = "YMD") {
   return null;
 }
 
-/** The order and separator a widget wants, read from `type=date`, its placeholder, or its pattern. */
+/**
+ * The order and separator a widget wants, read from `type=date`, its placeholder, or its pattern.
+ * `stated` says whether the widget actually *named* an order, which is the difference between
+ * knowing a mask and guessing one — see `setDate`.
+ */
 export function dateFormatOf({ type = "", format = "" } = {}) {
-  if (["date", "datetime-local"].includes(type)) return { order: "YMD", sep: "-", pad: true, native: true };
-  if (type === "month") return { order: "YM", sep: "-", pad: true, native: true };
+  if (["date", "datetime-local"].includes(type)) return { order: "YMD", sep: "-", pad: true, native: true, stated: true };
+  if (type === "month") return { order: "YM", sep: "-", pad: true, native: true, stated: true };
   const hint = String(format || "").toUpperCase();
   const sep = (hint.match(/[/.\-]/) ?? ["/"])[0];
   const order = hint.replace(/[^YMDJA]/g, "").replace(/A{2,}/g, "Y").replace(/J{2,}/g, "D").replace(/(.)\1+/g, "$1");
-  if (/^(YMD|MDY|DMY|YM|MY)$/.test(order)) return { order, sep, pad: true, native: false };
-  return { order: "YMD", sep: "-", pad: true, native: false };
+  if (/^(YMD|MDY|DMY|YM|MY)$/.test(order)) return { order, sep, pad: true, native: false, stated: true };
+  // Nothing on the element names an order. ISO-8601 is the one form no date parser reads as a
+  // different day, so that is what an unnamed widget is handed.
+  return { order: "YMD", sep: "-", pad: true, native: false, stated: false };
 }
 
 export function formatDate({ y, m, d }, { order, sep }) {
@@ -565,6 +631,19 @@ export function formatDate({ y, m, d }, { order, sep }) {
   return order.split("").map((k) => piece[k]).join(sep);
 }
 
+/**
+ * Ashby's `input.ashby-application-form-input-date` is the measured case: a bare text input that
+ * takes an ISO string, keeps it in `value`, and renders its own display format beside it
+ * (deepl/d53167a0 read back `2026-11-02` on 2026-09-23).
+ *
+ * The retry rung is where a mask matters. Typing bare digits into a masked field only lands on
+ * the right day when the widget's order is *known*: `20261102` typed into an MM/DD/YYYY mask is
+ * 20/26/1102, which is not a failure the read-back can see — it is a different date, silently
+ * committed. So digits are typed only when the element stated its order; otherwise the retry
+ * types the same unambiguous ISO string keystroke by keystroke, which is what an input that
+ * ignores a direct `fill` needs, and a field that still refuses it becomes an `ask` with a
+ * screenshot rather than a wrong answer.
+ */
 async function setDate(page, question, value, { input, detected }) {
   const shape = { type: detected?.evidence?.type ?? "", format: detected?.format ?? "" };
   const fmt = dateFormatOf(shape);
@@ -574,20 +653,21 @@ async function setDate(page, question, value, { input, detected }) {
   await input.waitFor({ state: "visible", timeout: 10000 });
   await pace(page, input);
   const result = await attemptSet({
-    // Attempt 1 writes the value; attempt 2 types it, for masked inputs that ignore a direct set.
     set: async (n) => {
       await input.click({ timeout: 5000 }).catch(() => {});
       if (n === 1) await input.fill(want);
       else {
         await input.fill("");
-        await input.pressSequentially(fmt.native ? want : want.replace(/\D/g, ""), { delay: 40 });
+        await input.pressSequentially(fmt.stated ? want.replace(/\D/g, "") : want, { delay: 40 });
       }
       await input.blur().catch(() => {});
     },
     read: () => valueOf(input),
     ok: (observed) => norm(observed) === want || digits(observed) === digits(want),
   });
-  return result.ok ? { ...result, strategy: `date:${fmt.order}${fmt.sep}` } : { ...result, reason: result.reason ?? `expected ${want}` };
+  return result.ok
+    ? { ...result, strategy: `date:${fmt.order}${fmt.sep}${fmt.stated ? "" : "?"}` }
+    : { ...result, reason: result.reason ?? `expected ${want}` };
 }
 
 // native select ---------------------------------------------------------------------------------
@@ -898,7 +978,18 @@ async function setMultiCombobox(page, question, value, ctx) {
 
   const missing = [];
   let attempts = 1;
+  let already = 0;
   for (const want of wants) {
+    // A chip that is already there is the answer, not work to redo. react-select hides an option
+    // it has already committed (`hideSelectedOptions`), so typing it again filters the menu down
+    // to nothing and the pass reports `unmatched` for a field that holds exactly what was asked
+    // for — which is what a re-run, an `--answers` round or `--resume` does to every multi-select
+    // it already filled (measured on this board's demographic block, 2026-09-23).
+    const held = await chips();
+    if (held.some((chip) => matchesWanted(chip, want))) {
+      already += 1;
+      continue;
+    }
     // Read the chips, not the input: a multi-select clears its filter on every commit, so the
     // only evidence that a value took is the chip carrying its label.
     const one = await setCombobox(page, question, want, ctx, {
@@ -914,7 +1005,7 @@ async function setMultiCombobox(page, question, value, ctx) {
   const observed = (await chips()).join(" | ");
   await input.blur().catch(() => {});
   if (missing.length) return { ok: false, observed, attempts, reason: `unmatched: ${missing.join(", ").slice(0, 80)}` };
-  return { ok: true, observed, attempts, strategy: `chips:${wants.length}` };
+  return { ok: true, observed, attempts, strategy: already ? `chips:${wants.length} (${already} already set)` : `chips:${wants.length}` };
 }
 
 // location ----------------------------------------------------------------------------------------
@@ -929,9 +1020,33 @@ export function locationQueries(value, question = null) {
 }
 
 /**
+ * Work-mode words a candidate writes where a form asks for a place. "Remote" is a way of working,
+ * not somewhere anybody lives, and a geocoder that is handed one still answers: Pelias returns
+ * `Remote, <US state>, United States` (a real township), and the old `city` rung committed it —
+ * a fabricated US location on a form that declares no US work authorization two fields above
+ * (judged on scale-ai/4534631005, 2026-09-23). Every rung below therefore matches on the
+ * answer's *place* parts only, and an answer with no place part at all matches nothing.
+ */
+export const WORK_MODE_RE = /^(?:remote|hybrid|on[\s-]?site|onsite|in[\s-]?office|work\s+from\s+home|wfh|anywhere|global|worldwide|distributed|flexible|nomadic)$/i;
+
+/** Is this comma-part a way of working rather than a place? */
+export const isWorkMode = (part) => WORK_MODE_RE.test(normLabel(part).replace(/[\s-]+/g, " "));
+
+/** The parts of an answer that name somewhere: "Remote (Lisbon)" → ["lisbon"], "Remote" → []. */
+export function placeParts(value) {
+  return norm(value)
+    .split(/[,(){}[\]/]|\s+[-–—]\s+/)
+    .map((p) => normLabel(p))
+    .filter(Boolean)
+    .filter((p) => !isWorkMode(p));
+}
+
+/**
  * The entry a geocoder offered for the place we asked about. One hit wins; several hits are
  * narrowed by the rest of the answer ("Berlin, Germany" vs "Berlin, Connecticut") and, failing
  * that, refused — picking a city the user never named is exactly the guess D-no-defaults forbids.
+ * An answer that names no place at all (see `placeParts`) matches nothing, whatever the provider
+ * offers for it.
  *
  * A provider's index may also be *coarser* than the answer: Ashby's ElevenLabs field runs
  * `ApiAutocompleteGeoLocation` with `locationTypes:["Country"]`, so "Lisbon" returns "No results"
@@ -942,11 +1057,9 @@ export function locationQueries(value, question = null) {
  */
 export function pickLocation(labels, value) {
   const want = normLabel(value);
-  const parts = norm(value)
-    .split(",")
-    .map((p) => normLabel(p))
-    .filter(Boolean);
-  const city = parts[0] ?? "";
+  const parts = placeParts(value);
+  if (!parts.length) return null;
+  const city = parts[0];
   const rest = parts.slice(1);
   const indexed = labels.map((l, i) => [normLabel(l), i]).filter(([l]) => l && !isPlaceholderLabel(l));
   const hit = ([, index], strategy) => ({ index, label: labels[index], strategy });
@@ -970,6 +1083,9 @@ async function setLocation(page, question, value, ctx) {
   const { input, container } = ctx;
   await input.waitFor({ state: "attached", timeout: 10000 });
   const want = norm(wantedLabel(question, value));
+  // A work mode is not an answer to "where are you?". The geocoder would still find something
+  // for it, so the refusal has to happen before a single keystroke reaches the widget.
+  if (!placeParts(want).length) return fail(`not_a_place: ${want.slice(0, 40)}`, await committedText(input, container));
   const queries = locationQueries(want, question);
   if (!queries.length) return fail("no_value");
   // A geocoder commits into its own input, so searching means typing over whatever is there.

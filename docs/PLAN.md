@@ -13,15 +13,15 @@ with it, this file gets patched.
 | D3 | Writer | OpenAI Responses API (GPT-5.x) for *new* text only; output is a per-application draft, never memory | Jev cannot write; drafts are not facts |
 | D4 | First targets | Greenhouse, then Ashby | 41 Ashby / 30 Greenhouse in a 74-company AI-infra probe; both expose the form schema without auth |
 | D5 | Discovery | **Pipeline**: 6–8 providers + tracked companies + cross-run dedup + statuses + queue→apply; batch apply plans all N first and asks once | user decision; a fixed provider contract and filter chain keep it model-free |
-| D6 | Onboarding input | Résumé PDF(s) + links; a **six-item** day-1 questionnaire; everything else asked lazily at first sight | user decision; a 19-prompt interview breaks "embarrassingly simple" |
+| D6 | Onboarding input | Résumé PDF(s) + links; an **eight-item** day-1 questionnaire; everything else asked lazily at first sight | user decision; a 19-prompt interview breaks "embarrassingly simple" |
 | D7 | Repo | `theadaply/jev-apply`, public, MIT | user decision |
-| D8 | Submit | v1 never clicks Submit. Terminal state is "Ready to submit"; the user submits | captcha and ATS terms of service |
+| D8 | Submit | `p.auto_submit` (per-user, overridable per company) gates the click: `true` + nothing left to ask → the runner clicks Submit, waits for the ATS's own confirmation, and returns `submitted`; `false`/absent (asked once at onboarding, defaults to unset until answered) → stops at `ready_to_submit` for the user to click | user decision; captcha/ToS risk becomes a per-user tradeoff set once, not a fixed rule |
 | D9 | LinkedIn Easy Apply | Out of scope | LinkedIn ToS §8.2 forbids automation |
-| D10 | EEO / demographic | Skipped until first encountered; then one global ask ("decline to self-identify everywhere?") | one ask covers every future form |
+| D10 | EEO / demographic | Filled from `p.eeo` (gender, hispanic_latino, race, veteran_status, disability_status, pronouns?) whenever the preference is on file — never skipped; absent → asked once, then stored | user decision; a demographic control is a real form field, and leaving it blank still blocks a `required` submit |
 | D11 | Private data | `~/.config/jev-apply/` (0700): `config.json`, `memory/`, `documents/`, `applications/`, `pipeline/`, `profile/` | skill dirs are symlinked/replaced on update |
 | D12 | Browser lifecycle | Runner **spawns Chrome once** on `~/.config/jev-apply/profile` with `--remote-debugging-port`, connects with `chromium.connectOverCDP`, **disconnects on exit (never closes)** so the filled tab survives; `--answers`/`--resume` re-attach to the same tab | the filled tab must outlive the runner process; Chrome ≥136 allows CDP only on a non-default profile; profile accumulates history for captcha score |
 | D13 | Fill before ask | Resolved fields are filled **before** the `needs_user` batch is returned; the half-filled form makes the questions self-explanatory | questions arriving on a blank form on application #1 read as an interrogation |
-| D14 | Return contract | Exactly three statuses: `ready_to_submit` · `needs_user` · `blocked{reason}`; one JSON object on stdout, exit 0 for all three | the host needs exactly one parse path |
+| D14 | Return contract | Four statuses: `submitted` · `ready_to_submit` · `needs_user` · `blocked{reason}`; one JSON object on stdout, exit 0 for all four | the host needs exactly one parse path |
 
 Open (need the user): **O1** milestone-1 Greenhouse URL (hosted `job-boards.greenhouse.io` page, no
 AI-usage attestation, no education/employment repeaters); **O2** primary host (default Claude Code).
@@ -34,19 +34,24 @@ or per-field approvals.
 
 1. **"Learn my background"** → `scripts/learn.mjs --resume a.pdf [--resume b.pdf] --links …`. The host
    echoes **≤6 lines of prose** ("Jane Doe, ML/inference engineer, 3 roles, 2 degrees, 14 project bullets,
-   LinkedIn/GitHub found") plus any contradictions, then asks the **six day-1 questions** (§2.4) in one
+   LinkedIn/GitHub found") plus any contradictions, then asks the **eight day-1 questions** (§2.4) in one
    message. Answers are written to memory. Re-running with a changed résumé produces a diff, not a reset.
 2. **"Complete this application <url>"** → `scripts/apply.mjs --url … --json`. The runner fills
-   everything it can, **then** returns `needs_user` with only the questions the form asks about *you*
-   (label → options → "I'll remember this for <scope>"). The host relays them in one message; the user
-   answers; `--answers` fills the rest → `ready_to_submit` with the 20-line summary (§2.6).
+   everything it can — including EEO/demographic rows from `p.eeo` and restrictive-agreements rows from
+   `p.legal.restrictive_agreements` whenever those preferences are on file — **then** returns `needs_user`
+   with only the questions the form asks about *you* (label → options → "I'll remember this for
+   <scope>"). The host relays them in one message; the user answers; `--answers` fills the rest. If
+   nothing else is left to ask and `p.auto_submit` resolves true (company override, else global), the
+   runner clicks Submit itself, waits for the ATS's own confirmation, and returns `submitted`; otherwise
+   it returns `ready_to_submit` with the 20-line summary (§2.6).
 3. **"Use that answer next time" / corrections** → `scripts/remember.mjs` with an inferred scope
    (`global` / `company:<slug>` / `role_family:<name>`); asks only when scope is ambiguous. Summary lines
    carry handles (`d1`, `c2`) so "keep d1, but shorter" is a one-liner.
 4. **"Find roles"** → `scripts/scan.mjs`: new postings enter the pipeline as `found` with a Jev fit
    score and a reason built from the user's own story titles.
 5. **"Apply to the queue"** → `scripts/apply.mjs --queue 5`: plans all N (HTTP + Jev, no browser), fills
-   every resolved field on all N tabs, returns **one** merged `needs_user`, then finishes all N.
+   every resolved field on all N tabs, returns **one** merged `needs_user`, then finishes each posting to
+   `submitted` or `ready_to_submit` per its own `p.auto_submit`.
 
 ## 2. Architecture
 
@@ -64,7 +69,7 @@ flowchart LR
   P --> E[Executor<br/>Playwright over CDP, dedicated Chrome profile, one tab per posting]
   E -->|readback| P
   E -->|fill resolved first| H
-  R -->|ready_to_submit / needs_user / blocked| H
+  R -->|submitted / ready_to_submit / needs_user / blocked| H
 ```
 
 ### 2.1 Division of labour
@@ -80,6 +85,9 @@ flowchart LR
 | Optional textareas / cover letter with no curated answer | left blank, listed under NOT FILLED | speculative drafts |
 | Setting values, uploads, verification | Playwright adapters, per-field isolation | asking the host per field |
 | Questions about the user's circumstances | user, once per application (or once per queue) | guessing |
+| EEO / demographic fields | code from `p.eeo`, matched against the live DOM (Greenhouse's schema does not describe the demographic block) via `canon/vocab/eeo-{gender,hispanic-latino,race,veteran,disability}.yaml` | Jev, LLM, inferring from name/photo/résumé — filled only when `p.eeo` is on file, `ask` once otherwise, never `skip` |
+| Restrictive-agreements / "bound by other agreements" questions | code from `p.legal.restrictive_agreements` (global preference) | asking every time once the preference exists — asked once, then reused |
+| Clicking Submit | code, gated on `p.auto_submit` (global, overridable per company), exactly one click | clicking with any `ask` row still open, clicking twice, or clicking without waiting for the ATS's own confirmation |
 
 ### 2.2 Runner pipeline (`scripts/apply.mjs`)
 
@@ -97,13 +105,15 @@ Everything before step 8 is HTTP + Jev; no browser is touched until the plan exi
 3. **Normalize → `FormPlan`** (§2.3): trim labels (Greenhouse API labels carry trailing spaces), parse
    char/word limits from label + help text, tag each question with `class` and `control`, resolve the
    `selector` per ATS, flag `sensitive` (EEO) and `policy_gate` (AI-usage / arbitration / consent
-   attestation regex list in `src/schema/classes.mjs`).
+   attestation regex list in `src/schema/classes.mjs`). Restrictive-agreements-style questions keep the
+   `circumstance`/`core` class they already carry — they resolve from a preference, not from `ask`.
 4. **Resolve deterministically** into `Decision` records (§2.3): identity/links/résumé from `facts` +
-   `preferences`; `sensitive` → `skip` unless the global EEO preference exists; `policy_gate` → `ask`
-   (stored company-scoped afterwards); `applied_before` → derived from `pipeline.yaml`; "how did you
-   hear" → derived from pipeline provenance; numeric/date questions → computed from `since:` facts and
-   rules; `why_us` → `ask` (one sentence) unless a `company` answer for this company exists;
-   `company_specific` → `ask`.
+   `preferences`; `sensitive` → `fill` from `p.eeo` when it is on file, else `ask` once (never `skip`);
+   `policy_gate` → `ask` (stored company-scoped afterwards) — restrictive-agreements-class rows are the
+   one exception: `fill` from `p.legal.restrictive_agreements` when it is on file, else `ask` once;
+   `applied_before` → derived from `pipeline.yaml`; "how did you hear" → derived from pipeline
+   provenance; numeric/date questions → computed from `since:` facts and rules; `why_us` → `ask` (one
+   sentence) unless a `company` answer for this company exists; `company_specific` → `ask`.
 5. **Jev request 1** (keep-alive client; `JEV_MODEL = "jev-1.13.0"`): one Choice per still-open question
    asking **"which canonical question is this field an instance of?"** (§2.7) over the candidate canon
    ids + `none_of_these`. Candidates per form = universal core (~45) + the posting's job family
@@ -132,6 +142,12 @@ Everything before step 8 is HTTP + Jev; no browser is touched until the plan exi
    Every set is **read back** (value persisted, chip/option text present, file name shown) and logged to
    `trace.jsonl`. A failed set after 2 attempts becomes `action:"ask"` with a screenshot — the fill
    continues; `blocked` is reserved for no page / no schema / CDP lost.
+8½. **Live-DOM EEO match**: Greenhouse's own schema fetch (step 2) does not describe the demographic
+    block at all — it only exists once the page renders. `greenhouse.eeoControls(page)` reads the
+    rendered controls; `matchLiveControls(live, {questions, decisions}) → {retry, novel}` pairs each
+    one (`demographic_<id>` vs. the DOM's `<id>`, plus label) against the plan's `p.eeo`-sourced
+    Decisions and fills them the same way as any other `fill` row — same read-back, same trace. Inert
+    for Ashby/generic, whose schemas already carry the demographic questions.
 9. **Ask once**: if any `ask` rows remain, snapshot-diff the page for conditional follow-ups that appeared
    after filling (delta re-plan, max 2 rounds), then return `needs_user{questions:[{qid,label,options,
    remember_as:{kind,scope}}]}` and **disconnect without closing**. `Decision`s are frozen to
@@ -142,15 +158,22 @@ Everything before step 8 is HTTP + Jev; no browser is touched until the plan exi
     stories Jev ranked highest and writes the paragraph. Post-checks: every number/org name appears in
     the grounding set; **no other company's name from the pipeline appears** (substitution check).
     Drafts are `drafted[]`, never memory, until promoted with company scope (§2.4).
-11. **Verify & report**: re-snapshot; every `required` control non-empty; no new required controls;
-    write `applications/<slug>/{decisions.json, trace.jsonl, summary.md}`; emit `ready_to_submit` with the
-    §2.6 summary. `apply.mjs --resume <slug>` re-attaches and lists every unfilled field with its intended
-    value. Stop rules: 2 set/readback attempts per field; 3 consecutive no-change actions → `blocked`;
-    Jev requests > 40 or wall time > 120 s per posting → `blocked{reason:"budget"}`. Never: reload,
-    close the tab, retry-submit, or answer a policy/attestation globally.
+11. **Verify**: re-snapshot; every `required` control non-empty; no new required controls; write
+    `applications/<slug>/{decisions.json, trace.jsonl}`. Stop rules: 2 set/readback attempts per field;
+    3 consecutive no-change actions → `blocked`; Jev requests > 40 or wall time > 120 s per posting →
+    `blocked{reason:"budget"}`. Never: reload or close the tab.
+12. **Submit or report**: resolve `p.auto_submit` (company override, else global). `false`/absent →
+    write `applications/<slug>/summary.md` (§2.6) and emit `ready_to_submit`. `true` → locate the Submit
+    control (adapter `findSubmit`), click it **exactly once**, then `confirmSubmitted` polls for the
+    ATS's own confirmation (URL change, a confirmation-page selector, or a "your application has been
+    submitted" text match) up to a fixed timeout. Confirmed → `status:"submitted"`, the pipeline entry
+    for this posting is set to `applied`, `summary.md` gets a SUBMITTED header with the confirmation
+    text/URL/screenshot, emit `submitted`. Not confirmed → no second attempt — `blocked{reason:
+    "submit_failed", screenshot}` with the tab left open so the user finishes by hand. Never: reload,
+    close the tab, or click Submit a second time.
 
 Queue mode (`--queue N`): steps 1–7 for all N in parallel, step 8 on all N tabs, one merged and
-deduplicated `needs_user` ("visa sponsorship?" asked once, stored as a fact), then steps 9–11 per posting
+deduplicated `needs_user` ("visa sponsorship?" asked once, stored as a fact), then steps 9–12 per posting
 sequentially; per-posting failures are isolated.
 
 ### 2.3 Data shapes (canonical)
@@ -196,8 +219,13 @@ probabilities sum ≈ 1, argmax == choice; positive one-hop phrasing.
 - `preferences[]` `{id, value, overrides[{scope, value}], source}` — scope ∈ `global | company:<slug> |
   role_family:<name>`; resolution company > role_family > global. Includes `salary` (range + currency per
   role family + which end to state), `notice_rule`, `acceptable_locations[]` (drives relocation /
-  in-office answers per city), `resume_by_role_family`, `eeo_policy`, `looking_for` (target roles,
-  must-haves, dealbreakers — also feeds §2.5 fit).
+  in-office answers per city), `resume_by_role_family`, `looking_for` (target roles, must-haves,
+  dealbreakers — also feeds §2.5 fit), `auto_submit` (boolean; company > global, like every other
+  preference), `eeo` (`{gender, hispanic_latino, race, veteran_status, disability_status, pronouns?}`,
+  canonical values from `canon/vocab`, each field independently `decline`-able), `legal.
+  restrictive_agreements` and `legal.previously_employed` (`"Yes"`/`"No"`, user-stated only — never
+  code-defaulted, exactly like any other preference; absent → `ask`). Shapes: `references/memory-
+  format.md`.
 - `documents[]` `{id, path, sha256, role_families[]}`; `learn.mjs` re-runs as a diff when a `sha256` changes.
 - `answers[]` — the user's pre-computed answers keyed by canonical question id (§2.7):
   `{qid, kind: constant|rule|policy|narrative|company|never, value | rule_ref | variants{short,medium,
@@ -212,14 +240,20 @@ probabilities sum ≈ 1, argmax == choice; positive one-hop phrasing.
   promotions are forced to `company:<slug>` scope and checked against existing answers with one Jev Noul ("same content?") to
   prevent duplicates. "Submitted without edit" does **not** promote.
 
-**Day-1 questionnaire (exactly six, asked once):** (1) work authorization per target country
+**Day-1 questionnaire (exactly eight, asked once):** (1) work authorization per target country
 (two-valued); (2) notice-period rule; (3) salary range + currency per role family and which end to state;
 (4) preferred email/phone — only if the résumé shows more than one; (5) which résumé for which role family
 — only if more than one PDF; (6) "what are you looking for" (target roles, must-haves, dealbreakers,
-acceptable locations). **Lazy at first sight, then remembered at the right scope:** relocation /
-in-office per city, security clearance, references, arbitration/consent/AI-usage attestations
-(company scope), EEO (one global ask), `why_us` (one sentence per company). **Cut:** story prompts at
-onboarding (stories come from résumé bullets and accepted drafts), "how did you hear" (derived).
+acceptable locations); (7) EEO self-identification (`p.eeo`: gender, hispanic/latino, race, veteran
+status, disability status, pronouns), each field its own "decline to answer" option — reused, filled, on
+every future form's demographic block instead of skipped; (8) auto-submit preference (`p.auto_submit`):
+should the runner click Submit itself once nothing else needs asking, or always stop at ready-to-submit.
+**Lazy at first sight, then remembered at the right scope:** relocation / in-office per city, security
+clearance, references, arbitration/consent/AI-usage attestations (company scope, always asked —
+`policy_gate` is never answered from memory), restrictive-agreements / non-compete attestations (one
+global ask, stored as `p.legal.restrictive_agreements`, answered from memory on every form after),
+`why_us` (one sentence per company). **Cut:** story prompts at onboarding (stories come from résumé
+bullets and accepted drafts), "how did you hear" (derived).
 
 ### 2.5 Discovery & pipeline (`scripts/scan.mjs`, `scripts/pipeline.mjs`, D5)
 
@@ -253,22 +287,27 @@ rejected | withdrawn | expired`. `pipeline.mjs` = list / queue / mark / prune / 
 view). "Applied/interviewed before" answers derive from these statuses (one consent flag: treat unknown
 as No). Corrections such as "never contract roles" become filter entries via `remember.mjs`.
 
-### 2.6 `ready_to_submit` summary (≤20 lines, the only thing the user reads before clicking Submit)
+### 2.6 `ready_to_submit` / `submitted` summary (≤20 lines, the only thing the user reads before or after Submit)
 
 ```
 Acme — Senior Inference Engineer · https://job-boards.greenhouse.io/acme/jobs/123   ready to submit
-Filled 18 of 21 · résumé: systems.pdf
+Filled 20 of 21 · résumé: systems.pdf
 ► DRAFTED   d1 "Why Acme?" 190 words — from your sentence + latency-cut story
 ► CHECK     c1 "Years of distributed systems": 4 (since 2022-06)
 ► YOU ANSWERED  visa sponsorship: No (remembered globally) · relocate to Berlin: ask me each time (Acme only)
 ► POLICY    "AI Policy for Application": Yes — answered by you, Acme only
+► EEO       4 rows filled from your saved p.eeo (values masked — sensitive rows are never printed)
 ► MONEY     salary: 180–200k USD, stated 190k (role family: inference)
-► NOT FILLED  cover letter (optional, no matching story) · EEO section (declined everywhere)
+► NOT FILLED  cover letter (optional, no matching story)
 If Submit errors: run `apply.mjs --resume acme-123` — it lists every field with its intended value.
 ```
-Rules: no probabilities; every ► item has a handle `remember.mjs` accepts; >2 ► items besides DRAFTED on
-application #2 onward is an M0-b failure metric. `blocked` prints the same header plus `reason`
-and the screenshot path; captcha suspicion prints `label: value` lines so the user can finish by hand.
+`submitted` swaps the header's last word for `submitted`, adds a `confirmed: "<ATS confirmation
+text>" (<timestamp>)` clause to the `Filled` line, and appends `Pipeline: acme-123 → applied.`; every
+other ► line is unchanged. Rules: no probabilities; every ► item has a handle `remember.mjs` accepts;
+>2 ► items besides DRAFTED on application #2 onward is an M0-b failure metric. `blocked` prints the same
+header plus `reason` and the screenshot path — a Submit click that got no confirmation is
+`blocked{reason:"submit_failed"}`, never silently retried; captcha suspicion prints `label: value` lines
+so the user can finish by hand.
 
 ### 2.7 Question bank (`canon/`) — pre-answer once, map at fill time
 
@@ -299,7 +338,7 @@ additions are reviewed in batches before merging. Hold out 20% of postings for t
 % of form questions mapped to a canonical question that has an answer — targets core ≥ 95%,
 screening ≥ 85%, narrative ≥ 80%.
 
-Onboarding after the six questions: the user picks families → `scripts/answers.mjs` fills `answers.yaml`
+Onboarding after the eight questions: the user picks families → `scripts/answers.mjs` fills `answers.yaml`
 for core + those families: constants and rules silently; narrative drafts (≤150 words, three length
 variants) shown once for curation; a coverage line ("answers ready for 96% of questions seen in 400 real
 forms; 12 narratives to review"). Queue time adds `company` answers for the selected postings, with the
@@ -312,7 +351,7 @@ SKILL.md                 six-field frontmatter (name: jev-apply); five verbs →
 README.md · LICENSE (MIT) · INSTALL.md (agent-facing) · package.json (node ≥ 20)
 scripts/
   install.mjs            creates ~/.config/jev-apply (0700) + config.json {envFile, profile}; fail-fast message naming TYPESAFE_API_KEY / OPENAI_API_KEY + signup URLs
-  learn.mjs              résumé/links → memory YAML + ≤6-line echo + gaps (six items max); diff mode on sha256 change
+  learn.mjs              résumé/links → memory YAML + ≤6-line echo + gaps (eight items max); diff mode on sha256 change
   apply.mjs              --url | --tab | --queue N · --answers f · --resume slug · --dry-run · --schema f · --record-schema · --json
   remember.mjs           corrections / promotions (d1, c1 handles) / new facts with scope
   scan.mjs               discovery → pipeline (found + fit score)
@@ -362,10 +401,11 @@ Phase D publishes.
   fixture), `normalize.mjs`, `classes.mjs`, `--record-schema` → `apply.mjs --url <O1> --dry-run` prints
   21 questions, one `class` + `control` + `selector` each, matching a human read; Ashby prints 13.
 - A3 (30 min) `learn.mjs` on the real résumé + `memory/store.mjs` + `derive.mjs` → ≤6-line echo, gaps
-  list ≤ 6 items containing "what are you looking for" and no story prompts; YAML written.
+  list ≤ 8 items containing "what are you looking for" and no story prompts; YAML written.
 - A4 (40 min) `jev/plan.mjs` (request 1 + 2, kind pre-filter, estimator split) + `gates.mjs` + Decision
-  table → `--dry-run --schema fixtures/gh.json` shows identity rows `source:fact`, EEO `skip`, attestation
-  `ask`, Yes/No rows carrying `option`, ≤ 3 `ask` rows; `trace.jsonl` holds exactly 2 Jev requests.
+  table → `--dry-run --schema fixtures/gh.json` shows identity rows `source:fact`, EEO `fill` from
+  `p.eeo` (or `ask` once on a fixture with none), attestation `ask`, Yes/No rows carrying `option`, ≤ 3
+  `ask` rows; `trace.jsonl` holds exactly 2 Jev requests.
 - A5 (30 min) `writer/openai.mjs` (`expand`, `why_us`, post-checks) → dry-run shows `d1` for the
   `why_us` row given a one-sentence answer file; substitution check rejects a draft containing another
   pipeline company's name.
@@ -401,13 +441,17 @@ hold-out (core ≥ 95%), wall time, Jev requests per application (≤ 4), cost p
 
 1. **Score-based reCAPTCHA rejects the scripted session invisibly** (Greenhouse Enterprise invisible,
    Ashby v3/Enterprise) — dedicated profile that accumulates history, headed, real mouse moves,
-   150–400 ms cadence, user clicks Submit (D8); on error the summary's `--resume` line lists every value
-   so the user finishes by hand. Post-demo: Playwright-Extension attach to the daily profile.
+   150–400 ms cadence; the user clicks Submit unless `p.auto_submit` is on, in which case the runner
+   clicks it itself exactly once and a missing confirmation becomes `blocked{reason:"submit_failed"}`,
+   never a silent retry (D8); on error the summary's `--resume` line lists every value so the user
+   finishes by hand. Post-demo: Playwright-Extension attach to the daily profile.
 2. **Target form forbids AI-created answers** (some AI-lab careers forms carry such an attestation) —
    `policy_gate` detection; `why_us` is always the user's sentence expanded, never invented; attestations
-   answered by the user, company-scoped. O1 is chosen without one.
+   answered by the user, company-scoped, every time — except restrictive-agreements-class questions,
+   answered from the global `p.legal.restrictive_agreements` preference once it exists. O1 is chosen
+   without one.
 3. **Gate thresholds unvalidated** — M0-b in Phase A on 34 real fields; one file; pinned model.
-4. **Application #1 is mostly questions** (7/21 fields fillable from a résumé alone) — six-item
+4. **Application #1 is mostly questions** (7/21 fields fillable from a résumé alone) — eight-item
    questionnaire + derived answers + fill-before-ask (D13) so the questions arrive on a half-filled form;
    ≤ 3 asks on #1.
 5. **Fan-out token cap** — kind pre-filter + estimator split (A1 check).
@@ -425,10 +469,22 @@ hold-out (core ≥ 95%), wall time, Jev requests per application (≤ 4), cost p
     "paste your draft".
 13. **Scope leakage / answer drift after 30 applications** — company-forced scope for `company` answers,
     same-content Noul at promotion, 90-day re-confirm for time-based facts, no `last_used` bookkeeping.
+14. **EEO react-selects render no options, blocking a posting before any application question is reached**
+    — observed live: three Greenhouse demographic react-selects returned `no_options_rendered` in a row
+    and the no-progress stop rule fired before one application question was seen. Mitigation:
+    `src/browser/controls.mjs`'s react-select flow gets a dedicated open-and-retry path for EEO comboboxes
+    (explicit menu-open wait, portal-option read) before falling to `set_failed`, and the no-progress
+    counter treats the EEO block as its own run so three EEO misses don't `blocked` the rest of the form.
+15. **Auto-submit clicks the wrong control, or clicks twice** — `findSubmit`/`confirmSubmitted` are
+    read-back gated like every other write; `submitReady` requires zero `ask` rows and zero required-
+    empty controls before a click is attempted; the click happens exactly once per application; an
+    unconfirmed submit is `blocked{reason:"submit_failed"}`, never retried; `p.auto_submit` defaults to
+    unset until the user answers the day-1 question.
 
 ## 6. Explicitly not in v1
 
 Own extension or side panel; OS-level smart-paste gesture (later: Raycast/Hammerspoon hotkey →
 `scripts/select.mjs`, same engine); Workday / SmartRecruiters / iCIMS / Gem apply adapters;
-embedded-iframe Greenhouse boards; auto-submit; LinkedIn; dashboards or per-field approval UI;
+embedded-iframe Greenhouse boards; LinkedIn; dashboards or per-field approval UI;
+
 `variants` beyond short/medium/long on narrative answers.

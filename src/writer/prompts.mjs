@@ -70,6 +70,27 @@ export function groundingBlock({ facts = [], stories = [] } = {}) {
   return `FACTS (the only facts about the applicant you may state)\n${f}\n\nSTORIES (the only events you may describe)\n${s}`;
 }
 
+/**
+ * The anecdotes another answer on this same application has already told.
+ *
+ * `src/plan/draft.mjs` picks a different story per box wherever the candidate has one, so this
+ * list is normally empty; it is non-empty exactly when there was nothing else on file and the
+ * same material had to be handed to a second box. A reader meeting the same p99 anecdote twice,
+ * three paragraphs apart, is the failure this closes
+ * (docs/research/13-eval-judge-round2.md §3 N4) — so when the material must be reused, the
+ * *telling* must not be.
+ */
+export function avoidBlock(avoid = []) {
+  const list = (Array.isArray(avoid) ? avoid : [avoid]).map((a) => collapse(a)).filter(Boolean);
+  if (!list.length) return "";
+  return `\n\nALREADY TOLD IN ANOTHER ANSWER ON THIS SAME APPLICATION\n${list
+    .map((a) => `- ${a}`)
+    .join("\n")}\nThe reader will see that answer too. Do not re-tell these episodes: do not repeat their
+narrative, their sequence of events or their headline numbers. Use different material from the
+grounding, and if this question genuinely needs the same work, refer to its *result* in one clause
+and spend the answer on what this question actually asks.`;
+}
+
 export function jobBlock(job) {
   if (!job) return "";
   const bits = [
@@ -108,8 +129,8 @@ the grounding, never new claims.${family ? `\nThe role family is "${family}"; ke
 ${JSON_NOTE}`;
 }
 
-export function narrativeInput({ prompt, facts, stories, family, job, note = "" }) {
-  return `PROMPT TO ANSWER\n${prompt}${family ? `\n\nROLE FAMILY\n${family}` : ""}${jobBlock(job)}\n\n${groundingBlock({ facts, stories })}${note}`;
+export function narrativeInput({ prompt, facts, stories, family, job, avoid = [], note = "" }) {
+  return `PROMPT TO ANSWER\n${prompt}${family ? `\n\nROLE FAMILY\n${family}` : ""}${jobBlock(job)}\n\n${groundingBlock({ facts, stories })}${avoidBlock(avoid)}${note}`;
 }
 
 // ------------------------------------------------------------------ expand
@@ -130,17 +151,26 @@ facts. At most ${cap.words} words${cap.chars < Infinity ? ` and at most ${cap.ch
 ${JSON_NOTE}`;
 }
 
-export function expandInput({ story, question, facts = [], job, note = "" }) {
-  return `QUESTION\n${question}${jobBlock(job)}\n\n${groundingBlock({ facts, stories: [story] })}${note}`;
+export function expandInput({ story, question, facts = [], job, avoid = [], note = "" }) {
+  return `QUESTION\n${question}${jobBlock(job)}\n\n${groundingBlock({ facts, stories: [story] })}${avoidBlock(avoid)}${note}`;
 }
 
 // ------------------------------------------------------------------ why_us
 
-export function whyUsInstructions({ cap, company }) {
+export function whyUsInstructions({ cap, company, sentence = true }) {
+  const thesis = sentence
+    ? `The applicant's own sentence is the
+thesis: keep its claim, do not soften or replace it, and do not add a second reason of your own.`
+    : `The applicant has not written a sentence for this company, so the thesis has to come from
+what is already on file: pick the ONE overlap between the JOB block and the FACTS/STORIES that a
+reader would call specific — the same system, the same problem, the same stack — and say it as a
+plain claim. If the job block and the grounding overlap in nothing concrete, say so by writing a
+single sentence about the one technical area both mention and stop there. Never invent an
+interest, never praise the company, never claim to have used a product that is not in the
+grounding.`;
   return `${STYLE_RULES}
 
-You are writing the "why this company" paragraph for ${company}. The applicant's own sentence is the
-thesis: keep its claim, do not soften or replace it, and do not add a second reason of your own.
+You are writing the "why this company" paragraph for ${company}. ${thesis}
 Use one or two of the stories as the evidence that the applicant can do what the thesis claims, and
 at most one concrete detail from the JOB block. Name ${company} once or twice; never name any other
 company. One or two paragraphs, at most ${cap.words} words${cap.chars < Infinity ? ` and at most ${cap.chars} characters` : ""}.
@@ -148,8 +178,11 @@ No greeting, no sign-off, no "I am writing to apply".
 ${JSON_NOTE}`;
 }
 
-export function whyUsInput({ sentence, stories, facts = [], job, note = "" }) {
-  return `THE APPLICANT'S SENTENCE (the thesis — this is why they want this company)\n${sentence}${jobBlock(job)}\n\n${groundingBlock({ facts, stories })}${note}`;
+export function whyUsInput({ sentence, stories, facts = [], job, avoid = [], note = "" }) {
+  const thesis = sentence
+    ? `THE APPLICANT'S SENTENCE (the thesis — this is why they want this company)\n${sentence}`
+    : "THE APPLICANT'S SENTENCE\n(none on file — build the thesis from the JOB block and the grounding below)";
+  return `${thesis}${jobBlock(job)}\n\n${groundingBlock({ facts, stories })}${avoidBlock(avoid)}${note}`;
 }
 
 // ----------------------------------------------------------------- extract

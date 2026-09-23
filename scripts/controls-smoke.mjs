@@ -171,6 +171,36 @@ const ROWS = [
       ),
   },
   {
+    // Ashby's MultiValueSelect (N2). Nothing the members share identifies the group — every box
+    // is named after its own option — so a field that publishes five options must not be driven
+    // as a Boolean. Two values are selected here because the failure mode lost *all* of them:
+    // `not_boolean`, nothing ticked, the row handed back as an `ask`.
+    name: "checkbox_group_ashby",
+    q: {
+      qid: "cb_communities",
+      selector: '[data-field-path="cb_communities"]',
+      // What src/schema/ashby.mjs publishes for a MultiValueSelect — the stale guess detection
+      // has to override, and the shape the Boolean rung used to claim.
+      control: "checkbox",
+      type: "multi_select",
+      label: "Which of the following communities do you belong to?",
+      class: "circumstance",
+      options: [
+        { label: "Neurodiverse", value: "Neurodiverse" },
+        { label: "Parent", value: "Parent" },
+        { label: "Veteran", value: "Veteran" },
+        { label: "Refugee or immigrant", value: "Refugee or immigrant" },
+        { label: "I prefer not to answer", value: "I prefer not to answer" },
+      ],
+    },
+    good: "Neurodiverse | Veteran",
+    bad: "Astronaut | Submariner",
+    read: (page) =>
+      page.$$eval('[data-field-path="cb_communities"] input:checked', (els) =>
+        els.map((e) => (document.querySelector(`label[for="${e.id}"]`)?.textContent ?? "").trim()).join(" | "),
+      ),
+  },
+  {
     name: "checkbox",
     q: { qid: "agree", selector: "#agree", control: "checkbox", label: "I agree to the terms", class: "policy_gate" },
     good: "Yes",
@@ -207,6 +237,23 @@ const ROWS = [
     good: "2024-06-30",
     bad: "next spring",
     read: (page) => page.$eval("#iso_date", (el) => el.value),
+  },
+  {
+    // Ashby's date control (§2 item 5). The row carries no `type: "date"` on purpose: the plan's
+    // own field type is not always there to rescue it (a replan writes the *detected* control
+    // back onto the question), so detection has to recognise the widget from the element alone.
+    // The wrong value is the exact sentence that was committed into the live one.
+    name: "date_ashby",
+    q: {
+      qid: "ashby_start",
+      selector: '[data-field-path="ashby_start"] input',
+      control: "text",
+      label: "What is your earliest possible/desired start date?",
+      class: "circumstance",
+    },
+    good: "2027-03-14",
+    bad: "Available immediately",
+    read: (page) => page.$eval('[data-field-path="ashby_start"] input', (el) => el.value),
   },
   {
     name: "number",

@@ -28,15 +28,27 @@ const short = (label, n = 42) => clip(String(label ?? "").replace(/\s*\?$/, ""),
 
 const isFilled = (d) => d.action === "fill" || d.action === "check";
 
+/** The word after the URL on line 1 — one per terminal status, never a probability. */
+const HEADLINE = {
+  submitted: "submitted",
+  ready_to_submit: "ready to submit",
+  needs_user: "needs your answers",
+  blocked: "blocked",
+};
+
 /**
- * @param {{formPlan:object, decisions:object[], slug:string, status:string, usage?:object}} args
+ * @param {{formPlan:object, decisions:object[], slug:string, status:string, usage?:object,
+ *          submit?:object|null}} args
  *   `usage` is a `usageReport()` block; given, it adds the ► COST line above the footer.
+ *   `submit` is `submitApplication()`'s result; given, it adds the ► SUBMITTED line — what the
+ *   board said back and where the screenshot of it is — or the ► SUBMIT line for one that was
+ *   clicked and never confirmed, which is the line that tells the user to finish by hand.
  * @returns {string} the summary, `\n`-joined, never more than 20 lines.
  */
-export function renderSummary({ formPlan, decisions, slug, status = "ready_to_submit", usage = null }) {
+export function renderSummary({ formPlan, decisions, slug, status = "ready_to_submit", usage = null, submit = null }) {
   const job = formPlan?.job ?? {};
   const company = job.company ?? "";
-  const header = `${clip(company, 40)} — ${clip(job.title ?? "", 60)} · ${clip(formPlan?.url ?? "", 90)}   ${status === "ready_to_submit" ? "ready to submit" : "needs your answers"}`;
+  const header = `${clip(company, 40)} — ${clip(job.title ?? "", 60)} · ${clip(formPlan?.url ?? "", 90)}   ${HEADLINE[status] ?? status}`;
 
   const drafts = decisions.filter((d) => d.action === "draft");
   const checks = decisions.filter((d) => d.action === "check");
@@ -48,9 +60,14 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
 
   const filled = decisions.filter(isFilled).length;
   const lines = [header, `Filled ${filled} of ${decisions.length}${resume?.value ? ` · résumé: ${path.basename(resume.value)}` : ""}`];
+  if (submit?.ok) lines.push(row("SUBMITTED", submitLine(submit)));
+  else if (submit) lines.push(row("SUBMIT", `clicked, not confirmed (${submit.cause ?? "unknown"}) — ${reason(submit.detail, 60)}`));
 
+  // ► DRAFTED is the one group whose text the user did not write, so the line says how long it
+  // is, what it was built from, and — on a dry run — that it was never typed into the form.
   for (const [i, d] of drafts.entries()) {
-    lines.push(row("DRAFTED", `d${i + 1} "${short(d.label)}"${d.words ? ` ${d.words} words` : ""} — ${d.why}`));
+    const state = d.value == null ? " (not written)" : d.dry ? " (dry run — not typed)" : "";
+    lines.push(row("DRAFTED", `d${i + 1} "${short(d.label)}"${d.words ? ` ${d.words} words` : ""}${state} — ${d.why}`));
   }
   for (const [i, d] of checks.entries()) {
     lines.push(row("CHECK", `c${i + 1} "${short(d.label)}": ${valueOf(d)} (${reason(d.why, 44)})`));
@@ -59,15 +76,39 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
   for (const d of policies) lines.push(row("POLICY", `"${short(d.label)}": ${valueOf(d)} — answered by you, ${company} only`));
   for (const d of money) lines.push(row("MONEY", `salary: ${valueOf(d, 60)} (${reason(d.why)})`));
 
+  // The demographic block, by count only. A user who turned `p.eeo` on still gets to see that
+  // nine controls were written on their behalf, and the values themselves are never printed —
+  // not here, not in the trace, not in a screenshot (AGENTS.md).
+  const eeo = decisions.filter((d) => d.class === "sensitive");
+  if (eeo.length) {
+    // `eeoAnswered`, not `answered`: the outer `answered` is the `source:"user"` *array*, and a
+    // later edit that lifts this line out of the block would silently swap it for a count.
+    const eeoAnswered = eeo.filter(isFilled).length;
+    const open = eeo.filter((d) => d.action === "ask").length;
+    lines.push(row("EEO", `${eeoAnswered} of ${eeo.length} answered from your saved p.eeo (values not printed)${open ? ` · ${open} left for you` : ""}`));
+  }
+
   const notFilled = skipSummary(decisions);
   if (notFilled.length) lines.push(row("NOT FILLED", join(notFilled)));
   if (asks.length) lines.push(row("NEEDS YOU", join(asks.map((d) => `${short(d.label, 44)} (${reason(d.why)})`), 2)));
 
-  // The two lines the user needs *after* a failure are the cost of the run and how to resume it,
-  // so both are footer: `fit` drops from the middle, never from here.
-  const footer = [`If Submit errors: run \`apply.mjs --resume ${slug}\` — it lists every field with its intended value.`];
+  // The two lines the user needs *after* a run are the cost of it and what to do next, so both
+  // are footer: `fit` drops from the middle, never from here. A submitted application's "next"
+  // is the receipt, not the resume line — there is nothing left to finish by hand.
+  const footer = [
+    submit?.ok
+      ? `Submitted — the board's confirmation is at ${submit.confirmation?.screenshot ?? `applications/${slug}/submitted.png`}`
+      : `If Submit errors: run \`apply.mjs --resume ${slug}\` — it lists every field with its intended value.`,
+  ];
   if (usage) footer.unshift(row("COST", costLine(usage)));
   return fit(lines, footer).join("\n");
+}
+
+/** What the board said back, and where the picture of it is. */
+function submitLine(submit) {
+  const c = submit.confirmation ?? {};
+  const said = c.text ? `"${clip(c.text, 60)}"` : c.url ? clip(c.url, 60) : "confirmed";
+  return `${said} — by ${c.strategy ?? "the board's confirmation"}${c.screenshot ? ` · ${path.basename(c.screenshot)}` : ""}`;
 }
 
 function row(tag, text) {
@@ -86,12 +127,16 @@ function valueOf(d, n = 40) {
   return clip(d.option ?? d.value ?? "(no value)", n);
 }
 
-/** Skipped rows, with the EEO block collapsed into the single line the user cares about. */
+/**
+ * Skipped rows, for the NOT FILLED line. The demographic block used to be collapsed here, back
+ * when a sensitive row with no stated preference was `skip`; it never skips now (every path in
+ * `resolve.mjs`'s `sensitiveRow` is a fill or an ask), so the EEO block has its own counted line
+ * above and this function is only about the optional text and opt-ins nobody answered.
+ */
 function skipSummary(decisions) {
-  const skipped = decisions.filter((d) => d.action === "skip");
-  const eeo = skipped.filter((d) => d.class === "sensitive");
-  const rest = skipped.filter((d) => d.class !== "sensitive").map((d) => `${short(d.label, 28)} (${reason(d.why, 28)})`);
-  return eeo.length ? [...rest, `EEO section, ${eeo.length} questions (${reason(eeo[0].why.replace(/^EEO: /, ""), 26)})`] : rest;
+  return decisions
+    .filter((d) => d.action === "skip")
+    .map((d) => `${short(d.label, 28)} (${reason(d.why, 28)})`);
 }
 
 /** Head and footer always survive; the least important middle lines go until the budget is met. */

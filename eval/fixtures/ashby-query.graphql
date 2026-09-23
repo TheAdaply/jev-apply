@@ -40,5 +40,26 @@ query ApiJobPosting($organizationHostedJobsPageName: String!, $jobPostingId: Str
         descriptionHtml
       }
     }
+    surveyForms {
+      id
+      sections {
+        title
+        descriptionHtml
+        fieldEntries {
+          id
+          field
+          isRequired
+          isHidden
+          descriptionHtml
+        }
+      }
+      fieldEntries {
+        id
+        field
+        isRequired
+        isHidden
+        descriptionHtml
+      }
+    }
   }
 }

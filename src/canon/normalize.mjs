@@ -387,16 +387,26 @@ export const VOCABS = {
       press_or_podcast: "Press, newsletter, blog or podcast",
       other: "Something else",
     },
+    // The one vocabulary with a truthful catch-all: a channel list that does not name the user's
+    // channel still has a box for "it was something else". `Other` on a demographic question is a
+    // self-describe, not a catch-all, which is why no other vocabulary declares one.
+    catch_all: "other",
+    // A board writes its own name into the option ("Faire's website", "the 1Password careers
+    // page"), and round 1 left an 11-box multi-select empty against a saved "Company careers page"
+    // because nothing matched (docs/research/12-eval-judge-round1.md §3.8). The possessive rule is
+    // second so that "LinkedIn" and a referral still win over "<company>'s page": a company's
+    // LinkedIn post is LinkedIn.
     match: [
       [/linkedin/, "linkedin"],
       [/(referral|referred|employee|friend|colleague|word of mouth)/, "referral"],
       [/(recruiter|sourcer|talent|outreach|reached out|inmail)/, "recruiter"],
-      [/(career (fair|site|page)|company (website|site)|our website|careers page|job posting on our)/, "company_site"],
+      [/(career (fair|site|page)|careers? (website|site|page|portal)|company (website|site|page|careers)|our (website|site|careers)|corporate (website|site)|company blog|job posting on our)/, "company_site"],
+      [/(^|\s)[\w.&'-]+(?:'s|’s|s')\s+(?:website|site|web ?page|careers? (?:page|site))\b/, "company_site"],
       [/(conference|event|meetup|hackathon|career fair|on-campus|summit|webinar)/, "event"],
       [/(university|college|school|alumni|bootcamp|professor|campus)/, "school"],
       [/(twitter|\bx\b|instagram|facebook|youtube|reddit|discord|tiktok|social media|slack community)/, "social_media"],
       [/(podcast|newsletter|blog|press|article|news|substack)/, "press_or_podcast"],
-      [/(job board|indeed|glassdoor|hacker news|wellfound|angellist|otta|builtin|ziprecruiter|monster|dice|welcome to the jungle|google|search)/, "job_board"],
+      [/(job board|job site|indeed|glassdoor|hacker news|wellfound|angellist|otta|builtin|ziprecruiter|monster|dice|welcome to the jungle|google|search)/, "job_board"],
       [/(other|something else)/, "other"],
     ],
   },
@@ -547,6 +557,35 @@ export function canonicalOption(vocabName, option) {
   if (!text) return null;
   for (const [re, value] of vocab.match) if (re.test(text)) return value;
   return null;
+}
+
+/**
+ * The option that states `value` in this vocabulary's terms — the deterministic rung between
+ * literal label equality and putting the list to a model. "Option matching gives up instead of
+ * mapping" survived two rounds of review (docs/research/13-eval-judge-round2.md §2 item 8): a
+ * saved `Company careers page` against 1Password's 24-entry required typeahead, which has no
+ * careers-page entry at all — and does have `Other`.
+ *
+ * Three outcomes, in order:
+ *   * exactly one option states the same canonical value → that option, `exact`;
+ *   * several do ("LinkedIn Jobs" and "LinkedIn Social Post" both state `linkedin`) → null.
+ *     Choosing between two readings of the user's own answer is a judgment, and that is what the
+ *     `none_of_these` Choice over the form's own options is for;
+ *   * none does, and the vocabulary declares a catch-all this list offers → that option, **not**
+ *     `exact`, so the caller commits it as a `check` the user sees rather than silently.
+ * @returns {{label:string, exact:boolean}|null}
+ */
+export function optionStating(vocabName, value, labels = []) {
+  const vocab = VOCABS[vocabName];
+  const wanted = canonicalOption(vocabName, value);
+  if (!vocab || !wanted) return null;
+  const mapped = (labels ?? []).map((label) => [label, canonicalOption(vocabName, label)]);
+  const hits = mapped.filter(([, token]) => token === wanted).map(([label]) => label);
+  if (hits.length === 1) return { label: hits[0], exact: true };
+  if (hits.length) return null;
+  if (!vocab.catch_all || wanted === vocab.catch_all) return null;
+  const spare = mapped.filter(([, token]) => token === vocab.catch_all).map(([label]) => label);
+  return spare.length === 1 ? { label: spare[0], exact: false } : null;
 }
 
 /** Does this option set read as a plain yes/no (so a qid with no named vocab still gets one)? */

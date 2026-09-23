@@ -81,8 +81,8 @@ export function indexByQid(canon) {
  *
  * Posting-independent layers + narrative come from `canonCandidates` (one definition of the layer
  * taxonomy); the named families' screening rows are added on top. `eeo` is absent for the same
- * reason it is absent at fill time — a demographic row is skipped unless `p.eeo_policy` says
- * otherwise, and it is never answered from a canonical mapping.
+ * reason it is absent at fill time — a demographic row is answered from `p.eeo` and the form's own
+ * options (`src/plan/resolve.mjs sensitiveRow()`), never from a canonical mapping.
  *
  * @param {object} canon `loadCanon()` result
  * @param {{families?: string[], family?: string, company?: string|null}} [opts]

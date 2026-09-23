@@ -187,12 +187,17 @@ postings:
     controls: [text, tel, file, radio, yesno_buttons, checkbox_group, multi_select, date, location, eeo]
     notes: >-
       First date picker. `d53167a0` is an Ashby `Date` field ("What is your earliest possible/desired
-      start date?"), required. `setField` in src/browser/adapters/ashby.mjs has no date branch — it
-      falls through to `setText` against `input.ashby-application-form-input-date`, which carries
-      neither id nor name, so the container `data-field-path` scope is the only handle. Expect this
-      row to fail until a date path exists; that failure is the measurement. Also a 2-option required
-      checkbox group (relocation/entity), a GDPR retention consent classified `policy_gate` (must
-      stay an `ask`), and a "Which pronouns…" *text* row classified `sensitive` that must stay empty.
+      start date?"), required. Its input carries neither id nor name nor `type=date`, and its
+      placeholder ("Pick date...") states no format, so the container `data-field-path` is the only
+      handle and the element's own class is the only thing that names it a date. That is what
+      `classifyShape`'s date-class rung now reads; before it existed the row fell through to
+      `setText` and took a sentence (round-1 judge §3.5, round-2 §2 item 5). Expect
+      `control:"date"`, `strategy:"date:YMD-?"` and an ISO value read back — a `text` control or a
+      prose value on this row is the regression. Also a 2-option required checkbox group
+      (relocation/entity) and two 7-option demographic groups, all of them Ashby MultiValueSelects
+      whose boxes are named after their own option labels; a GDPR retention consent classified
+      `policy_gate` (must stay an `ask`); and a "Which pronouns…" *text* row classified `sensitive`
+      that must stay empty.
 
   - url: https://jobs.ashbyhq.com/fireworks/fc3845e6-e8ba-4756-a03e-654f14ce605b/application
     company: fireworks

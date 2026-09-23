@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The runner (PLAN §2.2), all eleven steps:
+// The runner (PLAN §2.2), all eleven steps and — when the user asked for it — the twelfth:
 //
 //   node scripts/apply.mjs --url <posting> [--json]              plan, fill what is resolved, ask the rest
 //   node scripts/apply.mjs --url <posting> --answers a.json      re-attach to the tab and finish
@@ -7,15 +7,24 @@
 //   node scripts/apply.mjs --queue 3 [--answers a.json]          the pipeline's shortlist, one batch of questions
 //   node scripts/apply.mjs --resume <slug>                       every field that is not on the form yet
 //   node scripts/apply.mjs --schema <recorded.json> --dry-run    offline, no browser
+//   node scripts/apply.mjs --url <posting> --dry-run --detect-submit
+//                                                                which button Submit *would* click, no click
 //
 // Steps 1–7 are HTTP + Jev; no browser is touched until the plan exists. Step 8 fills every
 // resolved field *before* the questions are returned (D13), step 9 asks once, step 11 verifies and
 // writes `applications/<slug>/{decisions.json, trace.jsonl, summary.md}`.
 //
-// One JSON object on stdout, the Decision table and every log line on stderr, exit 0 for all three
-// statuses (`ready_to_submit` · `needs_user` · `blocked{reason}`); exit 1 only for a usage error.
-// Submit is never clicked (D8) and the filled tab outlives this process — the runner disconnects
-// from Chrome, it never closes it (D12).
+// Step 12 is Submit, and it exists only because the user turned it on: with `p.auto_submit` true
+// for this company (or `--submit` for one run), nothing left to ask and no required control still
+// empty, the runner clicks Submit and waits for the board's own confirmation. Without that
+// preference — and with `--no-submit` — the terminal state is still `ready_to_submit` and the
+// user clicks it themselves.
+//
+// One JSON object on stdout, the Decision table and every log line on stderr, exit 0 for all four
+// statuses (`submitted` · `ready_to_submit` · `needs_user` · `blocked{reason}`); exit 1 only for a
+// usage error. A submit that the board never confirms is `blocked{reason:"submit_failed"}`, never
+// a success. The filled tab outlives this process either way — the runner disconnects from
+// Chrome, it never closes it (D12).
 
 import path from "node:path";
 
@@ -25,7 +34,7 @@ import { appendTrace } from "../src/browser/trace.mjs";
 import { closeJevClient, usageTotals as jevSpend } from "../src/jev/client.mjs";
 import { loadCanon, planWithJev } from "../src/jev/plan.mjs";
 import { loadBaselines, loadMemory } from "../src/memory/store.mjs";
-import { loadPipeline, nextQueued, setStatus } from "../src/pipeline/store.mjs";
+import { canTransition, loadPipeline, nextQueued, setStatus } from "../src/pipeline/store.mjs";
 import { loadFormPlan, recordSchema } from "../src/schema/index.mjs";
 import {
   applicationSlug,
@@ -43,20 +52,37 @@ import {
   withOptions,
   writeSummary,
 } from "../src/plan/decisions.mjs";
-import { Blocked, attachPosting, activeAtsTab, newBudget, runBrowser } from "../src/plan/execute.mjs";
+import { draftFor, draftRows } from "../src/plan/draft.mjs";
+import {
+  Blocked,
+  attachPosting,
+  activeAtsTab,
+  autoSubmitOn,
+  detectSubmit,
+  newBudget,
+  priorSubmit,
+  runBrowser,
+  submitApplication,
+  submitOutcome,
+  submitReadiness,
+} from "../src/plan/execute.mjs";
 import { resolveForm } from "../src/plan/resolve.mjs";
+import { resolvePreference } from "../src/memory/resolve.mjs";
+import { normalizeUrl } from "../src/discover/dedupe.mjs";
 import { costLine, deltaUsage, newPhases, renderSummary, timed, usageReport } from "../src/plan/summary.mjs";
 import { usageTotals as writerSpend } from "../src/writer/openai.mjs";
 
 const USAGE = [
   "usage: apply.mjs --url <posting> | --tab | --queue <n> | --resume <slug> | --schema <file>",
   "       [--answers <file>] [--dry-run] [--record-schema] [--json]",
+  "       [--submit | --no-submit] [--detect-submit]",
 ].join("\n");
 
 // ─── args ─────────────────────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { dryRun: false, recordSchema: false, json: false, tab: false };
+  // `submit: null` is "ask the user's `p.auto_submit`"; the two flags force it for one run.
+  const args = { dryRun: false, recordSchema: false, json: false, tab: false, submit: null, detectSubmit: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = () => argv[++i];
@@ -69,6 +95,9 @@ function parseArgs(argv) {
     else if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--record-schema") args.recordSchema = true;
     else if (arg === "--json") args.json = true;
+    else if (arg === "--submit") args.submit = true;
+    else if (arg === "--no-submit") args.submit = false;
+    else if (arg === "--detect-submit") args.detectSubmit = true;
     else throw new Error(`unknown flag ${arg}`);
   }
   const targets = ["url", "schema", "resume", "queue"].filter((k) => args[k] != null).concat(args.tab ? ["tab"] : []);
@@ -78,6 +107,8 @@ function parseArgs(argv) {
   }
   if (args.queue != null && (!Number.isInteger(args.queue) || args.queue < 1)) throw new Error("--queue takes a positive integer");
   if (args.recordSchema && !args.url) throw new Error("--record-schema needs --url");
+  if (args.detectSubmit && args.submit === true) throw new Error("--detect-submit never clicks; drop --submit");
+  if (args.detectSubmit && (args.queue != null || args.resume)) throw new Error("--detect-submit takes one posting: use --url or --tab");
   return args;
 }
 
@@ -134,7 +165,10 @@ async function planPosting({ source, stores, budget, phases = newPhases(), reatt
   budget.spend(jev.requests);
   // `openaiBase` is the writer's counter as this posting starts; `fill()` re-takes it so a queue
   // run bills each posting for its own step-10 drafts and not for the posting filled before it.
-  return { formPlan, slug, context, decisions: withOptions(finalize(decisions), formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
+  // `finalize` is handed memory and the posting's context: that is what turns a `why_us`/essay
+  // row into `action:"draft"` when `p.auto_draft` is on, instead of handing it back to the user.
+  const settled = finalize(decisions, { mem, context });
+  return { formPlan, slug, context, decisions: withOptions(settled, formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
 }
 
 /** Step 9's second half: the host's answers → memory + the `ask` rows, re-planning only those. */
@@ -159,7 +193,7 @@ async function applyToPlan(plan, answers, { stores, budget }) {
     plan.jev = sumJev(plan.jev, second);
     budget.spend(second.requests);
   }
-  plan.decisions = withOptions(finalize(decisions), plan.formPlan);
+  plan.decisions = withOptions(finalize(decisions, { mem, context: plan.context }), plan.formPlan);
   plan.stored = out.stored;
   plan.applied = out.applied;
   return { ...out, decisions: plan.decisions };
@@ -195,7 +229,7 @@ function replanFor({ plan, stores, budget }) {
       const out = await timed(plan.phases, "plan", () => planWithJev({ formPlan: synthetic, decisions: resolved, mem, context: plan.context, slug: plan.slug, canon, baselines, pipeline }));
       budget.spend(out.requests);
       plan.jev = sumJev(plan.jev, out);
-      return withOptions(finalize(out.decisions), synthetic);
+      return withOptions(finalize(out.decisions, { mem, context: plan.context }), synthetic);
     },
   };
 }
@@ -211,7 +245,8 @@ async function fill({ conn, plan, stores, budget, attach }) {
   // per-posting OpenAI figures honest (planning is parallel, filling is sequential).
   plan.openaiBase = writerSpend();
   const replan = replanFor({ plan, stores, budget });
-  const args = { context: conn.context, formPlan: plan.formPlan, decisions: plan.decisions, slug: plan.slug, budget, replan };
+  const draft = draftFor({ plan, stores, onLog: log });
+  const args = { context: conn.context, formPlan: plan.formPlan, decisions: plan.decisions, slug: plan.slug, budget, replan, draft };
   return timed(plan.phases, "browser", async () => {
     try {
       return await runBrowser({ ...args, attach });
@@ -223,6 +258,104 @@ async function fill({ conn, plan, stores, budget, attach }) {
   });
 }
 
+// ─── step 12: submit, when the user turned it on ──────────────────────────────────────────────
+
+/**
+ * Does this posting get submitted? `--no-submit` / `--submit` force one run; otherwise it is the
+ * user's own `p.auto_submit` preference, resolved company > role_family > global like every other
+ * preference. Absent, unparseable or false means **no** — auto-submit is opt-in, and a missing
+ * preference is never read as consent (AGENTS.md: no personal decision is ever defaulted).
+ */
+function submitWanted(args, plan, stores) {
+  if (args.detectSubmit) return { on: false, why: "--detect-submit (never clicks)" };
+  if (args.submit === false) return { on: false, why: "--no-submit" };
+  if (args.submit === true) return { on: true, why: "--submit" };
+  const pref = resolvePreference(stores.mem, "p.auto_submit", {
+    company: plan.context?.company,
+    role_family: plan.context?.role_family,
+  });
+  if (!pref) return { on: false, why: "no p.auto_submit on file" };
+  const on = autoSubmitOn(pref.value);
+  return { on, why: `p.auto_submit=${on ? "yes" : "no"} (${pref.scope})` };
+}
+
+/**
+ * Click Submit for this posting, or say why not. Returns null when the run was never going to
+ * submit — `settle` then reports `ready_to_submit` exactly as it did before this step existed.
+ */
+async function maybeSubmit({ plan, browser, stores, args }) {
+  if (!browser?.page) return null;
+  const want = submitWanted(args, plan, stores);
+  if (!want.on) {
+    log(`submit: not this run (${want.why})`);
+    return null;
+  }
+  const readiness = submitReadiness({ decisions: plan.decisions, state: browser.state });
+  if (!readiness.ready) {
+    log(
+      `submit: held (${want.why}) — ${readiness.asks} question(s) for you` +
+        `${readiness.sensitive ? ` (${readiness.sensitive} demographic)` : ""}, ${readiness.required_empty} required control(s) still empty`,
+    );
+    return null;
+  }
+  // Never twice. `priorSubmit` reads both the frozen record and the trace's pre-click `attempt`
+  // row, because a run killed during the 45 s confirmation wait never reaches `settle()` — the
+  // click landed, `decisions.json` says nothing, and only `trace.jsonl` remembers. Re-filling
+  // that posting with `--answers` and clicking again would send a second application, which no
+  // user can take back. A failure that never reached the button (`submit_not_found`) writes
+  // neither marker and stays retryable.
+  const prior = await priorSubmit(plan.slug, await loadFrozen(plan.slug));
+  if (prior.attempted) {
+    log(`submit: refused — ${plan.slug} already has a submit on record (${prior.confirmed ? "confirmed" : "clicked, never confirmed"}, per ${prior.sources.join(" + ")}); check the tab before trying again`);
+    return null;
+  }
+  log(`submit: ${want.why} — clicking Submit and waiting for the board's confirmation`);
+  const result = await timed(plan.phases, "browser", () =>
+    submitApplication({ page: browser.page, ats: plan.formPlan.ats, formPlan: plan.formPlan, slug: plan.slug }),
+  );
+  log(
+    result.ok
+      ? `submit: confirmed (${result.confirmation.strategy}) in ${Math.round(result.ms / 1000)}s`
+      : `submit: NOT confirmed (${result.cause}) — ${result.detail}`,
+  );
+  return result;
+}
+
+/**
+ * The pipeline entry this posting is, if it is one. `--url` names a posting the pipeline may know
+ * under its own (non-application) link, so both forms of both URLs are compared normalised.
+ */
+function pipelineIdFor(pipeline, url) {
+  const want = new Set([normalizeUrl(url), normalizeUrl(applyUrl(url))].filter(Boolean));
+  if (!want.size) return null;
+  for (const job of pipeline?.jobs ?? []) {
+    const mine = [normalizeUrl(job.url), normalizeUrl(applyUrl(job.url))].filter(Boolean);
+    if (mine.some((u) => want.has(u))) return job.id;
+  }
+  return null;
+}
+
+/**
+ * A submitted application is `applied` in the pipeline — the one status the user never types.
+ * `found → applied` is not a legal move (src/pipeline/status.mjs), so a posting the user never
+ * queued is stepped through `ready` first. A pipeline write never turns a confirmed submission
+ * into a failure: every error is logged and swallowed.
+ */
+async function markApplied(stores, { id = null, url = null, note }) {
+  const entry = id ?? pipelineIdFor(stores.pipeline, url);
+  if (!entry) return null;
+  const from = (stores.pipeline?.jobs ?? []).find((j) => j.id === entry)?.status ?? null;
+  try {
+    if (from && !canTransition(from, "applied")) await setStatus(entry, "ready", note);
+    await setStatus(entry, "applied", note);
+    log(`pipeline: ${entry} ${from ?? "?"} → applied`);
+    return entry;
+  } catch (err) {
+    log(`pipeline ${entry}: ${err.message}`);
+    return null;
+  }
+}
+
 // ─── the report ───────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -232,14 +365,20 @@ async function fill({ conn, plan, stores, budget, attach }) {
  * and overwriting `decisions.json` with them would erase what a live run recorded about the tab
  * that is still open — which is exactly what `--answers` re-attaches against. The trace is still
  * appended: those Jev requests really happened.
+ *
+ * `submit` is the step-12 result when there was one. A confirmed submit is the terminal
+ * `submitted`; a submit the board never confirmed is `blocked{reason:"submit_failed"}` — frozen
+ * and summarised like any other run, because the tab is still open and `--resume <slug>` is how
+ * the user finishes it by hand.
  */
-async function settle({ plan, started, browser = null, dryRun = false }) {
+async function settle({ plan, started, browser = null, dryRun = false, submit = null }) {
   const { formPlan, slug, decisions, jev } = plan;
   const counts = tally(decisions);
   const asked = needsUser(decisions, slug);
-  const status = asked.questions.length ? "needs_user" : "ready_to_submit";
+  const outcome = submitOutcome(submit);
+  const status = outcome?.status ?? (asked.questions.length ? "needs_user" : "ready_to_submit");
   const usage = usageFor({ plan, started });
-  const summary = renderSummary({ formPlan, decisions, slug, status, usage });
+  const summary = renderSummary({ formPlan, decisions, slug, status, usage, submit });
   const extra = dedupeQuestions([...(plan.extra ?? []), ...(browser?.added ?? [])]);
 
   if (!dryRun) {
@@ -249,6 +388,15 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
       job: formPlan.job.title,
       company: formPlan.job.company,
       requests: jev.requests,
+      // `submit_attempted` is the double-submit guard's memory: true once the button was
+      // actually clicked, whatever the board then said (PLAN §2.2 step 12).
+      ...(submit
+        ? {
+            submitted: submit.ok === true,
+            submit_attempted: submit.clicked === true,
+            ...(submit.ok ? { confirmation: submit.confirmation } : { submit_failed: submit.detail ?? submit.cause ?? true }),
+          }
+        : {}),
       ...(extra.length ? { extra } : {}),
     });
     await writeSummary(slug, summary);
@@ -258,6 +406,8 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
 
   return {
     status,
+    ...(outcome && !submit.ok ? { reason: outcome.reason, ...(outcome.screenshot ? { screenshot: outcome.screenshot } : {}), detail: outcome.detail } : {}),
+    ...(submit?.ok ? { confirmation: submit.confirmation } : {}),
     slug,
     url: formPlan.url,
     company: formPlan.job.company,
@@ -266,7 +416,20 @@ async function settle({ plan, started, browser = null, dryRun = false }) {
     ...(browser ? { set: browser.filled, failed: browser.failed, appeared: browser.added.length, tab: formPlan.url } : {}),
     asks: asked.questions,
     checks: decisions.filter((d) => d.action === "check").map((d, i) => ({ handle: `c${i + 1}`, qid: d.qid, label: d.label, value: d.class === "sensitive" ? "••••" : d.option ?? d.value ?? null })),
-    drafted: decisions.filter((d) => d.action === "draft").map((d, i) => ({ handle: `d${i + 1}`, qid: d.qid, label: d.label, words: d.words ?? 0, story: d.story ?? null })),
+    // The draft itself, clipped: it is the one value in this report the user did not write, so
+    // "190 words" alone is not enough to decide whether to keep it, and a `--dry-run` says
+    // outright that the text was never typed into the form.
+    drafted: decisions
+      .filter((d) => d.action === "draft")
+      .map((d, i) => ({
+        handle: `d${i + 1}`,
+        qid: d.qid,
+        label: d.label,
+        words: d.words ?? 0,
+        story: d.story ?? null,
+        ...(d.dry ? { dry: true } : {}),
+        text: typeof d.value === "string" ? d.value.slice(0, 600) : null,
+      })),
     skipped: counts.skipped,
     remembered: (plan.stored ?? []).map(({ section, row }) => `${section}:${row.id ?? row.qid}`),
     requests: jev.requests,
@@ -354,16 +517,49 @@ async function singleRun(args, stores) {
       for (const { section, row } of out.stored) log(`  remembered ${section}: ${row.id ?? row.qid} (${row.scope ?? "global"})`);
     }
 
+    // `--detect-submit` is the dry check: the tab is opened read-only, nothing is filled and
+    // nothing is clicked. It is the only submit path that is safe against a real posting.
+    let detected = null;
+    if (args.detectSubmit) {
+      conn ??= await connect({});
+      detected = await timed(plan.phases, "browser", () => detectSubmit({ context: conn.context, formPlan: plan.formPlan, slug: plan.slug }));
+      log(
+        detected.would_click
+          ? `submit control: ${detected.would_click.selector} "${detected.would_click.text}" (${detected.would_click.found_by}) — not clicked`
+          : "submit control: none found by this ATS's rules — not clicked",
+      );
+      log(`confirmation strategy: ${detected.confirmation.strategy}`);
+    }
+
     let browser = null;
-    if (!args.dryRun) {
+    let submit = null;
+    if (args.dryRun) {
+      // A dry run drafts too, and says so. Step 10 is the only part of the plan whose output the
+      // user cannot predict from the Decision table, so a `--dry-run` that skipped it would show
+      // a `draft` row with nothing in it — which reads as "the writer failed", not "not typed".
+      plan.openaiBase = writerSpend();
+      await draftRows({
+        formPlan: plan.formPlan,
+        decisions: plan.decisions,
+        mem: stores.mem,
+        context: plan.context,
+        pipeline: stores.pipeline,
+        dry: true,
+        onLog: log,
+      });
+    } else {
       conn ??= await connect({});
       browser = await fill({ conn, plan, stores, budget, attach: Boolean(answers) });
       log(`browser: set ${browser.filled}, failed ${browser.failed}, required still empty ${browser.state.unfilled.length + browser.state.unknown.length}`);
+      submit = await maybeSubmit({ plan, browser, stores, args });
     }
 
-    const out = await settle({ plan, started, browser, dryRun: args.dryRun });
+    const out = await settle({ plan, started, browser, dryRun: args.dryRun, submit });
+    if (out.status === "submitted") {
+      await markApplied(stores, { url: plan.formPlan.url, note: `jev-apply: submitted, ${out.confirmation?.strategy ?? "confirmed"}` });
+    }
     if (!args.json) printTable(plan.decisions);
-    return { ...out, ...(recorded ? { recorded } : {}) };
+    return { ...out, ...(detected ? { submit: detected } : {}), ...(recorded ? { recorded } : {}) };
   } catch (err) {
     // Every failure is a status the host can act on, with the §2.6 header, the reason and the
     // screenshot — a missing key, a 500 from the board and a dead tab all read the same way.
@@ -390,7 +586,7 @@ async function queueRun(args, stores) {
   // Steps 1–7 for every posting in parallel. Ashby's schema endpoint 429s above ~6 concurrent
   // requests (PLAN §2.5), so the fan-out is capped rather than unbounded.
   const jobs = await mapLimit(entries, 4, async (entry) => {
-    const job = { entry, budget: newBudget({}), plan: null, browser: null, error: null };
+    const job = { entry, budget: newBudget({}), plan: null, browser: null, submit: null, error: null };
     try {
       job.plan = await planPosting({ source: applyUrl(entry.url), stores, budget: job.budget, reattach: Boolean(answers), quiet: true });
       log(`planned ${entry.id}: ${job.plan.formPlan.questions.length} questions, ${job.plan.jev.requests} Jev request(s)`);
@@ -425,6 +621,10 @@ async function queueRun(args, stores) {
       try {
         job.browser = await fill({ conn, plan: job.plan, stores, budget: job.budget, attach: Boolean(answers) });
         log(`filled ${job.entry.id}: set ${job.browser.filled}, failed ${job.browser.failed}`);
+        // Submit as each posting completes, not after the whole queue: the merged `needs_user`
+        // below is about the postings that still have questions, and a finished one should not
+        // wait on them.
+        job.submit = await maybeSubmit({ plan: job.plan, browser: job.browser, stores, args });
       } catch (err) {
         job.error = err;
         log(`${job.entry.id} blocked: ${err.reason ?? err.message}`);
@@ -449,16 +649,24 @@ async function queueRun(args, stores) {
       });
       continue;
     }
-    const out = await settle({ plan: job.plan, started, browser: job.browser, dryRun: args.dryRun });
+    const out = await settle({ plan: job.plan, started, browser: job.browser, dryRun: args.dryRun, submit: job.submit });
     postings.push({ slug: job.plan.slug, company: out.company, decisions: job.plan.decisions });
-    rows.push({ id: job.entry.id, slug: out.slug, company: out.company, title: out.title, url: out.url, status: out.status, filled: out.filled, set: out.set ?? 0, asks: out.asks.length, requests: out.requests, usage: out.usage, summary: out.summary });
-    if (out.status === "ready_to_submit") {
+    rows.push({ id: job.entry.id, slug: out.slug, company: out.company, title: out.title, url: out.url, status: out.status, filled: out.filled, set: out.set ?? 0, asks: out.asks.length, requests: out.requests, usage: out.usage, summary: out.summary, ...(out.status === "submitted" ? { confirmation: out.confirmation } : {}), ...(out.status === "blocked" ? { reason: out.reason } : {}) });
+    if (out.status === "submitted") {
+      await markApplied(stores, { id: job.entry.id, note: `jev-apply: submitted, ${out.confirmation?.strategy ?? "confirmed"}` });
+    } else if (out.status === "ready_to_submit") {
       await setStatus(job.entry.id, "ready", `jev-apply: filled ${out.filled}/${out.filled + out.asks.length + out.skipped}`).catch((err) => log(`pipeline ${job.entry.id}: ${err.message}`));
     }
   }
 
   const questions = mergedNeedsUser(postings);
-  const status = questions.length ? "needs_user" : rows.every((r) => r.status === "blocked") ? "blocked" : "ready_to_submit";
+  const status = questions.length
+    ? "needs_user"
+    : rows.every((r) => r.status === "blocked")
+      ? "blocked"
+      : rows.every((r) => r.status === "submitted")
+        ? "submitted"
+        : "ready_to_submit";
   // Run-level, from the process counters: the sum of the rows would double-count nothing but is
   // the wrong shape (each row's `ms_*` is that posting's, not the queue's wall clock).
   return {

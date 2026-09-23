@@ -26,7 +26,7 @@ Results land in `bench/results/<date>-<run>.json` (everything, diff it against t
 | `--run NAME` | `HHMM` (UTC) | suffix of the two result files |
 | `--timeout S` | `300` | wall-clock budget per posting before the child is killed |
 | `--keep-tabs` | off | leave the filled tabs open (to look at what the runner did) |
-| `--eeo` | off | opt the synthetic profile into the global EEO stance, so demographic rows are filled instead of skipped — its own experiment, see below |
+| `--eeo` | off | opt the synthetic profile into a stored `p.eeo` preference, so demographic rows are filled instead of asked — its own experiment, see below |
 | `--exercise-controls` | off | after the normal fill, drive every *remaining* row with a bench-chosen value so the widget is measured — see below. Refuses to run unless `JEV_APPLY_HOME` names a home that is not `~/.config/jev-apply` |
 | `--baseline FILE` | `bench/results/2026-09-22-final.json` | the previous run's result JSON, for the round-over-round table. `--no-baseline` omits the section |
 
@@ -234,14 +234,16 @@ widget they render as, so their own row shows no bucket.
   `--home`. That check is first, before a browser is opened or a file is written, because this is
   the one mode that writes values nobody chose into a real employer's form. It never touches a
   `sensitive` or `policy_gate` row, and its results are never counted as `filled`.
-- **Demographics are skipped by default**, because that is the product's default: with no
-  `p.eeo_policy` on file the resolver skips every EEO row (PLAN D10). Opting in changes the
-  measurement rather than extending it — in the first bench run three Greenhouse demographic
-  selects returned `no_options_rendered` in a row, the `no_progress` stop rule fired, and the
-  posting ended `blocked` before one application question was reached. `--eeo` is therefore its
-  own experiment ("can the demographic block be driven at all?"), reported as its own run.
-- **Submit is never clicked.** That is `apply.mjs`'s invariant (PLAN D8); the bench adds no way
-  around it and never passes `--answers`.
+- **Demographics are asked, not skipped, with no `p.eeo` on file** (PLAN D10) — the resolver never
+  guesses a demographic value, so a bare bench run turns every EEO row into `needs_user`, not a
+  silent skip. `--eeo` seeds a synthetic `p.eeo` so the rows fill instead — its own experiment ("can
+  the demographic block be driven at all?"), reported as its own run: in the first such run three
+  Greenhouse demographic selects returned `no_options_rendered` in a row, the `no_progress` stop rule
+  fired, and the posting ended `blocked` before one application question was reached;
+  `src/browser/controls.mjs`'s dedicated EEO react-select retry (menu-open wait, portal-option read)
+  and a separate no-progress counter for the EEO block fix that.
+- **The bench never sets `p.auto_submit`.** Every application it drives stops at `ready_to_submit`;
+  the bench adds no way to opt in and it never passes `--submit` or `--answers`.
 - **The browser is the bench's own.** `assertBenchPort` refuses to start when something already
   answers on the bench port that is not the bench profile. Chrome will not name its own
   `--user-data-dir` over CDP (`Browser.getBrowserCommandLine` needs `--enable-automation`, which

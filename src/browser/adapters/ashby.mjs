@@ -187,9 +187,18 @@ async function setRadio(page, question, value, scope) {
 // One checkbox is the ladder's (`setSingleCheckbox` in src/browser/controls.mjs): it reads a
 // Boolean yes/no *and* the one-option MultiValueSelect Ashby renders with the same DOM, whose
 // answer is the option's own sentence. This file kept a second, yes/no-only copy, which is what
-// scored 1Password's background-check acknowledgement as `set_failed:not_boolean`. An Ashby
-// MultiValueSelect with several values is n boxes in one field entry, detected as
-// `checkbox_group`, and is the ladder's too. Only the Yes/No button pair below stays here.
+// scored 1Password's background-check acknowledgement as `set_failed:not_boolean`.
+//
+// An Ashby MultiValueSelect with several values is n boxes in one field entry and is the
+// ladder's too — but it took a second fix to actually get there. Ashby names each box after its
+// *own* option label (`name="Veteran"`, `name="United Kingdom"`), so counting the members by
+// shared `name` answered 1 for a seven-box question, `detectControl` said `checkbox`, and four
+// live groups across two postings met the Boolean rung and lost every answer
+// (docs/research/13-eval-judge-round2.md §3 N2). `readShape` now counts the field's own boxes
+// as well, `classifyShape` also accepts a published option list as the witness, and
+// `setControl` re-asks both questions before it reaches for `setSingleCheckbox`. A group
+// detected as `checkbox_group` is not in `HANDLES`, so it routes to `generic` like any other
+// control this adapter does not tune.
 
 // ------------------------------------------------------- combobox / dropdown / geocoder
 //
@@ -343,4 +352,133 @@ export async function snapshotRequired(page) {
     }
     return rows;
   }, ENTRY);
+}
+
+// ─── EEO / demographics ───────────────────────────────────────────────────────────────────────
+//
+// Ashby renders its demographic survey from `surveyForms`, a second form beside `applicationForm`
+// that `src/schema/ashby.mjs` now requests, so unlike Greenhouse the block *is* in the FormPlan.
+// This reader exists for the other half of the problem: the survey mounts from its own fetch, so
+// a control can still be missing from the DOM at the moment the fill loop reaches it, and the row
+// becomes an `ask` saying "control_not_found" while the page shows an empty radio group. The
+// step-8½ pass (`fillLiveSensitive`, src/plan/execute.mjs) re-reads the page after the first fill
+// round and drives whatever appeared, using the plan's own `p.eeo`-sourced answer.
+//
+// Read off the live fireworks/fc3845e6 form on 2026-09-23: the survey's fields are ordinary
+// `div[data-field-path="_systemfield_eeoc_<name>"]` entries holding
+// `input[type=radio].ashby-application-form-input-radio-group-option-radio`. Nothing here opens a
+// menu, writes, or decides an answer — it reports what is on the page.
+
+/** Field paths Ashby gives its own self-identification questions. */
+const EEO_PATH_RE = /(^|_)eeoc?($|_)|_systemfield_(gender|race|ethnicity|veteran|disability)/i;
+/** A survey form's own wording, for an org that asks demographics through custom questions. */
+const EEO_LABEL_RE = /\b(gender|race|ethnicit|hispanic|latino|veteran|disabilit|self[- ]identif|demographic|transgender|sexual orientation|pronouns?)\b/i;
+
+/**
+ * The demographic controls as the page renders them, in DOM order.
+ * @returns {Promise<Array<{qid:string, label:string, section:string, selector:string,
+ *                          multiple:boolean, control:string, value:string}>>}
+ */
+export async function eeoControls(page) {
+  return page.evaluate(
+    ({ entrySelector, pathSrc, labelSrc }) => {
+      const pathRe = new RegExp(pathSrc, "i");
+      const labelRe = new RegExp(labelSrc, "i");
+      const norm = (s) => String(s ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+      const rows = [];
+      for (const entry of document.querySelectorAll(entrySelector)) {
+        const fieldPath = entry.getAttribute("data-field-path") || "";
+        const label = norm(entry.querySelector("label")?.textContent ?? "").replace(/\s*\*$/, "");
+        if (!pathRe.test(fieldPath) && !labelRe.test(label)) continue;
+        const radios = entry.querySelectorAll('input[type="radio"]');
+        const boxes = entry.querySelectorAll('input[type="checkbox"]');
+        const select = entry.querySelector("select");
+        const text = entry.querySelector("input:not([type=file]):not([type=radio]):not([type=checkbox]), textarea");
+        let control = "unknown";
+        let value = "";
+        if (radios.length) {
+          control = "radio";
+          const on = entry.querySelector('input[type="radio"]:checked');
+          value = on ? norm(entry.querySelector(`label[for="${CSS.escape(on.id)}"]`)?.textContent ?? "") : "";
+        } else if (boxes.length) {
+          control = boxes.length > 1 ? "checkbox_group" : "checkbox";
+          value = [...boxes]
+            .filter((b) => b.checked)
+            .map((b) => norm(entry.querySelector(`label[for="${CSS.escape(b.id)}"]`)?.textContent ?? ""))
+            .join(" | ");
+        } else if (select) {
+          control = "native_select";
+          value = norm(select.selectedOptions?.[0]?.textContent ?? "");
+        } else if (text) {
+          control = text.tagName === "TEXTAREA" ? "textarea" : "text";
+          value = norm(text.value);
+        } else {
+          continue; // a heading or a description block, not a control
+        }
+        rows.push({
+          qid: fieldPath || label,
+          label,
+          section: "Demographic Survey",
+          selector: fieldPath ? `[data-field-path="${fieldPath}"]` : "",
+          multiple: boxes.length > 1,
+          control,
+          value,
+        });
+      }
+      return rows.filter((r) => r.selector);
+    },
+    { entrySelector: ENTRY, pathSrc: EEO_PATH_RE.source, labelSrc: EEO_LABEL_RE.source },
+  );
+}
+
+// ─── submit ───────────────────────────────────────────────────────────────────────────────────
+//
+// Ashby's Submit is a `button[type=submit]` reading "Submit Application" inside the application
+// form; the org can restyle it, so the class is tried first and the *text* is the rule — with no
+// matching text this adapter returns null rather than clicking whatever submit control it found
+// (a posting page carries a job-alert form of its own, and "click the last submit button" would
+// subscribe the user to a newsletter instead of applying).
+//
+// A confirmed application replaces the form in place: the field entries disappear and a success
+// banner/toast says so, with no navigation, which is why `formGone` is on.
+
+export const CONFIRMATION = {
+  strategy: "form replaced + success text/toast",
+  text: /application submitted|thanks for applying|thank you for applying|we'?(?:ve| have) received your application|your application (?:has been|was) (?:submitted|received)/i,
+  selectors: ["[class*='ashby-application-form-success']", "[class*='ApplicationFormSuccess']"],
+  toast: ["[class*='ashby-toast']", "[role='status']", "[class*='Toast']", "[class*='success' i]"],
+  formGone: true,
+};
+
+/** Unambiguous: Ashby's own class for the application form's submit button, whatever it reads. */
+const SUBMIT_SELECTORS = ["button.ashby-application-form-submit-button", "[class*='ashby-application-form-submit'] button[type=submit]"];
+const SUBMIT_TEXT = /submit application/i;
+/** Containers the fallback scan searches; the one holding the most fields wins. */
+const FORM_SCOPES = ["form", "[class*='ashby-application-form']"];
+
+/**
+ * The application form's Submit control, or null. Outside Ashby's own class the *text* is the
+ * rule (`textRequired`): a button that does not say "Submit application" is never handed back,
+ * because the posting page carries a job-alert form whose submit control would otherwise win.
+ */
+export async function findSubmit(page) {
+  return generic.findSubmit(page, {
+    selectors: SUBMIT_SELECTORS,
+    text: SUBMIT_TEXT,
+    textRequired: true,
+    scopes: FORM_SCOPES,
+  });
+}
+
+export async function confirmSubmitted(page, opts = {}) {
+  const signals = opts.signals ?? (await generic.readSignals(page, { selectors: CONFIRMATION.selectors, toast: CONFIRMATION.toast }));
+  const verdict = generic.matchConfirmation(signals, CONFIRMATION);
+  if (verdict.detected) return { ...verdict, signals };
+  // The second half of Ashby's own contract: the form is gone and a toast says it worked. A toast
+  // alone is not a receipt (Ashby toasts autosave and upload errors the same way).
+  const gone = signals.fields === 0 && signals.submits === 0;
+  if (gone && signals.toast && CONFIRMATION.text.test(signals.toast)) {
+    return { detected: true, strategy: "form gone + success toast", url: signals.url, text: signals.toast, signals };
+  }
+  return { ...verdict, signals };
 }

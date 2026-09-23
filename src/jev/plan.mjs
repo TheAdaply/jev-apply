@@ -31,8 +31,12 @@ import { parse as parseYaml } from "yaml";
 import { paths } from "../config.mjs";
 import { classifyTitle } from "../canon/families.mjs";
 import { answersFor, getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { fullTimeYears, noticeRule, salaryFor, workAuth } from "../memory/derive.mjs";
+import { fullTimeYears, locationFact, noticeRule, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { appliedBeforeFor, factText, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
+import { optionStating, vocabFor } from "../canon/normalize.mjs";
+// The field's stated limit decides the length variant, and the same rule has to hold in the
+// deterministic pass, here, and in the writer — one definition, in the leaf module both import.
+import { pickVariant } from "../schema/classes.mjs";
 import { appendTrace } from "../browser/trace.mjs";
 import { NONE, choice, noul, systemOne, withNone } from "./client.mjs";
 import { GATES, gate, runnerUpGap } from "./gates.mjs";
@@ -63,9 +67,11 @@ export async function loadCanon(dir = paths.canon) {
 
 // The canon bank's layers are core|auth|legal|comp|eeo|narrative|screening|company
 // (`src/canon/seed.mjs` LAYERS). `auth`, `legal` and `comp` are asked of every candidate, so they
-// belong to the posting-independent pool alongside `core`. `eeo` is deliberately absent: an EEO row
-// is never answered from a canonical mapping — it is skipped unless `p.eeo_policy` says otherwise
-// (AGENTS.md), and admitting it here would put demographic questions in front of the selector.
+// belong to the posting-independent pool alongside `core`. `eeo` is deliberately absent: a
+// demographic row is answered before any of this, straight from `p.eeo` plus the form's own
+// options (`src/plan/resolve.mjs sensitiveRow()`), so it is never open by the time a canonical
+// mapping would be asked for — and admitting the layer here would put demographic questions in
+// front of the selector for a mapping nothing would use.
 const LAYER = {
   core: /^(?:universal[_ -]?)?core$|^universal$|^(?:auth|legal|comp)$/i,
   family: /^(?:family|screening|family[_ -]?screening)$/i,
@@ -258,7 +264,8 @@ function applyCanonical(rows, answers, { canon, mem, context, baselines, pipelin
       continue;
     }
     d.canon = answer.choice;
-    const resolved = canonAnswer(answer.choice, canon, { mem, context, baselines, pipeline, action, limits: byQid.get(d.qid)?.limits });
+    const q = byQid.get(d.qid);
+    const resolved = dateSafe(canonAnswer(answer.choice, canon, { mem, context, baselines, pipeline, action, limits: q?.limits }), q, { mem, context });
     Object.assign(d, resolved);
     // A canonical id with nothing saved behind it is not an answer. When that id belongs to a
     // layer whose questions are about the *work* — narrative, family screening, this company's own
@@ -276,6 +283,33 @@ const REPHRASABLE = /^(?:narrative|screening|family|company|template)/i;
 /** The canon bank's own layer for one id, or "" when the bank does not hold it. */
 function layerOf(canon, qid) {
   return (canon?.questions ?? []).find((row) => (row.qid ?? row.id) === qid)?.layer ?? "";
+}
+
+/**
+ * A canonical answer is text, and a `date` control takes a date. `q.core.start_date` resolves
+ * through the answer bank to the user's own prose ("Available immediately"), and round 2 handed
+ * that straight to Fireworks' Ashby date input: `unparsable_date`, field empty, row downgraded to
+ * `ask` — while `p.notice_rule` could have produced the date all along
+ * (docs/research/13-eval-judge-round2.md §2 item 5). The deterministic pass already re-derives
+ * this case (`src/plan/resolve.mjs` START_RE, `date` branch); the canonical path is the one that
+ * still reached the control, so it gets the same rule.
+ */
+function dateSafe(resolved, q, { mem, context }) {
+  if (resolved?.action !== "fill" && resolved?.action !== "check") return resolved;
+  if (q?.control !== "date" && q?.type !== "date") return resolved;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(resolved.value ?? ""))) return resolved;
+  const date = startDate(mem, { company: context?.company, role_family: context?.role_family });
+  if (date) {
+    return { ...resolved, source: "derived", value: date.value, action: "fill", topic: "notice", why: date.why, _answerText: date.value };
+  }
+  return {
+    source: "none",
+    value: undefined,
+    action: "ask",
+    topic: "notice",
+    why: "this is a date control, and no start-date fact or p.notice_rule states one",
+    remember_as: { kind: "fact", id: "f.identity.start_date", scope: "global" },
+  };
 }
 
 /**
@@ -442,15 +476,6 @@ function ruledRow(ruled, { why, action }) {
   };
 }
 
-/** Length variant by the field's parsed limit (PLAN §2.2 step 5). */
-function pickVariant(variants, limits) {
-  if (!variants) return null;
-  const words = limits?.words ?? (limits?.chars ? Math.round(limits.chars / 6) : null);
-  if (words != null && words <= 60) return variants.short ?? variants.medium ?? variants.long ?? null;
-  if (words != null && words >= 200) return variants.long ?? variants.medium ?? variants.short ?? null;
-  return variants.medium ?? variants.long ?? variants.short ?? null;
-}
-
 /**
  * Canonical question id → the derivation that answers it, for the ids whose answer is computed
  * rather than stored. This is the table `src/canon/answers.mjs` writes its `rule` rows from, so
@@ -535,12 +560,23 @@ function ruleAnswer(ruleRef, { mem, context, baselines, pipeline = null }) {
   return null;
 }
 
-/** The first of `ids` memory states, as a rule answer. A hedged value comes back `exact: false`. */
+/**
+ * The first of `ids` memory states, as a rule answer. A hedged value comes back `exact: false`.
+ *
+ * A locality id is filtered through `locationFact()` first: "Remote" is a way of working, and the
+ * canonical-answer route used to hand it to a form's geocoder exactly as the deterministic pass
+ * once did (docs/research/12-eval-judge-round1.md §3.2). With no place on file this returns null,
+ * which is the `ask` the user answers with their city.
+ */
 function statedPlace(mem, ids) {
+  const place = locationFact(mem);
   for (const id of ids) {
     const row = getFact(mem, id);
     const parsed = row ? factText(row) : null;
     if (!parsed?.text) continue;
+    // A street address is the answer to "address" whatever it looks like; the two locality ids
+    // only answer when `locationFact` says they name somewhere.
+    if (id !== "f.identity.address" && place?.id !== id) continue;
     return {
       value: parsed.text,
       text: parsed.text,
@@ -582,7 +618,11 @@ function applySavedItems(rows, answers, pools) {
   }
 }
 
-/** Request 3 — the form's own options. Exact (normalised) label equality never needs a model. */
+/**
+ * Request 3 — the form's own options. Two rungs never need a model: exact (normalised) label
+ * equality, and the canonical vocabulary the question belongs to (`src/canon/normalize.mjs`),
+ * which maps a saved answer onto a list that spells it differently or does not spell it at all.
+ */
 async function optionStage(rows, { byQid, slug, signal, totals }) {
   const pending = [];
   for (const d of rows) {
@@ -594,6 +634,21 @@ async function optionStage(rows, { byQid, slug, signal, totals }) {
       d.source = d.source === "none" ? "option" : d.source;
       d.why = `${d.why} → option "${clip(exact, 40)}"`;
       continue;
+    }
+    // The form's own vocabulary, mapped rather than matched. `p.how_heard` states "Company
+    // careers page"; 1Password's required 24-entry list has no careers-page entry and does have
+    // `Other`, so the row came back empty with "no option states it"
+    // (docs/research/13-eval-judge-round2.md §2 item 8). A catch-all pick is committed as a
+    // `check` the user sees, never as a silent fill, and an ambiguous list still goes to Jev.
+    if (q.type !== "multi_select") {
+      const stated = optionStating(vocabFor(d.canon ?? "", [labels]), d.value, labels);
+      if (stated) {
+        d.option = stated.label;
+        d.source = d.source === "none" ? "option" : d.source;
+        if (!stated.exact && d.action === "fill") d.action = "check";
+        d.why = `${d.why} → ${stated.exact ? "option" : "closest option"} "${clip(stated.label, 40)}"`;
+        continue;
+      }
     }
     pending.push({ d, q, labels });
   }

@@ -28,7 +28,7 @@ import {
   valueOf,
   waitUntil,
 } from "../readback.mjs";
-import { chooseLabel, detectControl, isPlaceholderLabel, searchKeys, setControl } from "../controls.mjs";
+import { chooseLabel, detectControl, isPlaceholderLabel, searchKeys, setControl, waitForOptions } from "../controls.mjs";
 import { captureFailure, tracer } from "../trace.mjs";
 import * as generic from "./generic.mjs";
 
@@ -102,18 +102,12 @@ async function setReactSelect(page, question, value, selector, { chooseOption = 
   await input.waitFor({ state: "attached", timeout: 10000 });
   const shell = await selectShell(input);
   const control = (await firstPresent(shell.locator(".select__control"))) ?? input;
-  const inputId = (await input.getAttribute("id")) ?? question?.qid ?? "";
-  // The listbox id is stable whether react-select renders inline or into the portal.
-  const optionSelector = inputId
-    ? `[id="react-select-${inputId}-listbox"] [role="option"], #react-portal-mount-point [role="option"]`
-    : '#react-portal-mount-point [role="option"]';
 
   const want = wantedLabel(question, value);
   // Three filter strings, tried in order: the answer itself (short answers filter fine), its most
   // distinctive word (a saved sentence matches no option verbatim), then nothing at all — the
   // unfiltered menu is the only thing a paraphrase can be matched against.
   const keys = searchKeys(want);
-  const options = page.locator(optionSelector);
   // Neither Escape nor `fill("")`: both clear the committed value (react-select's
   // `backspaceRemovesValue`, measured on the live form). Blur closes the menu, drops the typed
   // filter and restores whatever was already chosen.
@@ -139,6 +133,15 @@ async function setReactSelect(page, question, value, selector, { chooseOption = 
     // last, unfiltered key — a filtered react-select menu is a substring match for what we typed,
     // so every entry already contains the answer and `none_of_these` cannot compete (measured on
     // the live location picker; see resolveVocabulary in src/plan/execute.mjs).
+    //
+    // The menu is resolved by the ladder's `waitForOptions` rather than by a hand-built
+    // `#react-select-<input id>-listbox` selector, for two reasons measured on this board's EEO
+    // block (2026-09-23): the demographic selects key their listbox off react-select's own
+    // generated id, which is `aria-controls` and not always the input's id; and a filter that
+    // matches nothing makes react-select render a "No options" notice, which the old blind
+    // 3 s-per-key wait could not see — nine demographic rows cost ~20 s each on the way to
+    // `no_matching_option`, which is what let the no-progress rule end a posting inside the EEO
+    // block before one application question was reached.
     set: async () => {
       reason = null;
       strategy = null;
@@ -146,11 +149,12 @@ async function setReactSelect(page, question, value, selector, { chooseOption = 
         await control.click({ timeout: 5000 });
         // react-select resets its own filter text on blur, so there is nothing to clear here.
         if (key) await input.pressSequentially(key, { delay: 35 });
-        await options.first().waitFor({ state: "visible", timeout: OPTION_WAIT_MS }).catch(() => {});
-        const labels = (await options.allTextContents()).map(norm).filter(Boolean);
+        const { options, labels } = await waitForOptions(page, input, shell, OPTION_WAIT_MS);
         const real = labels.filter((l) => !isPlaceholderLabel(l));
         if (!real.length) {
-          reason = "no_options_rendered";
+          // "the widget showed nothing at all" and "your text filtered everything away" are
+          // different failures with different fixes, and only the second one is ours.
+          reason = key ? "filtered_to_nothing" : "no_options_rendered";
           await dismiss();
           continue;
         }
@@ -416,4 +420,119 @@ export async function snapshotRequired(page) {
     }
     return rows;
   });
+}
+
+// ─── EEO / demographics ───────────────────────────────────────────────────────────────────────
+//
+// The board renders a self-identification block the API schema does not describe field for field
+// (measured on togetherai/5179372007, 2026-09-23):
+//
+//   * `#hispanic_ethnicity` ("Are you Hispanic/Latino?") exists on the page and in **no** schema
+//     row — the API still publishes the older combined `race` select instead;
+//   * `#race` is **not in the DOM at all** until that ethnicity question is answered, because the
+//     board walks the EEO-1 flow (ethnicity first; race only when the answer is No). A runner that
+//     drives the schema's row order alone finds no `#race` control and reports the row as missing.
+//
+// So the live block is read off the page, in the order the page asks it, and the plan's values are
+// matched onto it. Nothing here decides *what* to answer (that is `p.eeo` via
+// `src/plan/resolve.mjs`), and nothing here opens a menu: the options of a react-select do not
+// exist in the DOM until it is opened, and opening nine of them to look would be nine writes.
+
+/** Self-identification controls the board names outright, whatever heading they sit under. */
+const EEO_IDS = new Set(["gender", "race", "hispanic_ethnicity", "veteran_status", "disability_status", "disability"]);
+// Headings the board puts above the block. Matched only *inside* the application form: this
+// posting also carries an "Equal Opportunity" heading in the job description, and the nearest
+// preceding heading of the form's own first inputs would otherwise be that one.
+const EEO_SECTION_RE = /demographic|self[- ]identif|equal (?:employment )?opportunity|voluntary/i;
+
+/**
+ * The demographic block as the page renders it, in DOM order.
+ * @returns {Promise<Array<{qid:string, label:string, section:string, selector:string,
+ *                          multiple:boolean, control:string, value:string}>>}
+ */
+export async function eeoControls(page) {
+  return page.evaluate(
+    ({ ids, sectionSrc }) => {
+      const sectionRe = new RegExp(sectionSrc, "i");
+      const norm = (s) => String(s ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+      const esc = (id) => (/^[A-Za-z_][A-Za-z0-9_-]*$/.test(id) ? `#${id}` : `[id="${id}"]`);
+      const form = document.querySelector("form#application-form") ?? document.querySelector("form") ?? document;
+      // Headings from inside the form only: the job description above it has its own
+      // "Equal Opportunity" block, and the nearest-preceding-heading rule would hand that title
+      // to the form's first inputs.
+      const inForm = [...form.querySelectorAll("h1, h2, h3, h4, legend")];
+      const headings = (inForm.length ? inForm : [...document.querySelectorAll("h1, h2, h3, h4, legend")]).map((h) => ({
+        node: h,
+        text: norm(h.textContent),
+      }));
+      const sectionOf = (el) => {
+        let best = "";
+        for (const h of headings) {
+          if (h.node.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) best = h.text;
+        }
+        return best;
+      };
+      const rows = [];
+      for (const el of form.querySelectorAll("input.select__input, select")) {
+        const id = el.id || "";
+        const section = sectionOf(el);
+        if (!ids.includes(id) && !sectionRe.test(section)) continue;
+        const shell = el.closest(".select-shell") ?? el.closest(".select__control")?.parentElement ?? el.parentElement;
+        const label = norm(
+          (id ? document.querySelector(`label[for="${CSS.escape(id)}"]`)?.textContent : null) ??
+            shell?.querySelector("label")?.textContent ??
+            el.getAttribute("aria-label") ??
+            "",
+        ).replace(/\s*\*$/, "");
+        const chips = [...(shell?.querySelectorAll(".select__multi-value__label") ?? [])].map((c) => norm(c.textContent));
+        rows.push({
+          qid: id || label,
+          label,
+          section,
+          selector: id ? esc(id) : "",
+          multiple: Boolean(el.closest("[class*='--is-multi']")) || chips.length > 0,
+          control: el.tagName === "SELECT" ? "native_select" : "react_select",
+          value: chips.length ? chips.join(" | ") : norm(shell?.querySelector(".select__single-value")?.textContent ?? el.value ?? ""),
+        });
+      }
+      return rows.filter((r) => r.selector);
+    },
+    { ids: [...EEO_IDS], sectionSrc: EEO_SECTION_RE.source },
+  );
+}
+
+// ─── submit ───────────────────────────────────────────────────────────────────────────────────
+//
+// The hosted board's button is `#submit_app` inside `form#application-form`, and a confirmed
+// application lands on `…/jobs/<id>/confirmation` with an `#application_confirmation` block that
+// reads "Thank you for applying". All three are checked, strongest signal first, because the
+// board has shipped each of them alone: an in-place confirmation (no navigation) on some tokens,
+// a redirect on others.
+//
+// The click itself, the waiting and the failure rules belong to `submitApplication`
+// (src/plan/execute.mjs); this file contributes a selector list and two regexes.
+
+export const CONFIRMATION = {
+  strategy: "url /confirmation · #application_confirmation · thank-you text",
+  url: /\/confirmation(?:[/?#]|$)/i,
+  text: /thank you for applying|application has been submitted|received your application/i,
+  selectors: ["#application_confirmation", "[data-react-class*='ApplicationConfirmation']"],
+  formGone: false,
+};
+
+const SUBMIT_SELECTORS = ["#submit_app", "form#application-form button[type=submit]", "form#application-form input[type=submit]"];
+const SUBMIT_TEXT = /submit application/i;
+
+/** The board's Submit control, or null. Never clicks — `--detect-submit` calls exactly this. */
+export async function findSubmit(page) {
+  return generic.findSubmit(page, {
+    selectors: SUBMIT_SELECTORS,
+    text: SUBMIT_TEXT,
+    scopes: ["form#application-form", "form"],
+  });
+}
+
+export async function confirmSubmitted(page, opts = {}) {
+  const signals = opts.signals ?? (await generic.readSignals(page, { selectors: CONFIRMATION.selectors }));
+  return { ...generic.matchConfirmation(signals, CONFIRMATION), signals };
 }

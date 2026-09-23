@@ -333,7 +333,7 @@ function textProblems(label, value, cap, { grounding, voice }) {
  * Author the three length variants of a narrative answer (PLAN §2.4 `narrative` answers).
  * @returns {Promise<{short: string, medium: string, long: string}>}
  */
-export async function narrative({ prompt, facts = [], stories = [], family, limits, job, model, signal } = {}) {
+export async function narrative({ prompt, facts = [], stories = [], family, limits, job, avoid = [], model, signal } = {}) {
   if (!prompt) throw new TypeError("narrative({ prompt }) is required");
   if (!facts.length && !stories.length) {
     throw new WriterError("narrative needs at least one fact or story; a narrative is never invented");
@@ -344,7 +344,7 @@ export async function narrative({ prompt, facts = [], stories = [], family, limi
     make: (note) =>
       askJson({
         instructions: narrativeInstructions({ caps, family }),
-        input: narrativeInput({ prompt, facts, stories, family, job, note }),
+        input: narrativeInput({ prompt, facts, stories, family, job, avoid, note }),
         schema: NARRATIVE_SCHEMA,
         name: "narrative_variants",
         model,
@@ -362,7 +362,7 @@ export async function narrative({ prompt, facts = [], stories = [], family, limi
  * Turn one matched bullet-length story into a full answer inside the field's limit.
  * @returns {Promise<{text: string, words: number}>}
  */
-export async function expand({ story, question, limits, job, facts = [], model, signal } = {}) {
+export async function expand({ story, question, limits, job, facts = [], avoid = [], model, signal } = {}) {
   if (!story?.text) throw new TypeError("expand({ story }) needs a story with text");
   if (!question) throw new TypeError("expand({ question }) is required");
   const cap = capFor(limits, EXPAND_WORDS);
@@ -371,7 +371,7 @@ export async function expand({ story, question, limits, job, facts = [], model, 
     make: (note) =>
       askJson({
         instructions: expandInstructions({ cap }),
-        input: expandInput({ story, question, facts, job, note }),
+        input: expandInput({ story, question, facts, job, avoid, note }),
         schema: TEXT_SCHEMA,
         name: "expanded_answer",
         model,
@@ -387,22 +387,32 @@ export async function expand({ story, question, limits, job, facts = [], model, 
 
 /**
  * The user's one sentence is the thesis; one or two stories are the evidence (PLAN §2.2 step 10).
+ *
+ * `sentence` is optional. With `p.auto_draft` on, the runner drafts this row rather than handing
+ * it back — the thesis then comes from the posting's own text and the candidate's saved material,
+ * which are both in the grounding, and `groundingCheck` is what keeps it from becoming an opinion
+ * about the company. Without at least one story or fact there is nothing to write from and this
+ * throws, exactly as `narrative` does.
+ *
  * @returns {Promise<{text: string, words: number}>}
  */
-export async function whyUs({ sentence, stories = [], job, limits, facts = [], model, signal } = {}) {
-  if (!sentence) throw new TypeError("whyUs({ sentence }) is required — the user's own sentence is the thesis");
+export async function whyUs({ sentence = null, stories = [], job, limits, facts = [], avoid = [], model, signal } = {}) {
   if (!job?.company) throw new TypeError("whyUs({ job }) needs job.company");
+  const thesis = sentence ? String(sentence).trim() : "";
+  if (!thesis && !stories.length && !facts.length) {
+    throw new WriterError("why_us needs the applicant's sentence or at least one saved fact or story; it is never invented");
+  }
   const cap = capFor(limits, WHY_US_WORDS);
   const picked = stories.slice(0, 2);
   const ground = {
-    grounding: [sentence, ...picked, ...facts, jobBlock(job)],
-    voice: [sentence, ...picked, ...facts],
+    grounding: [...(thesis ? [thesis] : []), ...picked, ...facts, jobBlock(job)],
+    voice: [...(thesis ? [thesis] : []), ...picked, ...facts],
   };
   const out = await drafted({
     make: (note) =>
       askJson({
-        instructions: whyUsInstructions({ cap, company: job.company }),
-        input: whyUsInput({ sentence, stories: picked, facts, job, note }),
+        instructions: whyUsInstructions({ cap, company: job.company, sentence: Boolean(thesis) }),
+        input: whyUsInput({ sentence: thesis || null, stories: picked, facts, job, avoid, note }),
         schema: TEXT_SCHEMA,
         name: "why_us_paragraph",
         model,

@@ -1,0 +1,43 @@
+# hand-maintained — NOT written by scripts/canon-cluster.mjs (preserved across its resetDir).
+# See canon/vocab/eeo-gender.yaml for
+# the shape and why these values differ from the corpus-clustering tokens in q.eeo.*.yaml.
+#
+# The EEO fill map for `p.eeo.hispanic_latino`. The EEO-1 report asks ethnicity *before* race as
+# its own yes/no question (Workday, Ashby, some Greenhouse boards); Greenhouse's own EEOC block
+# folds it into the single "Race" select instead, where `p.eeo.hispanic_latino: yes` outranks the
+# saved race — that rule lives in `src/plan/resolve.mjs eeoValueFor()`, not here, because it is a
+# statement about the *form*, not about a label.
+field: hispanic_latino
+asks:                                   # only the yes/no ethnicity question, never a race list
+  - "^(are|do) you .{0,40}(hispanic|latin[oax])"
+  - "^(hispanic|latin[oax])(\\s*(/|or|,)\\s*(hispanic|latin[oax]|spanish)\\w*)*\\s*\\??$"
+  - "(hispanic|latin[oax]|spanish)\\s*(origin|ethnicity|heritage|descent)\\s*\\??$"
+  - "^ethnicity\\s*[:(-]?\\s*(are you\\s*)?(hispanic|latin[oax])"
+values:
+  "yes": "Yes"
+  "no": "No"
+  decline: I don't wish to answer
+aliases:
+  "Yes": "yes"
+  "Yes, I am Hispanic or Latino": "yes"
+  "Hispanic or Latino": "yes"
+  "Hispanic or Latinx": "yes"
+  "Hispanic, Latinx or of Spanish Origin": "yes"
+  "Hispanic/Latino": "yes"
+  "I am Hispanic or Latino": "yes"
+  "No": "no"
+  "No, I am not Hispanic or Latino": "no"
+  "Not Hispanic or Latino": "no"
+  "I am not Hispanic or Latino": "no"
+  "Decline To Self Identify": decline
+  "Decline to self-identify": decline
+  "I don't wish to answer": decline
+  "I do not wish to answer": decline
+  "Prefer not to say": decline
+  "Prefer not to disclose": decline
+  "I prefer not to disclose": decline
+match:
+  - ["^(decline|prefer not|choose not|i prefer not|i (do not|don't) (wish|want)|not disclos)", decline]
+  - ["^(no\\b|not hispanic|not latin|i am not)", "no"]
+  - ["^(yes|hispanic|latin|i am)", "yes"]
+unmapped: []

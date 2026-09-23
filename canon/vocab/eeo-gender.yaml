@@ -1,0 +1,59 @@
+# hand-maintained — NOT written by scripts/canon-cluster.mjs (that writes canon/vocab/<qid>.yaml
+# and wipes this directory on every run; `resetDir(..., {keep: /^eeo-/})` preserves these five).
+#
+# The EEO fill map for `p.eeo.gender` (references/memory-format.md, PLAN §2.4 D10). It answers one
+# question only: "this form spells its gender options like *this* — which one states what the user
+# saved?". `aliases` are the option labels really seen on Greenhouse (EEOC + U.S. Standard
+# Demographic Questions) and Ashby forms; `match` is the ordered fallback for wording no alias
+# lists. A label in `unmapped` states something the canonical value set does not carry and is
+# never matched — a self-describe row is the user's own words, never ours.
+#
+# Canonical values are the ones stored in memory (docs/CONTRACTS.md), not the corpus-clustering
+# tokens in `canon/vocab/q.eeo.gender.yaml` (`man`/`woman`/`prefer_not_to_say`), which exist to
+# group option sets and are a different vocabulary.
+field: gender
+asks:                                   # question labels this file answers (case-insensitive)
+  - "\\bgender\\b"                      # "Gender", "Gender identity", "What is your gender?"
+  - "\\bsex\\b(?! offender)"
+values:                                 # canonical value → the neutral wording used as answer_text
+  male: Male
+  female: Female
+  non_binary: Non-binary
+  decline: Decline to self-identify
+aliases:
+  "Male": male
+  "Man": male
+  "Man, male or masculine": male
+  "Transgender man, male, or masculine": male
+  "Masculine": male
+  "Female": female
+  "Woman": female
+  "Woman, female or feminine": female
+  "Transgender woman, female or feminine": female
+  "Feminine": female
+  "Non-binary": non_binary
+  "Non Binary": non_binary
+  "Nonbinary": non_binary
+  "Gender non-binary": non_binary
+  "Non-binary/third gender (For example - bigender, gender non-conforming, androgynous)": non_binary
+  "Genderqueer": non_binary
+  "Gender non-conforming": non_binary
+  "Decline To Self Identify": decline
+  "Decline to self-identify": decline
+  "I don't wish to answer": decline
+  "I do not wish to answer": decline
+  "I prefer not to disclose": decline
+  "Prefer not to disclose": decline
+  "Prefer not to say": decline
+  "Choose Not to Disclose": decline
+match:                                  # first rule that matches the option label wins
+  - ["^(decline|prefer not|choose not|i prefer not|i (do not|don't) (wish|want)|not disclos)", decline]
+  - ["non-?binary|genderqueer|gender non|third gender|agender|bigender|androgynous", non_binary]
+  - ["\\b(female|woman|women|feminine)\\b", female]
+  - ["\\b(male|man|men|masculine)\\b", male]
+unmapped:                               # the user's own words, never ours
+  - I prefer to self-describe
+  - Prefer to self describe
+  - I use another term
+  - Not Listed
+  - Other

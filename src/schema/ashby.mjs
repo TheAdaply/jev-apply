@@ -20,8 +20,14 @@
 //   ValueSelect       n × `input[type=radio].ashby-application-form-input-radio-group-option-radio`,
 //                     every `value="on"` — the adapter must pick by label text, never by value
 //   MultiValueSelect  n × `input[type=checkbox]`
-// EEO/consent questions (`_systemfield_eeoc_*`) are rendered from `surveyForms`, which this query
-// does not request: they are on the page but never in the FormPlan, and they are never required.
+// EEO/consent questions (`_systemfield_eeoc_*`) are rendered from `surveyForms`, a second
+// `FormRender` beside `applicationForm` that this document now requests as well. Read off the
+// live fireworks/fc3845e6 page on 2026-09-23: the survey's fields sit in exactly the same
+// `div[data-field-path="_systemfield_eeoc_gender"]` containers as the application form's, with
+// the same `label[for$="-radio-N"]` radios, so one selector rule covers both. They are never
+// `isRequired`. Without them the plan was blind to the block — three unanswered demographic
+// controls on a posting whose `p.eeo` held every answer, which is the AGENTS invariant "always
+// attempted" broken outright.
 
 import { readFile } from "node:fs/promises";
 import { classify, cleanLabel, dependencyOn, htmlToText, parseLimits } from "./classes.mjs";
@@ -86,24 +92,12 @@ export async function fetchAshby({ org, id }) {
 /** Raw Ashby response (envelope or bare jobPosting) → FormPlan (PLAN §2.3). */
 export function normalizeAshby(raw, url) {
   const posting = raw?.data?.jobPosting || raw?.jobPosting || raw;
-  const form = posting.applicationForm || {};
-  const sections = form.sections?.length
-    ? form.sections
-    : [{ title: null, fieldEntries: form.fieldEntries || [] }];
-
-  const questions = [];
-  let previous = null;
-  for (const section of sections) {
-    const name = cleanLabel(section.title) || "Application";
-    for (const entry of section.fieldEntries || []) {
-      const row = formRow(entry, name);
-      if (!row) continue;
-      const dependency = dependencyOn(row, previous);
-      if (dependency) row.dependency = dependency;
-      previous = row;
-      questions.push(row);
-    }
-  }
+  const questions = [
+    ...formQuestions(posting.applicationForm, { survey: false }),
+    // The demographic survey is its own form, so its rows start their own dependency chain and
+    // are appended after the application's — which is also the order the page renders them in.
+    ...(posting.surveyForms ?? []).flatMap((form) => formQuestions(form, { survey: true })),
+  ];
 
   const org = orgFrom(url);
   return {
@@ -121,7 +115,34 @@ export function normalizeAshby(raw, url) {
   };
 }
 
-function formRow(entry, section) {
+/**
+ * One `FormRender` → its rows. `sections` and the root `fieldEntries` carry the *same* entries
+ * (verified against fireworks/fc3845e6 on 2026-09-23: three root entries, the same three split
+ * across two sections), so only one of them is read — sections first, for their titles.
+ */
+function formQuestions(form, { survey = false } = {}) {
+  if (!form) return [];
+  const sections = form.sections?.length ? form.sections : [{ title: null, fieldEntries: form.fieldEntries || [] }];
+  const fallback = survey ? "Demographic Survey" : "Application";
+  const out = [];
+  const seen = new Set();
+  let previous = null;
+  for (const section of sections) {
+    const name = cleanLabel(section.title) || fallback;
+    for (const entry of section.fieldEntries || []) {
+      const row = formRow(entry, name, { survey });
+      if (!row || seen.has(row.qid)) continue;
+      const dependency = dependencyOn(row, previous);
+      if (dependency) row.dependency = dependency;
+      previous = row;
+      seen.add(row.qid);
+      out.push(row);
+    }
+  }
+  return out;
+}
+
+function formRow(entry, section, { survey = false } = {}) {
   const field = entry?.field;
   if (!field || entry.isHidden === true || field.isDeactivated === true) return null;
   const path = field.path;
@@ -143,8 +164,21 @@ function formRow(entry, section) {
     selector: selectorFor(field.type, control, path),
     ...(options.length && { options }),
     ...(limits && { limits }),
-    class: classify(label, help, type, required),
+    class: classOf(label, help, type, required, survey),
   };
+}
+
+/**
+ * A survey form exists to collect demographics, so every row in one is `sensitive` — filled from
+ * `p.eeo` when that preference is on file, asked once when it is not, never guessed and never
+ * skipped (PLAN D10). The single exception is a row `classify()` reads as a `policy_gate`
+ * attestation ("may we keep your data", "I consent to…"): those are asked every time, at every
+ * scope, and that rule outranks this one.
+ */
+function classOf(label, help, type, required, survey) {
+  const cls = classify(label, help, type, required);
+  if (!survey) return cls;
+  return cls === "policy_gate" ? cls : "sensitive";
 }
 
 /** Ashby field type (+ title) → FormPlan `type` and `control`. */

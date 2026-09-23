@@ -1,0 +1,59 @@
+# hand-maintained — NOT written by scripts/canon-cluster.mjs (preserved across its resetDir).
+# See canon/vocab/eeo-gender.yaml for
+# the shape and why these values differ from the corpus-clustering tokens in q.eeo.*.yaml.
+#
+# The EEO fill map for `p.eeo.veteran_status`. Two question families: the VEVRAA self-
+# identification Greenhouse ships ("I identify as one or more of the classifications of a
+# protected veteran") and the plainer demographic-survey wording ("Are you a veteran or active
+# member of the United States Armed Forces?"). The canonical set is deliberately two-valued plus
+# decline: "protected" is a legal category the user did not state, so `veteran` answers the
+# protected option only because that is the only veteran option those forms offer.
+field: veteran_status
+asks:
+  - "veteran"
+  - "armed forces"
+  - "military service"
+  - "vevraa"
+values:
+  veteran: I identify as one or more of the classifications of a protected veteran
+  not_veteran: I am not a protected veteran
+  decline: I don't wish to answer
+aliases:
+  "I identify as one or more of the classifications of a protected veteran": veteran
+  "I identify as one or more of the classifications of protected veteran listed above": veteran
+  "I identify as one or more of the classifications of a protected veteran listed above": veteran
+  "Yes, I am a veteran or active member": veteran
+  "I am a veteran": veteran
+  "I am a protected veteran": veteran
+  "I am a veteran but not a protected veteran": veteran
+  "Yes": veteran
+  "I am not a protected veteran": not_veteran
+  "I am not a veteran": not_veteran
+  "No, I am not a veteran or active member": not_veteran
+  "No": not_veteran
+  "I don't wish to answer": decline
+  "I do not wish to answer": decline
+  "I decline to self-identify for protected veteran status": decline
+  "Decline to self-identify": decline
+  "Decline To Self Identify": decline
+  "I don't wish to answer.": decline
+  "Prefer not to disclose": decline
+  "Prefer not to say": decline
+  # Non-US wording. 1Password asks "Are you a current or previously serving member in the military
+  # or armed forces?" and offers `Veteran / Retired`; every radio stayed empty against a saved
+  # `veteran` because this map only knew the US protected-veteran phrasing
+  # (docs/research/13-eval-judge-round2.md §4).
+  "Veteran": veteran
+  "Veteran / Retired": veteran
+  "Retired": veteran
+  "Previously served": veteran
+  "Ex-military": veteran
+match:
+  # "No, I am not a veteran or active member" contains "veteran or active member" and "Never
+  # served" contains "served", so every negative rule runs before the positive one.
+  - ["^(decline|prefer not|choose not|i prefer not|i (do not|don't) (wish|want)|not disclos|i decline)", decline]
+  - ["^(no\\b|never\\b|not a (protected )?veteran|i am not)|\\bnever served\\b|\\b(?:have |has )?not served\\b|\\bnot a (protected )?veteran\\b|\\bnon-?military\\b", not_veteran]
+  - ["protected veteran|one or more of the classification|veteran or active member|^yes\\b|\\bi am a veteran\\b|\\bserved\\b|^veterans?\\b|\\bretired\\b|\\bex-?military\\b|\\bprior military\\b", veteran]
+unmapped:
+  - I prefer to self-describe
+  - Other

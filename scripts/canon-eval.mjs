@@ -29,9 +29,9 @@
 // by, no model involved), then the pick, then the argmax over the real criteria. The bucket says
 // which layer the field belongs to; `mapped` says whether the bank could act on it. Without the
 // surface index every "Race" / "Gender" row lands in whichever core question its distribution
-// peaked on: the EEO layer is deliberately not a candidate (AGENTS.md — the runner skips those
-// rows unless `p.eeo_policy` exists), and a section the runner never touches must not be scored
-// as a core coverage miss.
+// peaked on: the EEO layer is deliberately not a candidate (a demographic row is answered from
+// `p.eeo` and the form's own options, never from a canonical mapping), and a section the selector
+// never sees must not be scored as a core coverage miss.
 //
 // Targets (PLAN §2.7): core ≥ 95% · screening ≥ 85% · narrative ≥ 80%. Actuals are printed as
 // measured — a miss is reported, never rounded away.
@@ -403,10 +403,10 @@ criteria — so a field that mapped to nothing still lands in the right layer. T
 the field belongs; \`mapped\` says whether the bank could act on it.
 
 The \`eeo\` row is not one of the three targets and never will be. A field \`classify()\` calls
-\`sensitive\` is not asked about at all — \`src/plan/resolve.mjs\` skips the whole demographic section
-unless \`p.eeo_policy\` states otherwise, so \`canonStage\` never sees one and neither does this eval.
-Those instances are counted and shown, with \`mapped\` at 0 because nothing was asked, and excluded
-from the score.
+\`sensitive\` is not asked about at all — \`src/plan/resolve.mjs\` answers the whole demographic
+section from \`p.eeo\` plus the form's own options (\`canon/vocab/eeo-*.yaml\`), so \`canonStage\`
+never sees one and neither does this eval. Those instances are counted and shown, with \`mapped\`
+at 0 because nothing was asked, and excluded from the score.
 
 Requests per posting are printed as measured and are **not** comparable to the runner's ≤ 2: every
 question here carries the whole candidate list, while \`apply.mjs\` sends only the rows its

@@ -2,11 +2,13 @@
 name: jev-apply
 description: >-
   Fills Greenhouse and Ashby job applications from the user's own saved facts, preferences, and
-  stories: Jev selects the saved answer for each field (never guessing a personal detail), an
-  OpenAI model drafts only genuinely new text, and every fill is read back before the runner stops
-  at "ready to submit" for the user to click Submit. Use when the user says "learn my background"
-  (onboard from a résumé and links), "complete this application <url>", "use that answer next time"
-  or gives a correction, "find roles", or "apply to the queue".
+  stories: Jev selects the saved answer for each field (never guessing a personal detail, including
+  EEO/demographic fields, which fill from the user's own onboarding answers), an OpenAI model drafts
+  only genuinely new text, and every fill is read back. When nothing is left to ask and the user's
+  auto-submit preference is on, the runner clicks Submit itself and waits for the ATS's own
+  confirmation; otherwise it stops at "ready to submit" for the user to click. Use when the user says
+  "learn my background" (onboard from a résumé and links), "complete this application <url>", "use
+  that answer next time" or gives a correction, "find roles", or "apply to the queue".
 license: MIT
 compatibility: Node 20+, Google Chrome, network
 metadata:
@@ -26,10 +28,18 @@ see `INSTALL.md` if it reports missing keys.
 ```
 node scripts/learn.mjs --resume cv.pdf [--resume other.pdf] [--links url,url]
 node scripts/learn.mjs --seed DIR          # fresh install only, from a prepared seed
+node scripts/learn.mjs --answers answers.json   # store the day-1 questionnaire's typed answers
 ```
 Prints one JSON object: `{status, facts, preferences, documents, stories, echo[], gaps[]}`. Relay
-`echo` (≤6 lines) to the user, then ask every `gaps[].ask` in one message and store the answers with
-`remember.mjs` (verb 3). Re-running after a résumé changes (its sha256 differs) reports a diff, not
+`echo` (≤6 lines) to the user, then ask every `gaps[].ask` in one message. Write a file shaped
+`{"<memory id>": <answer>}` keyed by each gap's `remember_as.id` (`p.*` ids become preferences, `f.*`
+ids become facts — e.g. `{"p.eeo": {"gender":"male", …}, "p.auto_submit": true,
+"p.legal.restrictive_agreements": "No", "f.identity.city": "Lisbon"}`) and re-run with
+`--answers answers.json`; it canonicalises demographic wording through `canon/vocab/eeo-*.yaml` and
+reports anything no vocabulary states as `rejected[]`, never stored. Free-text corrections and
+gaps with no `remember_as` still go through `remember.mjs` (verb 3), which mints an id from the
+instruction text instead of writing a typed row.
+Re-running after a résumé changes (its sha256 differs) reports a diff, not
 a reset.
 
 ## Verb 2 — "Complete this application \<url\>"
@@ -42,28 +52,41 @@ node scripts/apply.mjs --url <posting> --answers answers.json # finish after the
 node scripts/apply.mjs --schema eval/fixtures/<ats>-<id>.json --dry-run   # plan offline, no browser
 ```
 `--url` (or `--tab` for the ATS tab already open) detects the ATS, fetches the public schema,
-resolves everything deterministic (identity, work authorization, dates, money) from memory, asks
+resolves everything deterministic (identity, work authorization, dates, money, EEO/demographic rows
+from `p.eeo`, restrictive-agreements rows from `p.legal.restrictive_agreements`) from memory, asks
 Jev for the rest, then fills every resolved field on the real page in the skill's dedicated Chrome
-profile — every fill is read back before the runner stops. `--dry-run` skips the browser entirely
-(plan only, useful offline with `--schema`); `--record-schema` additionally saves the raw ATS
-response to `eval/fixtures/<ats>-<id>.json` for replay. Submit is never clicked, and the filled tab
-stays open after the runner exits — `--resume <slug>` re-attaches later and lists every field still
-not on the form, with its intended value.
+profile — every fill is read back before the runner decides whether to submit. `--dry-run` skips the
+browser entirely (plan only, useful offline with `--schema`); `--record-schema` additionally saves
+the raw ATS response to `eval/fixtures/<ats>-<id>.json` for replay. When nothing is left to ask and
+`p.auto_submit` resolves true (company override, else global), the runner clicks Submit itself,
+waits for the ATS's own confirmation, and reports `submitted`; otherwise the filled tab stays open
+after the runner exits at `ready_to_submit` — `--resume <slug>` re-attaches later and lists every
+field still not on the form, with its intended value. `--submit`/`--no-submit` override
+`p.auto_submit` for one run; `--detect-submit` locates the Submit control and its confirmation
+strategy and prints them without clicking, for a dry check against a real form.
 
-### The three-status contract
+### The four-status contract
 One JSON object on stdout every time (`--json` suppresses the human-readable Decision table, which
 otherwise prints to stderr):
-- **`ready_to_submit`** — nothing left to ask.
+- **`submitted`** — `{slug, confirmation:{detected, text?, url?, screenshot?}, filled, usage}`; the
+  runner clicked Submit and the ATS confirmed it; the pipeline entry for this posting is now `applied`.
+- **`ready_to_submit`** — nothing left to ask, and either `p.auto_submit` is off or unset — the
+  summary is ready for the user to review and click Submit.
 - **`needs_user`** — `{questions:[{qid, label, options?, remember_as:{kind,id,scope}, why}]}`.
 - **`blocked`** — `{reason, detail?, screenshot?}`, e.g. `unsupported_ats` (URL is neither a
-  hosted Greenhouse nor Ashby board), `queue_empty`, or a captcha/dead-tab failure mid-fill. When a
-  `slug` is present, some fields may already be set — `apply.mjs --resume <slug>` re-attaches and
-  lists every field still not on the form with its intended value, so the user can finish by hand.
+  hosted Greenhouse nor Ashby board), `queue_empty`, `submit_failed` (Submit was clicked but no ATS
+  confirmation was detected — the tab is left open, untouched, for the user to finish by hand), or a
+  captcha/dead-tab failure mid-fill. When a `slug` is present, some fields may already be set —
+  `apply.mjs --resume <slug>` re-attaches and lists every field still not on the form with its
+  intended value, so the user can finish by hand.
 
 ### Relaying `needs_user`
 For each question, in one message: `label` → its `options` if present → "I'll remember this for
-`<remember_as.scope>`". Never answer a `policy_gate`-class question (AI-usage attestation,
-arbitration, consent) on the user's behalf — always ask, every time, even at company scope.
+`<remember_as.scope>`". Always ask a `policy_gate`-class question (AI-usage attestation, arbitration,
+consent) — every time, even at company scope; it is never answered on the user's behalf. Restrictive-
+agreements and EEO/demographic rows are the opposite case: once `p.legal.restrictive_agreements` /
+`p.eeo` exist they are filled from memory and never appear here; the first time either is still unset,
+relay it exactly like any other row (`remember_as.scope` is `global`).
 
 ### Feeding `--answers`
 Write a file shaped `{"<qid>": {"value": "…", "remember_as": {"kind": "fact|preference|answer",
@@ -100,14 +123,22 @@ Plans every queued posting (schema fetch + both Jev requests) in parallel, fills
 field on all N tabs, then returns **one** merged and deduplicated `needs_user` batch — "visa
 sponsorship?" is asked once even when five queued postings ask it. Relay it exactly like verb 2's
 `needs_user`; feeding the same file back to `--answers` routes each answer to every posting that
-asked it, stores it to memory, and finishes all N to `ready_to_submit`.
+asked it, stores it to memory, and finishes each posting to `submitted` or `ready_to_submit`
+depending on that posting's own `p.auto_submit`.
 
 ## Rules
 
-- Never click Submit. The runner's terminal state is "ready to submit"; the user submits.
-- Never answer a `policy_gate` question (AI-usage attestation, arbitration, consent) for the user.
-- No personal detail is ever guessed or defaulted — an unknown value is always `ask`, never a
-  first-option or first-saved-item fallback.
+- The runner clicks Submit only when `p.auto_submit` resolves true (company override, else global)
+  and nothing is left to ask; it always waits for the ATS's own confirmation before reporting
+  `submitted`, and a click happens at most once per application. `p.auto_submit` starts unset — the
+  user is asked once, at onboarding.
+- Always ask a `policy_gate` question (AI-usage attestation, arbitration, consent) — every time, even
+  at company scope; it is never answered for the user. Restrictive-agreements questions are the
+  exception: answered from the global `p.legal.restrictive_agreements` preference once it exists.
+- EEO/demographic rows are filled from `p.eeo` whenever it is on file, and asked once, exactly like
+  any other row, the first time it is unset. No personal detail is ever guessed or defaulted from a
+  name, photo, or résumé: an unknown value is always `ask`, never a first-option or first-saved-item
+  fallback.
 - All user data lives under `~/.config/jev-apply/`; nothing personal is ever written to this repo.
 
 ## Details

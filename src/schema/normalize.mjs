@@ -120,6 +120,23 @@ const PLACE_RULES = [
   [new RegExp(`\\bca[-\\s](?:on|bc|qc|ab|mb|sk|ns|nb|nl|pe)\\b`), "CA"],
 ];
 
+// A *question's* own words are prose, not a location string, and two rules that are safe on
+// "Bellevue, WA" are traps inside a sentence: the bare code `us` is the pronoun ("tell us how you
+// heard about us"), and the ", XX" state rule reads "…the country you are currently in, or your
+// target relocation country?" as ", OR" → Oregon → US. That is how one DeepL **London** posting
+// answered its visa row from `f.work_auth.US` while the salary row in the same plan derived
+// `uk_london`: two country derivations disagreeing inside one FormPlan
+// (docs/research/13-eval-judge-round2.md §2 item 9). A label only names a jurisdiction here when
+// it spells one out, and everything else falls back to the plan's single `job.country`.
+
+/** Alternatives that only read as a country inside a location string; in prose they are words. */
+const proseAlts = (alts) => alts.replace(/(?:^|\|)(?:us|gb)(?=\||$)/g, "");
+
+const PROSE_RULES = [
+  ...Object.entries(COUNTRY_PLACES).map(([cc, alts]) => [new RegExp(`\\b(?:${proseAlts(alts)})\\b`), cc]),
+  [new RegExp(`\\b(?:${US_STATE_NAMES})\\b`), "US"],
+];
+
 const REMOTE_RE = /\b(?:remote|remotely|work from home|wfh|distributed|anywhere|virtual)\b/;
 
 /** Lowercase, dashes unified, NBSP collapsed — punctuation kept, because ", WA" is a state. */
@@ -130,21 +147,35 @@ const flatten = (text) =>
     .replace(/\s+/g, " ")
     .toLowerCase();
 
-/**
- * The country named first in `text`, as an ISO-3166 alpha-2 code, or null when none is.
- * Exported because the work-authorization rules read the *question's* own wording the same way
- * ("are you authorized to work in the United States?" names its jurisdiction even when the
- * posting does not) — one table, one reading, for both (`src/plan/resolve.mjs`).
- */
-export function countryFromText(text) {
+/** The first place any of `rules` names in `text`, in the order `text` itself writes them. */
+function firstPlace(rules, text) {
   const hay = flatten(text);
   if (!hay.trim()) return null;
   let best = null;
-  for (const [re, cc] of PLACE_RULES) {
+  for (const [re, cc] of rules) {
     const hit = re.exec(hay);
     if (hit && (best === null || hit.index < best.index)) best = { index: hit.index, cc };
   }
   return best?.cc ?? null;
+}
+
+/**
+ * The country named first in a *location string*, as an ISO-3166 alpha-2 code, or null when none
+ * is. This is the posting's own reading: `placeOf()` stamps `job.country` with it once per plan
+ * and every rule downstream shares that one value.
+ */
+export function countryFromText(text) {
+  return firstPlace(PLACE_RULES, text);
+}
+
+/**
+ * The country a *question* names, read from prose. A form may ask about a jurisdiction the
+ * posting is not in ("are you authorized to work in the United States?" on a London posting), and
+ * that wording has to win — but only when it actually spells a country out. Anything vaguer is
+ * null, and the caller then answers for the posting's own country.
+ */
+export function countryInQuestion(label) {
+  return firstPlace(PROSE_RULES, label);
 }
 
 /** Every location string the raw payload carries, most specific first. */

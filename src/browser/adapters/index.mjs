@@ -55,7 +55,18 @@ export async function setField(page, question, value, opts = {}) {
   const adapter = adapterFor(ats);
   const selector = opts.selector ?? (await resolveSelector(page, ats, question));
   const detected = opts.detected ?? (await detectControl(page, selector, { question }));
-  const target = adapter.HANDLES?.has(detected.control) ? adapter : generic;
+  // The one field where the schema is allowed to outrank the DOM, kept as a second witness.
+  // Ashby renders its `Date` as a bare text input with no `type=date`, no pattern and a
+  // placeholder that names no format; every wording rule missed it, `detectControl` called it
+  // `text`, and an adapter's plain-text path takes *anything* — which is how the sentence
+  // "Available immediately" was committed into a date control with a passing read-back and the
+  // picker left open over the next field (docs/research/12-eval-judge-round1.md §3.5).
+  // `classifyShape` now recognises that widget by its own class (`DATE_CLASS_RE`), so this line
+  // is no longer what saves Ashby — it is what saves the *next* board whose date input names
+  // itself nothing at all. No adapter tunes a date; only the shared ladder has `setDate`, and
+  // only `setDate` refuses prose.
+  const dated = question?.type === "date";
+  const target = !dated && adapter.HANDLES?.has(detected.control) ? adapter : generic;
   return target.setField(page, question, value, { ...opts, detected, selector });
 }
 

@@ -235,24 +235,41 @@ function ruleBacking(mem, needs, pipeline) {
  * an `ask` until the user states a stance, and the stance is only ever theirs (AGENTS.md: the
  * runner never answers a policy or attestation on its own).
  *
- * No `q.eeo.*` question is listed, and none ever should be. A demographic row is not answered from
- * `answers.yaml` at all: `src/plan/resolve.mjs sensitiveRow()` reads `p.eeo_policy` directly and
- * skips the whole section when it is absent, which keeps demographic questions out of the selector
- * and out of this file.
+ * No `q.eeo.*` question is listed, and none ever should be. A demographic row is answered by
+ * `src/plan/resolve.mjs sensitiveRow()` straight from `p.eeo` plus the form's own options
+ * (`canon/vocab/eeo-*.yaml`), which is why the `eeo` layer is not a canon candidate either
+ * (`src/jev/plan.mjs` LAYER): a stored row here would hold a canonical token such as `asian`,
+ * which is not an answer any form accepts, and it would put demographic questions in front of
+ * the selector for no gain.
  */
 export const POLICIES = Object.freeze([
-  { qid: "q.legal.arbitration", pref: "p.arbitration" },
-  { qid: "q.legal.privacy_consent", pref: "p.privacy_consent" },
-  { qid: "q.legal.ai_policy_attestation", pref: "p.ai_usage" },
-  { qid: "q.legal.ai_tools_consent", pref: "p.ai_usage" },
-  { qid: "q.legal.interview_recording_consent", pref: "p.recording_consent" },
-  { qid: "q.legal.background_check", pref: "p.background_check" },
-  { qid: "q.legal.application_truthful", pref: "p.application_truthful" },
+  // `gate: true` — a statement the user signs. These are **never** authored into the answer bank:
+  // a stored row here is a candidate the canonical pass can fill a checkbox with, and that is
+  // exactly how round 1 ticked Cloudflare's privacy-policy box and 1Password's background-check
+  // attestation on the user's behalf (docs/research/12-eval-judge-round1.md §3.1). They are
+  // answered by *class* instead: `classify()` returns `policy_gate` and `src/plan/resolve.mjs
+  // policyGateRow()` reads one explicit `p.legal.<slug>` or asks. The `pref` column is kept so the
+  // mapping from the old preference id to its gate stays readable in one place.
+  { qid: "q.legal.arbitration", pref: "p.arbitration", gate: true },
+  { qid: "q.legal.privacy_consent", pref: "p.privacy_consent", gate: true },
+  { qid: "q.legal.ai_policy_attestation", pref: "p.ai_usage", gate: true },
+  { qid: "q.legal.ai_tools_consent", pref: "p.ai_usage", gate: true },
+  { qid: "q.legal.interview_recording_consent", pref: "p.recording_consent", gate: true },
+  { qid: "q.legal.background_check", pref: "p.background_check", gate: true },
+  { qid: "q.legal.application_truthful", pref: "p.application_truthful", gate: true },
+  // The rest are facts about the user, not attestations: age, export-control status, public
+  // office, a conflict of interest, a non-compete. They answer from a standing preference the way
+  // they always have.
   { qid: "q.legal.age_18", pref: "p.age_18" },
   { qid: "q.legal.export_control", pref: "p.export_control" },
   { qid: "q.legal.government_official", pref: "p.government_official" },
   { qid: "q.legal.conflict_of_interest", pref: "p.conflict_of_interest" },
-  { qid: "q.legal.restrictive_agreements", pref: "p.restrictive_agreements" },
+  // `p.legal.restrictive_agreements` is genuinely global: a non-compete binds the user wherever
+  // they apply. `q.legal.previously_employed` deliberately has no entry — canon states it as
+  // "Have you ever been employed by **this company**?", so a global stored answer would fill a
+  // different question at every employer. It is answered per company from the pipeline
+  // (`appliedBeforeFor`) or from a company-scoped `p.legal.previously_employed` override.
+  { qid: "q.legal.restrictive_agreements", pref: "p.legal.restrictive_agreements" },
   { qid: "q.core.accommodation_request", pref: "p.accommodation" },
 ]);
 
@@ -372,13 +389,22 @@ export function factRows(canon, mem, { date = stamp(), pipeline = null } = {}) {
   return { rows, omitted };
 }
 
-/** Policy rows — one per gate the user has stated a standing answer for. */
+/**
+ * Policy rows — one per stance the user has stated. A `gate: true` entry is skipped: an
+ * attestation is answered from `p.legal.<slug>` by the class that recognises it, and a stored row
+ * here would let the canonical pass tick it instead (judge §3.1). The gate is reported as omitted
+ * with the id that now answers it, so `scripts/answers.mjs` still names it.
+ */
 export function policyRows(canon, mem, { date = stamp() } = {}) {
   const bank = indexByQid(canon);
   const rows = [];
   const omitted = [];
   for (const spec of POLICIES) {
     if (!bank.has(spec.qid)) continue;
+    if (spec.gate) {
+      omitted.push({ qid: spec.qid, need: "p.legal.* (asked on the form — attestations are never authored)" });
+      continue;
+    }
     const pref = resolvePreference(mem, spec.pref);
     const stance = stanceOf(pref?.value);
     if (stance == null || stance === "") {

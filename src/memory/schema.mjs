@@ -27,6 +27,111 @@ export const SOURCE_USER = "user";
 /** Scope precedence: company beats role_family beats global (PLAN §2.4). */
 export const SCOPE_RANK = Object.freeze({ company: 3, role_family: 2, global: 1 });
 
+/**
+ * The canonical values `p.eeo` may hold, one list per field (docs/CONTRACTS.md, PLAN §2.4 D10).
+ * This is the *store's* vocabulary: `canon/vocab/eeo-*.yaml` maps a form's own option wording onto
+ * exactly these tokens, and `src/plan/resolve.mjs` refuses to load a map file that names one this
+ * list does not carry, so the two can never drift apart. `pronouns` is free text (the user's own
+ * phrase) and `other_demographics` is the standing stance for demographic questions none of the
+ * five fields answers — `decline` fills the form's decline option, `ask` (the default when the key
+ * is absent) leaves the question for the user.
+ */
+export const EEO_VALUES = Object.freeze({
+  gender: Object.freeze(["male", "female", "non_binary", "decline"]),
+  hispanic_latino: Object.freeze(["yes", "no", "decline"]),
+  race: Object.freeze([
+    "american_indian",
+    "asian",
+    "black",
+    "hispanic_latino",
+    "native_hawaiian",
+    "white",
+    "two_or_more",
+    "decline",
+  ]),
+  veteran_status: Object.freeze(["not_veteran", "veteran", "decline"]),
+  disability_status: Object.freeze(["yes", "no", "decline"]),
+  other_demographics: Object.freeze(["decline", "ask"]),
+});
+
+/**
+ * Preference ids whose value is a plain standing Yes/No the resolver fills forms from. The whole
+ * `p.legal.*` namespace is Yes/No by construction: besides the two stances below it holds one row
+ * per acknowledgement the user has agreed to stand behind (`p.legal.privacy_policy_ack`,
+ * `p.legal.background_check_consent`, …), which is the only thing `policyGateRow()` in
+ * `src/plan/resolve.mjs` will answer an attestation from.
+ */
+export const YES_NO_PREFERENCES = Object.freeze(["p.legal.restrictive_agreements", "p.legal.previously_employed"]);
+
+/** Booleans the runner reads as behaviour switches; absent is *unanswered*, never "no". */
+export const SWITCH_PREFERENCES = Object.freeze(["p.auto_submit", "p.auto_draft"]);
+
+/**
+ * The ids memory already has a meaning for, each with the one line a selector needs to tell them
+ * apart, and the shape its value takes:
+ *
+ *   `text`    the user's own words, stored as stated.
+ *   `yes_no`  a standing stance; anything that does not state a plain Yes or No is refused.
+ *
+ * `scripts/remember.mjs` offers these — plus whatever ids the store already holds — as the
+ * criteria of one Jev choice, so "I currently live in <city>" lands on `f.identity.city` instead
+ * of minting `f.user.i_currently_live_in_<city>`, a row no resolver rule ever reads. Ids whose
+ * value is a *structure* (`p.eeo` as a whole block, `p.salary`, `p.notice_rule`,
+ * `p.looking_for`, `f.work_auth.<CC>`) are deliberately absent: a spoken sentence cannot build
+ * one, and a wrong shape under a right id is worse than an honest new row. Those are written by
+ * `learn.mjs` and by a form answer's own `remember_as`.
+ */
+export const ID_CATALOGUE = Object.freeze({
+  "f.identity.full_name": { shape: "text", what: "The user's full name, as they write it." },
+  "f.identity.first_name": { shape: "text", what: "The user's given name on its own." },
+  "f.identity.last_name": { shape: "text", what: "The user's family name on its own." },
+  "f.identity.preferred_name": { shape: "text", what: "The name the user prefers to be called, when it differs from their legal one." },
+  "f.identity.full_name_native": { shape: "text", what: "The user's name written in another script or language." },
+  "f.identity.email": { shape: "text", what: "The user's email address." },
+  "f.identity.phone": { shape: "text", what: "The user's phone number." },
+  "f.identity.address": { shape: "text", what: "The user's street or mailing address." },
+  "f.identity.city": { shape: "text", what: "The city (and country) the user lives in — where they currently reside or are based." },
+  "f.identity.location": { shape: "text", what: "Where the user works from, in their own words: a place, or a work mode such as Remote." },
+  "f.identity.citizenship": { shape: "text", what: "The country the user is a citizen or national of." },
+  "f.identity.pronouns": { shape: "text", what: "The pronouns the user goes by." },
+  "f.identity.start_date": { shape: "text", what: "The date the user could start work." },
+  "f.identity.linkedin_url": { shape: "text", what: "The user's LinkedIn profile URL." },
+  "f.identity.github_url": { shape: "text", what: "The user's GitHub profile URL." },
+  "f.identity.site_url": { shape: "text", what: "The user's personal website or blog URL." },
+  "f.identity.portfolio_url": { shape: "text", what: "The user's portfolio URL." },
+  "f.identity.scholar_url": { shape: "text", what: "The user's Google Scholar or publications URL." },
+  "f.identity.x_twitter_url": { shape: "text", what: "The user's X / Twitter profile URL." },
+  "f.employment.current": { shape: "text", what: "Where the user works now — their current or most recent employer." },
+  "f.employment.current_title": { shape: "text", what: "The user's current or most recent job title." },
+  "p.how_heard": { shape: "text", what: "The channel the user wants named when a form asks how they heard about a company." },
+  "p.in_office": { shape: "text", what: "How often the user will be in an office — days a week, remote, hybrid." },
+  "p.accommodation": { shape: "text", what: "What the user wants said when a form asks whether they need an accommodation or adjustment for the hiring process." },
+  "p.relocation": { shape: "yes_no", what: "Whether the user is willing to relocate for a role." },
+  "p.legal.restrictive_agreements": { shape: "yes_no", what: "Whether the user is bound by a non-compete, non-solicit or similar restrictive agreement." },
+  "p.legal.previously_employed": { shape: "yes_no", what: "Whether the user has been employed by the company before." },
+  "p.legal.privacy_policy_ack": { shape: "yes_no", what: "Whether the user agrees to a company's candidate privacy policy or notice." },
+  "p.legal.background_check_consent": { shape: "yes_no", what: "Whether the user consents to a background or reference check." },
+  "p.legal.interview_recording_consent": { shape: "yes_no", what: "Whether the user consents to interviews being recorded." },
+  "p.legal.arbitration_ack": { shape: "yes_no", what: "Whether the user agrees to an arbitration clause." },
+  "p.legal.ai_usage_ack": { shape: "yes_no", what: "Whether the user agrees to a company's rules about using AI tools during hiring." },
+  "p.legal.retention_consent": { shape: "yes_no", what: "Whether the user agrees to their application being kept on file for future roles." },
+  "p.legal.terms_ack": { shape: "yes_no", what: "Whether the user agrees to a company's terms of use or code of conduct." },
+  "p.legal.application_truthful_ack": { shape: "yes_no", what: "Whether the user attests that their application is truthful and complete." },
+  "p.legal.export_control_ack": { shape: "yes_no", what: "Whether the user agrees to an export-control or sanctions attestation." },
+  "p.eeo.gender": { shape: "text", what: "What the user answers when a form asks their gender." },
+  "p.eeo.race": { shape: "text", what: "What the user answers when a form asks their race." },
+  "p.eeo.hispanic_latino": { shape: "text", what: "What the user answers when a form asks whether they are Hispanic or Latino." },
+  "p.eeo.veteran_status": { shape: "text", what: "What the user answers when a form asks about military or veteran status." },
+  "p.eeo.disability_status": { shape: "text", what: "What the user answers when a form asks about disability status." },
+  "p.eeo.other_demographics": { shape: "text", what: "The user's standing stance (decline, or ask me) for demographic questions outside the five EEO fields." },
+  "p.eeo.pronouns": { shape: "text", what: "The pronouns the user wants given on a demographic survey." },
+  "p.auto_submit": { shape: "yes_no", what: "Whether the runner may click Submit without asking first." },
+  "p.auto_draft": { shape: "yes_no", what: "Whether the writer may draft a why-us or essay answer instead of handing it back." },
+});
+
+const YES_NO_RE = /^(yes|no)$/i;
+const TRUTHY_RE = /^(yes|no|true|false|on|off)$/i;
+
 const REQUIRED = Object.freeze({
   facts: ["id", "value", "source"],
   preferences: ["id", "source"], // `value` may be null when only `overrides[]` carry values
@@ -115,6 +220,12 @@ export function validateRow(section, row) {
       }
     }
   }
+  if (section === "preferences") {
+    for (const { value, where } of [{ value: row.value, where: "" }, ...(Array.isArray(row.overrides) ? row.overrides : []).map((ov) => ({ value: ov?.value, where: ` (${ov?.scope})` }))]) {
+      if (value === undefined || value === null) continue;
+      problems.push(...preferenceValueProblems(row.id, value).map((p) => `${p}${where}`));
+    }
+  }
   if (section === "documents" && row.role_families !== undefined && !Array.isArray(row.role_families)) {
     problems.push("documents: role_families is not a list");
   }
@@ -126,6 +237,54 @@ export function validateRow(section, row) {
   }
   if (section === "stories" && row.tags !== undefined && !Array.isArray(row.tags)) problems.push("stories: tags is not a list");
   return problems;
+}
+
+/**
+ * The preference values other code *reads as a shape* rather than as free text, checked where they
+ * are written instead of where they are used: a typo in `p.eeo.race` would otherwise surface half
+ * an hour later as "this form's list has no entry for your saved race", a `p.auto_submit: "maybe"`
+ * would read as "do not submit" without ever saying so, and a `p.legal.<slug>` that does not state
+ * a plain Yes or No would leave an attestation asked on every form for no visible reason.
+ * @returns {string[]}
+ */
+function preferenceValueProblems(id, value) {
+  if (id === "p.eeo") {
+    if (typeof value !== "object" || Array.isArray(value)) return ["preferences: p.eeo is not a mapping of fields"];
+    const problems = [];
+    for (const [field, stated] of Object.entries(value)) {
+      if (stated === null || stated === undefined || stated === "") continue;
+      if (field === "pronouns") {
+        if (typeof stated !== "string") problems.push("preferences: p.eeo.pronouns is not text");
+        continue;
+      }
+      const allowed = EEO_VALUES[field];
+      if (!allowed) problems.push(`preferences: unknown p.eeo field ${JSON.stringify(field)}`);
+      else if (!allowed.includes(String(stated).toLowerCase())) {
+        problems.push(`preferences: p.eeo.${field} must be one of ${allowed.join(" | ")}`);
+      }
+    }
+    return problems;
+  }
+  // One field on its own: the id `remember_as` hands the host when the user answers a demographic
+  // row on a form (`src/plan/decisions.mjs memoryRow()`). Its value is whatever the *form* called
+  // that answer ("Male", "I am not a protected veteran"), which only `canon/vocab/eeo-*.yaml` can
+  // read — so the field name is checked here and the wording is left to the resolver.
+  if (id?.startsWith?.("p.eeo.")) {
+    const field = id.slice("p.eeo.".length);
+    if (field !== "pronouns" && !EEO_VALUES[field]) return [`preferences: unknown p.eeo field ${JSON.stringify(field)}`];
+    const stated = value && typeof value === "object" && !Array.isArray(value) ? value.answer ?? value.value : value;
+    return typeof stated === "string" && stated.trim() ? [] : [`preferences: ${id} must state an answer`];
+  }
+  if (SWITCH_PREFERENCES.includes(id)) {
+    const ok = typeof value === "boolean" || (typeof value === "string" && TRUTHY_RE.test(value.trim()));
+    return ok ? [] : [`preferences: ${id} must be true or false`];
+  }
+  // Every standing legal stance, including the acknowledgements `policyGateRow()` answers from.
+  if (YES_NO_PREFERENCES.includes(id) || id?.startsWith?.("p.legal.")) {
+    const ok = typeof value === "boolean" || (typeof value === "string" && YES_NO_RE.test(value.trim()));
+    return ok ? [] : [`preferences: ${id} must be "Yes" or "No"`];
+  }
+  return [];
 }
 
 /** A parsed YAML section must be a list of mappings; `null` (empty file) is an empty section. */

@@ -30,7 +30,7 @@ import nodePath from "node:path";
 import { adapters, atsFromUrl, handles, resolveSelector, setField, snapshotRequired, uploadFile, waitForForm } from "../browser/adapters/index.mjs";
 import { detectControl, waitForOptions } from "../browser/controls.mjs";
 import { findTab, openTab, pagesOf } from "../browser/chrome.mjs";
-import { norm, normLabel, pace, sleep, waitUntil } from "../browser/readback.mjs";
+import { norm, normLabel, pace, pickOption, sleep, waitUntil } from "../browser/readback.mjs";
 import { appendTrace, captureFailure, maskSelectors, traceDir, tracePath } from "../browser/trace.mjs";
 import { classify } from "../schema/classes.mjs";
 import { choice, systemOne, withNone, NONE } from "../jev/client.mjs";
@@ -155,14 +155,56 @@ function markAsk(d, why, { shot = null, options = null } = {}) {
 }
 
 /**
+ * Was this value committed, as far as the page is concerned? Used for the one class whose
+ * read-back is redacted: a `sensitive` row records this verdict instead of the value, so a
+ * reviewer without the browser can still tell a demographic block that landed from one that did
+ * not (B3). Comparison is the same normalised label match the option ladder commits on.
+ */
+export function observedMatches(observed, wanted) {
+  const seen = String(observed ?? "").trim();
+  const want = String(wanted ?? "").trim();
+  if (!seen || !want) return false;
+  return normLabel(seen) === normLabel(want) || pickOption([seen], want) !== null;
+}
+
+/**
+ * The order the fill loop drives rows in: the form's own order, except that a control which only
+ * *mounts* once another row is answered is driven after that row (B8). Greenhouse's `#race` is
+ * the case — the API publishes it as a top-level compliance field, the page renders it only once
+ * `#hispanic_ethnicity` has an answer — and a parent the plan does not carry at all (that
+ * ethnicity control is published by no schema row) ranks it last, which is the best this pass
+ * can do before step 8½ reads the block off the page.
+ */
+export function rowOrder(questions = []) {
+  const base = new Map(questions.map((q, i) => [q.qid, i]));
+  const rank = new Map(base);
+  for (const q of questions) {
+    if (!q?.mounts_after) continue;
+    const parent = base.get(q.mounts_after);
+    rank.set(q.qid, parent == null ? questions.length + (base.get(q.qid) ?? 0) : parent + 0.5);
+  }
+  return rank;
+}
+
+/**
+ * A control that is simply not in the DOM *yet*, because the row it mounts under has not been
+ * answered. That is not a form refusing a value — it is a conditional the page has not grown —
+ * so it is never counted as a failed write. The row is left as an `ask` carrying its reason, and
+ * step 8½'s retry pass is what fills it once the parent is answered.
+ */
+export function deferredMount(question, result) {
+  return Boolean(question?.mounts_after) && String(result?.reason ?? "") === "control_not_found";
+}
+
+/**
  * Set every row through its adapter. Mutates the Decision objects it is given: `readback` lands on
  * the row, and a row the form would not take becomes an `ask` carrying its screenshot.
- * @returns {Promise<{filled:number, failed:number, executed:number}>}
+ * @returns {Promise<{filled:number, failed:number, executed:number, deferred:number}>}
  */
 export async function executeRows({ page, ats, formPlan, decisions, slug, budget, rows = null }) {
   const questions = formPlan?.questions ?? [];
   const byQid = new Map(questions.map((q) => [q.qid, q]));
-  const order = new Map(questions.map((q, i) => [q.qid, i]));
+  const order = rowOrder(questions);
   const todo = (rows ?? decisions.filter(runnable))
     .slice()
     .sort((a, b) => (order.get(a.qid) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.qid) ?? Number.MAX_SAFE_INTEGER));
@@ -173,6 +215,7 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
   const chooseOption = optionChooser({ slug, budget, onCheck: (q) => thin.add(q?.qid) });
   let filled = 0;
   let failed = 0;
+  let deferred = 0;
   for (const d of todo) {
     budget.check();
     const question = byQid.get(d.qid);
@@ -183,7 +226,13 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
     }
     const result = await setRow({ page, ats, formPlan, question, decision: d, slug, chooseOption });
     if (!result) continue; // turned into an `ask` before anything was written
-    d.readback = { ok: result.ok === true, observed: question.class === "sensitive" ? "" : String(result.observed ?? ""), attempts: result.attempts ?? 0 };
+    d.readback = {
+      ok: result.ok === true,
+      observed: question.class === "sensitive" ? "" : String(result.observed ?? ""),
+      attempts: result.attempts ?? 0,
+      // The redacted half of the record, replaced by a verdict rather than left blank (B3).
+      ...(question.class === "sensitive" ? { observed_matches: observedMatches(result.observed, d.option ?? d.value) } : {}),
+    };
     if (result.ok) {
       filled += 1;
       delete d.shot;
@@ -193,13 +242,19 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
         d.action = "check";
         d.why = `${d.why} — matched to the form's own wording, worth a look`;
       }
+    } else if (deferredMount(question, result)) {
+      deferred += 1;
+      markAsk(d, `the form only shows this once "${String(question.mounts_after)}" is answered — it is filled on the retry pass`);
+      // Deliberately outside `budget.progress`: a control the page has not grown yet is not a
+      // field refusing a value, and three of them in a row must not read as `no_progress`.
+      continue;
     } else {
       failed += 1;
       markAsk(d, `the form would not take it (${result.reason ?? "read-back mismatch"}) — intended: ${clipValue(d, question)}`, { shot: result.shot });
     }
     budget.progress(result.ok === true);
   }
-  return { filled, failed, executed: todo.length };
+  return { filled, failed, executed: todo.length, deferred };
 }
 
 /**
@@ -731,21 +786,33 @@ async function fillLiveSensitive({ page, ats, formPlan, decisions, slug, budget,
   return out;
 }
 
+/** A `why` left behind by an attempt that did not reach the control, or that the form refused. */
+const FAILED_WHY_RE = /control_not_found|the form would not take it|no control for this question|only shows this once/i;
+
 /**
  * The retry's verdict, written back over the first attempt's. A control that was only missing
  * from the DOM is now set: the row goes back to what it was before `markAsk` touched it, so the
  * summary reports the `p.eeo` source it was filled from, not "the form would not take it" about
  * a value the read-back shows committed. A row the retry did not reach is still an open question
  * and is put back the way it came in.
+ *
+ * A11: the restore is not conditional on `_was` being there. A row whose first attempt happened
+ * in an *earlier* run carries the complaint without the memory of what it was before, and a
+ * `readback.ok === true` beside "the form would not take it" is the sentence the user reads —
+ * so a committed row never keeps a failure `why`, whatever the retry knows about its past.
  */
-function restoreRetried(d) {
+export function restoreRetried(d) {
   const was = d._was;
   delete d._was;
   if (d.readback?.ok === true) {
     if (was) {
       d.action = was.action === "ask" ? "check" : was.action;
       d.why = was.why;
+    } else if (d.action === "ask" || FAILED_WHY_RE.test(String(d.why ?? ""))) {
+      d.action = d.action === "ask" ? "check" : d.action;
+      d.why = "set on the retry pass, once the control was on the page";
     }
+    delete d.shot;
     return;
   }
   if (d.action !== "ask") {
@@ -918,6 +985,57 @@ function submitFailure(signals) {
   }
   const banner = (signals?.alerts ?? []).find((line) => FAILURE_RE.test(line) && !CAPTCHA_BOILERPLATE.test(line));
   return banner ? { cause: "error_banner", detail: banner } : null;
+}
+
+/**
+ * What is on top of the Submit control (B12). The runner scrolls the button into view and
+ * clicks it; a board's own cookie card sits above the form in z-order, so a click on a covered
+ * button lands on the card and the board never sees a submit — a failure that looks, from the
+ * outside, exactly like a rejected application.
+ *
+ * Five sample points (the centre and four inset corners) are hit-tested against the button's own
+ * subtree. Anything else that answers is described by tag and by the shortest handle it has —
+ * never by the form's contents. Returns null when this page has no submit control at all: that
+ * is `submit_not_found`'s business, not this rule's.
+ *
+ * @returns {Promise<{selector:string, label:string, overlaps:Array<{tag:string, name:string}>}|null>}
+ */
+export async function submitObstruction({ page, ats = null, formPlan = null }) {
+  const board = ats ?? formPlan?.ats ?? atsFromUrl(page?.url?.() ?? "") ?? null;
+  const control = await boardAdapter(board).findSubmit(page);
+  if (!control) return null;
+  // The same scroll the click does, first: a button below the fold is not "clear", it is
+  // unreadable, and the hit test only means anything over the box the click will land on.
+  await page.locator(control.selector).first().scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
+  const overlaps = await page.evaluate(readCover, control.selector).catch(() => []);
+  return { selector: control.selector, label: control.text || "Submit", overlaps };
+}
+
+/** In-page: which elements answer `elementFromPoint` over the submit control's own box. */
+function readCover(selector) {
+  const el = document.querySelector(selector);
+  if (!el) return [];
+  const box = el.getBoundingClientRect();
+  if (!box.width || !box.height) return [];
+  const inset = 2;
+  const points = [
+    [box.left + box.width / 2, box.top + box.height / 2],
+    [box.left + inset, box.top + inset],
+    [box.right - inset, box.top + inset],
+    [box.left + inset, box.bottom - inset],
+    [box.right - inset, box.bottom - inset],
+  ];
+  const seen = new Map();
+  for (const [x, y] of points) {
+    if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
+    const hit = document.elementFromPoint(x, y);
+    if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
+    const tag = hit.tagName.toLowerCase();
+    const name = (hit.id && `#${hit.id}`) || (hit.getAttribute("data-testid") && `[${hit.getAttribute("data-testid")}]`) ||
+      (typeof hit.className === "string" && hit.className.trim() ? `.${hit.className.trim().split(/\s+/)[0]}` : tag);
+    if (!seen.has(name)) seen.set(name, { tag, name });
+  }
+  return [...seen.values()];
 }
 
 /**

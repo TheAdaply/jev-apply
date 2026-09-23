@@ -302,6 +302,14 @@ async function relevance({ stage, id, instructions, state, slug, signal, totals 
   return p;
 }
 
+/**
+ * The two judgements' own wording, in one place: the model path (`draftRows`) and the host path
+ * (`acceptHostDrafts`) ask the same two questions, or "the gates" would mean two things (B14).
+ */
+export const GATE_GROUNDING =
+  "Does the saved material listed in `grounding_titles` directly answer what `prompt` asks for? Answer yes only if that material states what the prompt asks about.";
+export const GATE_ANSWERS = "Does the text in `draft` answer what `prompt` asks for?";
+
 const pct = (p) => p.toFixed(2);
 
 /**
@@ -358,6 +366,11 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
     // objects, same order, same verdict. It is built *before* the call, because the `host`
     // backend throws instead of answering and the host agent needs exactly this grounding.
     let grounding = [];
+    // The two verdicts, on the record rather than in an internal field: `src/plan/preflight.mjs`
+    // refuses to submit a draft that no relevance check passed, and a stripped `_gate_*` would
+    // have made every frozen draft indistinguishable from an unchecked one. `why_us` carries its
+    // exemption from gate 1 here (`kind`) instead of being inferred downstream.
+    d.gates = { kind };
     try {
       // Gate 1 — is the material this row would be written from even about what is being asked?
       // Cheaper than the writer and, more to the point, the refusal is honest: "nothing on file
@@ -367,14 +380,13 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
         const p = await relevance({
           stage: "draft_grounding",
           id: `grounds_${d.qid}`,
-          instructions:
-            "Does the saved material listed in `grounding_titles` directly answer what `prompt` asks for? Answer yes only if that material states what the prompt asks about.",
+          instructions: GATE_GROUNDING,
           state: { prompt: asked, grounding_titles: groundingTitles(offered, facts) },
           slug: traceSlug,
           signal,
           totals: jev,
         });
-        d._gate_grounding = Number(p.toFixed(3));
+        d.gates.grounding = Number(p.toFixed(3));
         if (p < GATES.askBelow) throw new Error(`grounding_does_not_answer — nothing you have on file is about this (${pct(p)})`);
       }
       if (kind === "why_us") {
@@ -427,13 +439,13 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
       const answersIt = await relevance({
         stage: "draft_answers",
         id: `answers_${d.qid}`,
-        instructions: "Does the text in `draft` answer what `prompt` asks for?",
+        instructions: GATE_ANSWERS,
         state: { prompt: asked, draft: text },
         slug: traceSlug,
         signal,
         totals: jev,
       });
-      d._gate_draft = Number(answersIt.toFixed(3));
+      d.gates.draft = Number(answersIt.toFixed(3));
       if (answersIt < GATES.askBelow) throw new Error(`draft_does_not_answer — the text does not answer this prompt (${pct(answersIt)})`);
 
       d.source = "writer";
@@ -550,12 +562,40 @@ export function checkHostDraft(text, host, forbidden = []) {
   return null;
 }
 
+/** The host's grounding lines as titles: `"<title> — <body>"` keeps its head, values stay home. */
+const hostGroundingTitles = (grounding = []) =>
+  grounding
+    .map((line) => String(line).split(" — ")[0].trim().slice(0, 80))
+    .filter(Boolean)
+    .slice(0, 24);
+
 /**
  * `--answers` for the rows the host was asked to write. Mutates the Decisions it accepts and
  * returns the answers that are *not* host drafts, for the ordinary `applyAnswers` pass.
- * @returns {{answers:object, accepted:string[], refused:Array<{qid:string, reason:string}>}}
+ *
+ * B14 — the host path faces the same two Jev judgements the model path does, at fill time. The
+ * limits, the grounding and the substitution checks say the paragraph is made of the user's own
+ * material and names nobody else; only the gates ask whether it answers the question it is
+ * sitting under, and a paragraph written by an agent is exactly as capable of answering a
+ * different one. A verdict that cannot be reached refuses, as it does for the writer: the row
+ * stays an `ask` carrying the complaint, which is a fix the host can make, rather than a draft
+ * `preflight` refuses at the click.
+ *
+ * `gate` is the seam: the real relevance call by default, and the same signature either way.
+ * @returns {Promise<{answers:object, accepted:string[], refused:Array<{qid:string, reason:string}>}>}
  */
-export function acceptHostDrafts({ decisions = [], answers = {}, pipeline = null, company = null, dry = false, onLog = null } = {}) {
+export async function acceptHostDrafts({
+  decisions = [],
+  answers = {},
+  pipeline = null,
+  company = null,
+  dry = false,
+  onLog = null,
+  slug = null,
+  jev = null,
+  signal = null,
+  gate = relevance,
+} = {}) {
   const rest = { ...answers };
   const accepted = [];
   const refused = [];
@@ -573,19 +613,60 @@ export function acceptHostDrafts({ decisions = [], answers = {}, pipeline = null
     const answer = answers[d.qid];
     const text = String((typeof answer === "string" ? answer : answer?.value) ?? "").trim();
     delete rest[d.qid];
-    const problem = text ? checkHostDraft(text, host, forbidden) : "it is empty";
-    if (problem) {
+    const reject = (problem) => {
       // Refused, not corrected: the row stays an `ask` carrying the complaint, so the next
       // `--answers` can fix exactly what was wrong.
       d.why = `your draft was not used — ${problem}`;
       refused.push({ qid: d.qid, reason: problem });
       onLog?.(`draft refused ${d.qid}: ${problem}`);
+    };
+    const problem = text ? checkHostDraft(text, host, forbidden) : "it is empty";
+    if (problem) {
+      reject(problem);
       continue;
     }
+
+    const kind = String(host.writes ?? "narrative");
+    const prompt = String(host.prompt ?? d.label ?? "");
+    // On the record, exactly as the model path leaves it: `src/plan/preflight.mjs` reads these
+    // two numbers and refuses a draft that carries neither.
+    const gates = { kind };
+    try {
+      if (kind !== "why_us") {
+        const grounds = await gate({
+          stage: "draft_grounding",
+          id: `grounds_${d.qid}`,
+          instructions: GATE_GROUNDING,
+          state: { prompt, grounding_titles: hostGroundingTitles(host.grounding) },
+          slug,
+          signal,
+          totals: jev,
+        });
+        gates.grounding = Number(grounds.toFixed(3));
+        if (grounds < GATES.askBelow) throw new Error(`grounding_does_not_answer — nothing you have on file is about this (${pct(grounds)})`);
+      }
+      const answersIt = await gate({
+        stage: "draft_answers",
+        id: `answers_${d.qid}`,
+        instructions: GATE_ANSWERS,
+        state: { prompt, draft: text },
+        slug,
+        signal,
+        totals: jev,
+      });
+      gates.draft = Number(answersIt.toFixed(3));
+      if (answersIt < GATES.askBelow) throw new Error(`draft_does_not_answer — the text does not answer this prompt (${pct(answersIt)})`);
+    } catch (err) {
+      d.gates = gates;
+      reject(String(err?.message ?? err).slice(0, 120));
+      continue;
+    }
+
     d.action = "draft";
     d.source = "host";
     d.value = text;
     d.words = wordCount(text);
+    d.gates = gates;
     // Every row that ends up with text records what it was actually handed (CONTRACTS §Decision
     // record): the host was given the whole offered set, undeduped, so that is what it used.
     d.grounding_used = [...(d.draft_request?.grounding_ids ?? [])];

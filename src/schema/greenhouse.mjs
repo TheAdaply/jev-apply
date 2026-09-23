@@ -134,6 +134,21 @@ function formRow(q, section) {
   };
 }
 
+/**
+ * The EEO-1 race question is a *two-step* control on the hosted form: `#hispanic_ethnicity`
+ * renders first, and `#race` is not in the DOM at all until that one is answered. The API
+ * publishes only the second half, as a top-level compliance field, so the fill loop drove a
+ * control that did not exist yet and logged `failed: 1` for a complete fill
+ * (docs/POSTMORTEM.md B8). `mounts_after` is that fact, on the row: the fill loop drives such a
+ * row after its parent, and a control the page has not grown yet is deferred, never counted as a
+ * form refusing a value (`src/plan/execute.mjs` `rowOrder`/`deferredMount`).
+ *
+ * It is deliberately *not* a `dependency`: a dependency blanks the child when the parent says No,
+ * and race is asked whatever the ethnicity answer is. This is about when the control exists, not
+ * about what may be put in it.
+ */
+const MOUNTS_AFTER = { race: "hispanic_ethnicity" };
+
 function sensitiveRow(label, qid, domId, apiType, required, values, section) {
   const clean = cleanLabel(label);
   const { type, control } = controlFor(apiType, clean);
@@ -147,6 +162,7 @@ function sensitiveRow(label, qid, domId, apiType, required, values, section) {
     control,
     selector: idSelector(domId),
     ...(options.length && { options }),
+    ...(MOUNTS_AFTER[qid] ? { mounts_after: MOUNTS_AFTER[qid] } : {}),
     class: "sensitive",
   };
 }

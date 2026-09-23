@@ -61,6 +61,10 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
   const filled = decisions.filter(isFilled).length;
   const lines = [header, `Filled ${filled} of ${decisions.length}${resume?.value ? ` · résumé: ${path.basename(resume.value)}` : ""}`];
   if (submit?.ok) lines.push(row("SUBMITTED", submitLine(submit)));
+  // A preflight refusal never reached the button (`clicked:false`), so it must not read as a
+  // click that went unanswered: the ► HELD line says what refused it and how many rows did.
+  else if (submit?.cause === "preflight")
+    lines.push(row("HELD", `not submitted — ${submit.preflight?.failures?.length ?? 0} preflight rule(s) refused it: ${reason(submit.detail, 60)}`));
   else if (submit) lines.push(row("SUBMIT", `clicked, not confirmed (${submit.cause ?? "unknown"}) — ${reason(submit.detail, 60)}`));
 
   // ► DRAFTED is the one group whose text the user did not write, so the line says how long it

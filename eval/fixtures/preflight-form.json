@@ -1,0 +1,55 @@
+{
+ "_comment": "Synthetic FormPlan for eval/plan.test.mjs's regression guards (src/plan/preflight.mjs). Invented company, invented questions; it is never fetched and never filled. It carries the three things a frozen decisions.json does not: `required`, `control` and `dependency`.",
+ "ats": "greenhouse",
+ "url": "https://job-boards.greenhouse.io/acme/jobs/1",
+ "job": { "title": "Inference Engineer", "company": "Acme", "description": "Acme runs inference." },
+ "questions": [
+  { "qid": "first_name", "label": "First Name", "required": true, "type": "text", "control": "text", "selector": "#first_name", "class": "identity" },
+  { "qid": "last_name", "label": "Last Name", "required": true, "type": "text", "control": "text", "selector": "#last_name", "class": "identity" },
+  { "qid": "location", "label": "Current location (city and country)", "required": true, "type": "text", "control": "text", "selector": "#location", "class": "identity" },
+  { "qid": "start_date", "label": "Start date", "required": true, "type": "date", "control": "date", "selector": "#start_date", "class": "circumstance" },
+  { "qid": "languages", "label": "What spoken languages are you fluent in?", "required": true, "type": "text", "control": "text", "selector": "#languages", "class": "circumstance" },
+  {
+   "qid": "restrictive",
+   "label": "Are you bound by any agreement that would restrict this work?",
+   "required": true,
+   "type": "single_select",
+   "control": "native_select",
+   "selector": "#restrictive",
+   "class": "circumstance",
+   "options": [{ "label": "Yes", "value": "1" }, { "label": "No", "value": "0" }]
+  },
+  {
+   "qid": "restrictive_detail",
+   "label": "If yes, please describe the restriction.",
+   "required": false,
+   "type": "textarea",
+   "control": "textarea",
+   "selector": "#restrictive_detail",
+   "class": "circumstance",
+   "dependency": { "parent": "restrictive", "condition": "yes" }
+  },
+  {
+   "qid": "privacy_ack",
+   "label": "I have read and acknowledge Acme's Candidate Privacy Policy.",
+   "required": true,
+   "type": "single_select",
+   "control": "radio",
+   "selector": "#privacy_ack",
+   "class": "policy_gate",
+   "options": [{ "label": "Yes", "value": "1" }, { "label": "No", "value": "0" }]
+  },
+  {
+   "qid": "gender",
+   "label": "Gender",
+   "required": false,
+   "section": "EEOC",
+   "type": "single_select",
+   "control": "react_select",
+   "selector": "#gender",
+   "class": "sensitive",
+   "options": [{ "label": "Woman", "value": "1" }, { "label": "Man", "value": "2" }, { "label": "I don't wish to answer", "value": "3" }]
+  },
+  { "qid": "why_us", "label": "Why Acme?", "required": true, "type": "textarea", "control": "textarea", "selector": "#why_us", "class": "why_us", "limits": { "words": 150 } }
+ ]
+}

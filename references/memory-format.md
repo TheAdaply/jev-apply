@@ -47,14 +47,21 @@ Never model-written. `since:` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is stored instea
 **One id namespace.** Every identity fact the resolver reads is `f.identity.*` — `full_name`,
 `first_name`, `last_name`, `preferred_name`, `full_name_native`, `email`, `phone`, `city`,
 `location`, `address`, `pronouns`, `timezone`, `start_date`, `github_url`, `linkedin_url`,
-`site_url`, `x_twitter_url`, `publications_url` — the ids
+`site_url`, `x_twitter_url`, `portfolio_url`, `scholar_url`, `publications_url` — the ids
 `private/profile/memory-seed/facts.yaml` seeds and `src/plan/resolve.mjs` looks up by name.
 Two more pairs are asked for by name on real forms and have their own ids: the role with no end
 date is `f.employment.current` (the employer) plus `f.employment.current_title` (the title), and
 the most recent degree is `f.education.school`, `f.education.field` and `f.education.degree` —
 each a single-valued row, so a second claim is dropped rather than suffixed. Citizenship is
-`f.citizenship`: it answers "what is your nationality?" and, for a remote posting that names no
-country at all, picks the jurisdiction the work-authorization rows answer for.
+`f.citizenship`, and three rules read it: "what is your nationality?", the jurisdiction a remote
+posting that names no country at all is answered for, and the export-control / "U.S. person"
+status rows, which are the one class of question that is *about* citizenship
+(`exportControlRow()` in `src/plan/resolve.mjs`, answered together with `f.work_auth.US` and
+always as a `check`). Write it however a passport reads it — the ISO-3166 alpha-2 code (`IE`),
+the nationality adjective (`Irish`, `Irish citizen`) or the country's own name (`Ireland`):
+`countryOfNationality()` in `src/schema/normalize.mjs` reads all three. It is deliberately not the
+*place* table, because `\bindia\b` does not match "Indian" and an adjective loose in the place
+table would read the EEO option "American Indian or Alaska Native" as a country.
 `extractResume()` is told to mint exactly those, and `FACT_ID_ALIASES` in
 `src/writer/openai.mjs` folds the plausible near-misses into them (`f.name`, `f.email`,
 `f.contact.email`, `f.link.github`, `f.links.github`, `f.identity.name`, `f.employer.current`,
@@ -63,6 +70,11 @@ country at all, picks the jurisdiction the work-authorization rows answer for.
 field is asked as "no fact on file" even though the CV stated it. Add the alias, do not add a
 second namespace. (`f.contact.*`/`f.links.*` in `scripts/jev-smoke.mjs` are a synthetic selector
 pool for the smoke test, not store ids.)
+
+The link facts — `github_url`, `linkedin_url`, `site_url`, `x_twitter_url`, `portfolio_url`,
+`scholar_url`, `publications_url` — answer the named rows one at a time *and* the single box some
+boards ask them all into ("Social Network and Web Links"), which takes every one on file, one per
+line. A links row is skipped as "no link facts on file" only when that is true.
 
 `f.identity.preferred_name` is written only when a document *states* a preferred name ("goes by",
 "known as"); a first name split out of `f.identity.full_name` is not one, and the résumé pass
@@ -281,12 +293,18 @@ the `p.legal.*` namespace holds one `"Yes"`/`"No"` row per attestation the user 
 stand behind: `p.legal.privacy_policy_ack`, `p.legal.background_check_consent`,
 `p.legal.interview_recording_consent`, `p.legal.arbitration_ack`, `p.legal.ai_usage_ack`,
 `p.legal.retention_consent`, `p.legal.terms_ack`, `p.legal.application_truthful_ack`,
-`p.legal.export_control_ack`. A form row classed `policy_gate` ("Please review and acknowledge our
-Candidate Privacy Policy", "I understand that an offer is conditional on a background check") is
+`p.legal.export_control_ack`, `p.legal.age_redaction_ack`. A form row classed `policy_gate`
+("Please review and acknowledge our Candidate Privacy Policy", "I understand that an offer is
+conditional on a background check") is
 answered from **that row and nothing else** — no canonical answer, no neighbouring preference, no
 derivation — and with nothing on file it is an `ask` carrying the id that closes it everywhere
 (`policyGateRow()` and `policySlug()` in `src/plan/resolve.mjs`). The slug comes from the gate's
-subject, not the company's wording, so one stored answer covers every board that asks it. The
+subject, not the company's wording, so one stored answer covers every board that asks it.
+`age_redaction_ack` is the newest of them and the reason the list is a class rather than a
+vocabulary of demographics: a notice that *offers* to let the candidate redact age-identifying
+material from their own documents names a protected characteristic without asking for one, so it
+is a gate the user signs, not a demographic row the EEO decline stance may refuse
+(`docs/research/17-eval-judge-ten2.md` §3 F6). The
 older per-gate ids (`p.privacy_consent`, `p.background_check`, `p.recording_consent`,
 `p.arbitration`, `p.ai_usage`, `p.application_truthful`) are **no longer read**: they were
 consumed through the canonical answer bank, which is what ticked two legal attestations on the

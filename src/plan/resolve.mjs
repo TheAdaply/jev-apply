@@ -27,7 +27,7 @@ import { documentFor, getFact, resolvePreference } from "../memory/resolve.mjs";
 import { EEO_VALUES } from "../memory/schema.mjs";
 import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { isAccommodationRequest } from "../schema/classes.mjs";
-import { countryFromText, countryInQuestion } from "../schema/normalize.mjs";
+import { countryFromText, countryInQuestion, countryOfNationality } from "../schema/normalize.mjs";
 
 // ─── posting country ──────────────────────────────────────────────────────────────────────────
 // The table itself lives in `src/schema/normalize.mjs`, which stamps every FormPlan with
@@ -66,11 +66,27 @@ const LINK_RULES = [
   [/personal (?:web)?site|\bwebsite\b|\bweb ?page\b|\bblog\b|personal url/i, ["f.identity.site_url"]],
 ];
 
+// One box for *all* of them ("Social Network and Web Links", helper text listing Git / Blog /
+// Medium). Tested after the named rules above, so a LinkedIn row still answers from the LinkedIn
+// fact alone; here every saved link is what the field asks for, and an empty answer is only
+// honest when nothing is on file.
+const MULTI_LINK_RE = /\b(?:social(?: network| media)?|web|online|profile|relevant)\s+links?\b|\blinks?\s+to\s+(?:your|some of your)\b/i;
+const LINK_FACT_IDS = [...new Set(LINK_RULES.flatMap(([, ids]) => ids))];
+
+// A row that confirms the form already carries something, rather than asking for it: the verb
+// has to open the label, so "Have you added your full legal name…" is one and "Have you worked at
+// <company>…" is not. What follows the verb is the subject, and it is resolved as the identity
+// row it names (`confirmationRow`).
+const CONFIRM_LEAD_RE =
+  /^\s*(?:have you|did you|has your|do you confirm(?: that)?(?: you(?:'ve| have)?)?)\s+(?:already\s+)?(?:added|provided|included|entered|inputted|input|filled(?:\s+(?:in|out))?|attached|uploaded|listed|given|shared|supplied|specified|confirmed)\s+/i;
+
 const EMAIL_RE = /e-?mail/i;
 const PHONE_RE = /\bphone\b|\bmobile\b|\bcell\b/i;
 const RESUME_RE = /resum[ée]|\bcv\b/i;
 const COVER_RE = /cover letter/i;
-const LOCATION_RE = /^(?:your |current |candidate )*(?:location|city|country)\b|where are you (?:currently )?(?:located|based)|current location|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)/i;
+// Exported: `src/plan/preflight.mjs` refuses a work mode typed into whatever this claims is a
+// place, and "which rows are location rows" must mean one thing in both modules.
+export const LOCATION_RE = /^(?:your |current |candidate )*(?:location|city|country)\b|where are you (?:currently )?(?:located|based)|current location|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)/i;
 const ADDRESS_RE = /\b(?:legal|home|mailing|street|postal)?\s*address\b/i;
 const CURRENT_COMPANY_RE = /^current (?:company|employer)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:employer|company)/i;
 const CURRENT_TITLE_RE = /^current (?:job ?title|title|role|position)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:job ?title|title|role|position)/i;
@@ -87,6 +103,11 @@ export const acceptsMostRecent = (label) => MOST_RECENT_RE.test(String(label ?? 
 // circumstance topics
 const AUTHORIZED_RE = /legally authoriz|authoriz(?:ed|ation) to work|right to work|work authoriz|authorized to work/i;
 const SPONSOR_RE = /sponsor|visa|h-?1b|immigration/i;
+// An export-control status row asks which of a fixed set of person categories the candidate is in;
+// an attestation asks them to sign that they read a statement. `ATTESTS_RE` is what tells the two
+// apart when both carry the export-control vocabulary.
+const US_PERSON_RE = /\bu\.?\s?s\.?\s+person\b|\bunited states person\b/i;
+const ATTESTS_RE = /\bi (?:have read|read and|understand|acknowledge|agree|certify|confirm that i)\b/i;
 const RELOCATE_RE = /relocat|willing to move/i;
 const IN_OFFICE_RE = /in[- ]?office|in[- ]?person|on[- ]?site|onsite|hybrid|days? (?:a|per) week|commut/i;
 const START_RE = /start date|available to start|when (?:can|could) you start|notice period|earliest (?:start|availability)/i;
@@ -119,6 +140,25 @@ const SELF_ID_RE = /self[- ]identif|what is your (?:gender|race|ethnicity|gender
 const RESTRICTIVE_RE = /bound by any agreement|bound by an? (?:agreement|contract)|non-?compete|non-?solicit|restrictive (?:covenant|agreement)|confidentiality agreement[^?]{0,40}restrict/i;
 const PREVIOUSLY_EMPLOYED_RE = /previously (?:been )?employed|ever (?:been )?employed|former(?:ly)? (?:an )?employee|worked (?:at|for)[^?]{0,40}(?:before|previously)/i;
 
+// Which employer an employment-history row is *about*. Two readings count as "this one": the
+// label spells the company's own name, or it puts the company in the first person as the object
+// of the employment verb ("worked here", "been employed by us", "applied to us before").
+//
+// The deixis has to follow the verb. "Please let us know whether you have previously worked at …
+// PricewaterhouseCoopers" contains a first-person "us" — in "let us know", about the form, not
+// about the employer — and reading that as "have you worked for us?" is exactly the misreading
+// that put an unfounded answer on Snowflake's SEC-independence row.
+const FIRST_PERSON_EMPLOYER_RE =
+  /\b(?:work(?:ed|ing)?|employ(?:ed|ment)?|intern(?:ed|ship)?|appl(?:y|ied)|interview(?:ed)?|contract(?:ed|or)?)\b[^?.]{0,40}\b(?:here\b|(?:with|for|at|by|to|of) us\b|our (?:company|organi[sz]ation|organisation|firm|team|group)|this (?:company|organi[sz]ation|organisation|firm|team|role|position))/i;
+
+/** Does this label ask about the user's history with *this* employer rather than a third party? */
+export function asksAboutThisEmployer(label, company) {
+  const text = String(label ?? "");
+  const name = String(company ?? "").trim();
+  if (name && new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)) return true;
+  return FIRST_PERSON_EMPLOYER_RE.test(text);
+}
+
 // ─── policy gates ─────────────────────────────────────────────────────────────────────────────
 // An acknowledgement ("I understand that offers are conditional on a background check") is a
 // statement the *user* signs, so it is answered from one explicit standing preference and from
@@ -129,6 +169,10 @@ const PREVIOUSLY_EMPLOYED_RE = /previously (?:been )?employed|ever (?:been )?emp
 // are one stored answer instead of two. A gate no rule names keeps a slug derived from its own
 // words: it still asks, and the id it asks to be remembered under is stable across boards.
 const POLICY_SLUGS = [
+  // Tested before the privacy rule: an offer to redact age-identifying material is a notice the
+  // user acknowledges, not a data-protection consent, and it is its own standing answer
+  // (docs/research/17-eval-judge-ten2.md §3 F6).
+  [/redact[^?]{0,60}(?:age-identifying|age,|date of birth)|age-identifying information/i, "age_redaction_ack"],
   [/privacy (?:policy|notice|statement)|candidate privacy|data (?:privacy|protection)|gdpr|personal data/i, "privacy_policy_ack"],
   [/background (?:check|screening)|criminal record check|reference check/i, "background_check_consent"],
   [/record(?:ing|ed)?\b[^?]{0,40}\b(?:interview|call|session|conversation)|interview[^?]{0,20}record/i, "interview_recording_consent"],
@@ -184,13 +228,18 @@ const CITIZENSHIP_FACTS = ["f.citizenship", "f.identity.citizenship", "f.identit
 
 /**
  * The country the user states citizenship of, as an ISO-2 code, or null.
- * Only ever read for a remote posting that names no country at all: it is the user's own stated
- * fact, not an inference about where they may work (the two-valued authorization fact still
- * decides the answer, and such a row is filled as `check`, never silently).
+ *
+ * Read through `countryOfNationality()`, because the fact is written the way a passport reads
+ * ("Indian", "Irish citizen") and the *place* table matches place names — `\bindia\b` does not
+ * match "Indian", so every reader of this helper saw null for a fact that was on file
+ * (docs/research/17-eval-judge-ten2.md §3 F2). Two rules read it: a remote posting that names no
+ * country at all, and the export-control status rows that are *about* citizenship. It is the
+ * user's own stated fact, not an inference about where they may work, and both callers commit it
+ * as `check`, never silently.
  */
 function citizenshipCountry(mem) {
   const row = firstFact(mem, CITIZENSHIP_FACTS);
-  const country = row ? countryFromText(factText(row)?.text ?? row.value) : null;
+  const country = row ? countryOfNationality(factText(row)?.text ?? row.value) : null;
   return country ? { country, fact: row.id } : null;
 }
 
@@ -369,6 +418,13 @@ export function conditionPolarity(label, condition = null) {
 const clipLabel = (text, n = 40) => (String(text ?? "").length > n ? `${String(text).slice(0, n - 1)}…` : String(text ?? ""));
 
 function resolveQuestion(q, ctx) {
+  // Shape before content (docs/research/17-eval-judge-ten2.md §3 F4). "Have you added your full
+  // legal name and surname?" is a Yes/No confirmation *about* a field the form already carries,
+  // whatever class its wording landed in, and its answer is Yes exactly when the fact behind that
+  // field is on file. Feeding it the name itself is what left graphcore's required select empty —
+  // and one lucky option match away from typing a personal name into a confirmation dropdown.
+  const confirmed = confirmationRow(q, ctx);
+  if (confirmed) return confirmed;
   switch (q.class) {
     case "sensitive":
       return sensitiveRow(q, ctx);
@@ -392,6 +448,44 @@ function resolveQuestion(q, ctx) {
       // essay · optional_text — nothing deterministic to say; Jev step 5 looks for saved material.
       return { _open: true, source: "none", action: "ask", why: "open prompt — no saved answer yet" };
   }
+}
+
+/**
+ * "Have you added / provided / included <X>?" with a Yes/No control: a confirmation that the form
+ * carries something, not a request for it. The answer is the form's own Yes when the fact behind
+ * `<X>` is on file, and an `ask` when it is not — the value of `<X>` never goes into this control.
+ *
+ * Two guards keep it narrow: the label has to open with the confirmation verb, and every option
+ * has to read as a Yes or a No. A categorical list wearing the same words is a different question
+ * and falls through to its own class.
+ * @returns {object|null} null when this is not a confirmation row
+ */
+function confirmationRow(q, ctx) {
+  // Never a gate or a demographic row: "Have you provided consent to…" is an attestation, and its
+  // one legitimate source is the `p.legal.<slug>` this would divert it away from.
+  if (q?.class === "policy_gate" || q?.class === "sensitive") return null;
+  const label = String(q?.label ?? "");
+  const lead = CONFIRM_LEAD_RE.exec(label);
+  if (!lead) return null;
+  const labels = optionLabelsOf(q);
+  if (!labels.length || !labels.every((option) => yesNoOf(option))) return null;
+
+  const subject = label.slice(lead[0].length);
+  // The subject is resolved as the identity row it describes, required so that a missing fact is
+  // an `ask` rather than a skip: an unanswered required confirmation is what blocks Submit.
+  const fact = identityRow({ ...q, label: subject, required: true, type: "text", control: "text" }, ctx);
+  if (fact?.action !== "fill" && fact?.action !== "check") {
+    return { source: "none", action: "ask", why: `confirmation — ${fact?.why ?? "no fact on file"}` };
+  }
+  const yes = labels.find((option) => yesNoOf(option) === YES);
+  return {
+    source: "fact",
+    value: yes ?? YES,
+    ...(yes ? { option: yes } : {}),
+    action: "fill",
+    why: `the form carries ${fact.why}`,
+    _answerText: YES,
+  };
 }
 
 /**
@@ -808,6 +902,23 @@ function identityRow(q, { mem, context, now = new Date() }) {
     return row ? fromFact(row) : miss(`${link[1][0]} fact`, { kind: "fact", id: link[1][0], scope: "global" });
   }
 
+  // "Social Network and Web Links" asks for all of them at once. Each saved link is a fact the
+  // user stated, so the box takes the ones on file, one per line; with none on file the row is
+  // skipped saying exactly that, which is the sentence the old path printed while three of them
+  // were on file (docs/research/17-eval-judge-ten2.md §3 F7).
+  if (MULTI_LINK_RE.test(label)) {
+    const rows = LINK_FACT_IDS.map((id) => getFact(mem, id)).filter((row) => row?.value != null);
+    if (!rows.length) return miss("link facts", { kind: "fact", id: "f.identity.site_url", scope: "global" });
+    const parsed = rows.map((row) => ({ row, text: factText(row) })).filter((r) => r.text?.text);
+    if (!parsed.length) return miss("link facts", { kind: "fact", id: "f.identity.site_url", scope: "global" });
+    return {
+      source: "fact",
+      value: parsed.map((r) => r.text.text).join("\n"),
+      action: parsed.some((r) => r.text.qualified) ? "check" : "fill",
+      why: parsed.map((r) => r.row.id).join(", "),
+    };
+  }
+
   // The canonical single-valued ids first — a store that carries them says so outright. Failing
   // that, the newest `since:` row of the CV's own per-role facts (`latestEmployment`): reading
   // only `f.employment.current` is why three real boards were handed back a title and an employer
@@ -944,6 +1055,19 @@ function circumstanceRow(q, ctx) {
   // forwards the ones whose wording mentions a protected characteristic.
   if (isAccommodationRequest(label)) return accommodationRow(q, ctx);
 
+  // An export-control / "U.S. person" **status** row. `f.citizenship` could not reach one before:
+  // `citizenshipCountry()` was only read for a remote posting naming no country, so the one class
+  // of question that is *about* citizenship fell through to the canonical bank and asked, leaving
+  // two required rows empty (docs/research/17-eval-judge-ten2.md §3 F2). These print their options
+  // inline ("I am not a U.S. person…"), so the answer is a lookup from two stated facts — not an
+  // inference, and not an attestation: an "I have read and understand the Export Control
+  // statement" row states nothing about the user and stays on the ask path the invariant puts it
+  // on.
+  if (US_PERSON_RE.test(label) && !ATTESTS_RE.test(label)) {
+    const row = exportControlRow(q, { mem });
+    if (row) return row;
+  }
+
   // Work authorization is two-valued per country, and the jurisdiction is read in one fixed order:
   //   1. the question's own wording ("authorized to work in the United States") — always wins,
   //      because a form may ask about a country the posting is not in. Read as *prose*
@@ -971,23 +1095,36 @@ function circumstanceRow(q, ctx) {
         remember_as: { kind: "fact", id: `f.work_auth.${country}`, scope: "global" },
       };
     }
+    // Reconcile the control's shape before any option matching (F4). A right-to-work *status*
+    // select lists immigration statuses, not Yes/No, and the Yes/No this branch derives is not an
+    // answer to it: graphcore's required select was handed the sibling row's boolean and ended
+    // empty (docs/research/17-eval-judge-ten2.md §3 F4).
+    const options = optionLabelsOf(q);
+    if (options.length && !options.some((option) => yesNoOf(option))) {
+      return workAuthStatusRow(options, { auth, country, mem });
+    }
     const { value, answerText, kind } = workAuthAnswer(workAuthKind(label), auth, country);
     // A country the user never named is answered from their blanket default rule, and a country
     // the *posting* never named is answered from their citizenship. Both values are usable — they
     // are the user's own stated facts — but the two most legally consequential rows on the form
     // are never filled silently from either: `check` is still filled and shows up under ► CHECK.
     // The inferred-jurisdiction phrase leads the `why` because `summary.mjs` clips it at " (".
+    //
+    // The parenthetical states the *answer*, not the sub-question's name: "…default for US
+    // (authorized) → option No" read as a sentence says authorized while the form says No, on
+    // exactly the rows printed under ► CHECK for the user to eyeball (§3 F5).
     const exact = auth.exact && !fromCitizenship;
+    const derived = `${kind}: ${value}`;
     return {
       source: "derived",
       value,
       action: exact ? "fill" : "check",
       topic: "work_auth",
       why: exact
-        ? `${auth.fact} for ${country} (${kind})`
+        ? `${auth.fact} for ${country} (${derived})`
         : fromCitizenship
-          ? `remote posting names no country — answered for ${country} from ${fromCitizenship.fact} (${kind})`
-          : `from your default rule (no ${country}-specific fact) — ${auth.fact} for ${country} (${kind})`,
+          ? `remote posting names no country — answered for ${country} from ${fromCitizenship.fact} (${derived})`
+          : `from your default rule (no ${country}-specific fact) — ${auth.fact} for ${country} (${derived})`,
       _answerText: answerText,
     };
   }
@@ -1085,7 +1222,15 @@ function circumstanceRow(q, ctx) {
   // `overrides[]` entry for this company). A global Yes/No pasted into a company-named question
   // would be a wrong answer rather than a missing one, so a global-only row falls through to the
   // pipeline derivation below, which answers per company or asks.
-  if (PREVIOUSLY_EMPLOYED_RE.test(label)) {
+  //
+  // Both rules are about the user's history **with this employer**, and neither is about anybody
+  // else's: Snowflake asks a required SEC-independence question about *PricewaterhouseCoopers*,
+  // and the pipeline derivation answered it from whether Snowflake appears in the user's own
+  // pipeline — the one unfounded answer in the round-`ten2` corpus
+  // (docs/research/17-eval-judge-ten2.md §3 F1). A label naming a third organisation is an `ask`:
+  // nothing on file states the user's history with it.
+  const aboutThisEmployer = asksAboutThisEmployer(label, context.company);
+  if (PREVIOUSLY_EMPLOYED_RE.test(label) && aboutThisEmployer) {
     const pref = resolvePreference(mem, "p.legal.previously_employed", scopeCtx(context));
     if (pref && pref.scope !== "global") {
       return statedStance(mem, context, { id: "p.legal.previously_employed", topic: "previously_employed" });
@@ -1093,6 +1238,9 @@ function circumstanceRow(q, ctx) {
   }
 
   if (APPLIED_BEFORE_RE.test(label)) {
+    if (!aboutThisEmployer) {
+      return { source: "none", action: "ask", why: "this asks about another organisation, not about this company" };
+    }
     const answered = appliedBeforeFor(pipeline, context.company);
     if (answered.value == null) return { source: "none", action: "ask", topic: "applied_before", why: answered.why };
     return {
@@ -1283,6 +1431,121 @@ export function workAuthAnswer(kind, auth, country) {
   };
 }
 
+/** The four citizenships an export-control option list singles out. */
+const SANCTIONED_CITIZENSHIPS = new Set(["CU", "IR", "KP", "SY"]);
+const SANCTIONED_NAMES_RE = /\b(?:cuba|iran|north korea|syria)\b/i;
+const NOT_A_US_PERSON_RE = /\bnot\b[^.;]{0,24}\bu\.?\s?s\.?\s+person\b/i;
+/** "Other" is the option list's own residual, alongside the "None of the above" wordings. */
+const RESIDUAL_OPTION_RE = /^other\b|^none of the above\b/i;
+
+/**
+ * What one export-control option claims: `person` is what it says about U.S.-person status
+ * (true / false / null when it does not mention it), `sanctioned` what it says about citizenship
+ * of the four countries such a list names (true / false / null when it does not name them).
+ *
+ * The sanctioned clause is read from the words immediately before the country names, because
+ * both polarities are written the same way otherwise: "I am **not** a current citizen … of Cuba,
+ * Iran…" and "I am a current citizen … of Cuba, Iran…" are two different options on one form.
+ */
+function usPersonShape(label) {
+  const text = String(label ?? "");
+  const person = US_PERSON_RE.test(text) ? !NOT_A_US_PERSON_RE.test(text) : null;
+  const named = SANCTIONED_NAMES_RE.exec(text);
+  const clause = named ? text.slice(Math.max(0, named.index - 60), named.index) : null;
+  return { person, sanctioned: clause == null ? null : !/\bnot\b/i.test(clause) };
+}
+
+/**
+ * The one option that states this candidate's status, or null when the list does not state it.
+ * Never by position, and never a near-miss: two options that both fit is the same as none.
+ */
+function usPersonOption(labels, { usPerson, sanctioned }) {
+  const rows = labels.map((label) => ({ label, ...usPersonShape(label) }));
+  if (usPerson) {
+    const claims = rows.filter((row) => row.person === true);
+    return claims.length === 1 ? claims[0].label : null;
+  }
+  const denies = rows.filter((row) => row.person === false);
+  const exact = denies.filter((row) => row.sanctioned === sanctioned);
+  if (exact.length === 1) return exact[0].label;
+  const silent = denies.filter((row) => row.sanctioned == null);
+  if (silent.length === 1) return silent[0].label;
+  // A list that only spells out the sanctioned case leaves everybody else on its residual entry
+  // ("None of the above; I am a citizen of a different country") — which is an answer, and only
+  // for a candidate whose own citizenship is not one of the four.
+  const residual = rows.filter((row) => row.person == null && RESIDUAL_OPTION_RE.test(row.label));
+  return !sanctioned && residual.length === 1 ? residual[0].label : null;
+}
+
+/**
+ * An export-control "U.S. person" status row, from `f.citizenship` plus `f.work_auth.US`.
+ *
+ * A U.S. person is a citizen **or** a permanent resident, and memory states the second only
+ * through the work-authorization fact: a non-US citizen whose US row says authorized-now with no
+ * future sponsorship may hold a green card or may hold a work visa, and those answer this
+ * question differently — so that case is an `ask`, not a guess. Filled as `check`: the answer is
+ * derived from two facts and belongs under ► CHECK before Submit.
+ * @returns {object|null} null when the row carries no option list to answer with
+ */
+function exportControlRow(q, { mem }) {
+  const labels = optionLabelsOf(q);
+  if (labels.length < 2) return null;
+  const ask = (why, id) => ({ source: "none", action: "ask", topic: "export_control", why, remember_as: { kind: "fact", id, scope: "global" } });
+  const citizenship = citizenshipCountry(mem);
+  if (!citizenship) return ask("no citizenship fact on file", "f.citizenship");
+  const auth = workAuth(mem, "US");
+  if (!auth) return ask("no US work-authorization fact to read permanent residency from", "f.work_auth.US");
+  const resident = auth.authorized_now && !auth.needs_sponsorship_future;
+  if (citizenship.country !== "US" && resident) {
+    return ask(`${citizenship.fact} is not US and ${auth.fact} does not say whether it is permanent residency`, "f.work_auth.US");
+  }
+  const option = usPersonOption(labels, {
+    usPerson: citizenship.country === "US",
+    sanctioned: SANCTIONED_CITIZENSHIPS.has(citizenship.country),
+  });
+  if (!option) return ask("no option on this list states your citizenship status", "f.citizenship");
+  return {
+    source: "derived",
+    value: option,
+    option,
+    action: "check",
+    topic: "export_control",
+    why: `${citizenship.fact} + ${auth.fact} (export-control status)`,
+    _answerText: option,
+  };
+}
+
+/**
+ * A right-to-work **status** select: the options are immigration statuses, so the answer is the
+ * category the user's own facts name and never the Yes/No a sibling row derived (F4).
+ *
+ * Two readings are available without guessing. A citizen of the country the question is about
+ * takes that list's citizen entry. A user whose work-authorization fact says they are not
+ * authorized there holds none of the statuses the list enumerates — every one of them grants the
+ * right to work — so the list's own residual entry is the answer. Anything else asks.
+ */
+function workAuthStatusRow(labels, { auth, country, mem }) {
+  const status = (option, why) => ({ source: "derived", value: option, option, action: "check", topic: "work_auth", why, _answerText: option });
+  const citizenship = citizenshipCountry(mem);
+  if (citizenship?.country === country) {
+    const citizen = labels.filter((label) => /\bcitizen\b/i.test(label) && countryFromText(label) === country);
+    if (citizen.length === 1) return status(citizen[0], `${citizenship.fact} — citizen of ${country}`);
+  }
+  if (!auth.authorized_now) {
+    const residual = labels.filter((label) => RESIDUAL_OPTION_RE.test(label) || NONE_OF_ABOVE_RE.test(label));
+    if (residual.length === 1) {
+      return status(residual[0], `${auth.fact} states no right to work in ${country} — no listed status applies`);
+    }
+  }
+  return {
+    source: "none",
+    action: "ask",
+    topic: "work_auth",
+    why: `no ${country} immigration status on file that this list states`,
+    remember_as: { kind: "fact", id: `f.work_auth.${country}`, scope: "global" },
+  };
+}
+
 // "Why us" is one sentence from the user per company; the writer expands it later (PLAN step 10).
 function whyUsRow(_q, { mem, context }) {
   const company = (mem?.answers ?? []).filter(
@@ -1318,6 +1581,11 @@ export function relocationAnswer(value, country) {
   if (value.willing === false) return NO;
   if (country && except.includes(country)) return NO;
   if (only.length) return country ? (only.includes(country) ? YES : NO) : null;
+  // "Willing anywhere except X" answers Yes for every country that is not X — but only once the
+  // destination is known. With `country` null the excepted one cannot be ruled out, and a Yes
+  // would be a default where AGENTS.md wants an ask. Tenstorrent's Cyprus row is answered
+  // upstream instead: `COUNTRY_PLACES` now maps the label's own place, so `country` is CY here
+  // and the exception check above is what decides (docs/research/17-eval-judge-ten2.md §3 F3).
   if (value.willing === true) return except.length && !country ? null : YES;
   return null;
 }

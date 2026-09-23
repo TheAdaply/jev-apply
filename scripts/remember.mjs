@@ -8,6 +8,9 @@
 // `{status, kind, id}`. Everything the user states is remembered for every application; there is
 // nothing to say about where it applies and nothing is asked about it.
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { NONE, choice, closeJevClient, noul, systemOne, withNone } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
 import { loadMemory, upsertRow } from "../src/memory/store.mjs";
@@ -70,7 +73,7 @@ function parseArgs(argv) {
  */
 const MAX_IDS = 200;
 
-function idCriteria(mem) {
+export function idCriteria(mem) {
   const criteria = {};
   for (const [id, entry] of Object.entries(ID_CATALOGUE)) criteria[id] = entry.what;
   for (const row of [...mem.facts, ...mem.preferences]) {
@@ -82,6 +85,25 @@ function idCriteria(mem) {
 }
 
 // ------------------------------------------------------------------- writing
+
+/**
+ * Jev's id selection → what this instruction is saved as. The one place the three outcomes live:
+ *
+ *   `id`    a catalogue (or already-saved) id the rules read — the instruction updates that row;
+ *   `mint`  `none_of_these` at a confidence the gate accepts: the instruction genuinely needs a
+ *           row of its own, and one is minted from its own words;
+ *   `ask`   below `GATES.askBelow`: nobody knows which row this is, and a guess would file a
+ *           fact where no resolver rule reads it (A20). The user names it with `--id`.
+ *
+ * `correction` and `promote_draft` have no id to select: they mint their own handle.
+ */
+export function idDecision({ picked, confidence, kind, instruction, taken = new Set() }) {
+  const section = kind === "fact" ? "facts" : kind === "preference" ? "preferences" : null;
+  if (!section) return { mode: "mint", id: null };
+  if (!(confidence >= GATES.askBelow)) return { mode: "ask", id: mintId(section, instruction, taken) };
+  if (picked === NONE || !picked) return { mode: "mint", id: null };
+  return { mode: "id", id: picked };
+}
 
 function takenIds(rows) {
   return new Set(rows.map((row) => row?.id).filter((id) => typeof id === "string"));
@@ -100,7 +122,7 @@ async function put(section, row, dryRun) {
 const LEAD_RE =
   /^\s*(?:i\s*(?:'m|\u2019m|\s+am)?\s*(?:currently\s+|now\s+)?(?:live|living|reside|residing|based|located)\s+(?:in|at|near|out\s+of)\s+|my\s+[\w .'\u2019-]{2,40}?\s+(?:is|are)\s+|(?:it|that)\s*(?:'s|\u2019s|\s+is)\s+|please\s+use\s+)/i;
 
-const statedValue = (instruction) => {
+export const statedValue = (instruction) => {
   const trimmed = String(instruction ?? "").replace(LEAD_RE, "").replace(/\s*[.;]\s*$/, "").trim();
   return trimmed || String(instruction ?? "").trim();
 };
@@ -111,7 +133,7 @@ const statedValue = (instruction) => {
  * that states neither would leave an attestation asked on every form for no visible reason.
  * @returns {{value:string}|{needs:string}}
  */
-function catalogueValue(id, instruction) {
+export function catalogueValue(id, instruction) {
   const shape = ID_CATALOGUE[id]?.shape ?? "text";
   if (shape !== "yes_no") return { value: statedValue(instruction) };
   const stance = yesNoOf(instruction);
@@ -222,30 +244,31 @@ async function main() {
     return;
   }
 
-  // Which id this belongs to. The id is the more specific judgment — it names the section too —
-  // so a chosen `p.…` files a "fact" as the preference it is. `none_of_these` at a confidence the
-  // gate accepts means the instruction genuinely needs a new row; below the gate it means nobody
-  // knows, and that is a question for the user, never a guess (AGENTS.md).
+  // Which id this belongs to (`idDecision`). The id is the more specific judgment — it names the
+  // section too — so a chosen `p.…` files a "fact" as the preference it is.
   let id = args.id;
   let idConfidence = null;
-  const catalogued = kind === "fact" || kind === "preference";
-  if (!id && catalogued) {
-    idConfidence = answers.id.confidence;
-    const picked = answers.id.choice;
-    if (picked !== NONE && idConfidence >= GATES.askBelow) id = picked;
-    else if (idConfidence < GATES.askBelow) {
-      const bucket = kind === "fact" ? "facts" : "preferences";
-      const minted = mintId(bucket, args.instruction, takenIds(mem[bucket]));
+  if (!id) {
+    idConfidence = answers.id?.confidence ?? null;
+    const verdict = idDecision({
+      picked: answers.id?.choice ?? NONE,
+      confidence: idConfidence ?? 0,
+      kind,
+      instruction: args.instruction,
+      taken: takenIds(kind === "preference" ? mem.preferences : mem.facts),
+    });
+    if (verdict.mode === "ask") {
       emit({
         status: "needs_user",
         kind,
-        id: `new:${minted}`,
+        id: `new:${verdict.id}`,
         confidence: answers.kind.confidence,
         id_confidence: idConfidence,
-        question: `I could not tell which saved row that belongs to. Re-run with --id ${minted} to keep it as a new row, or --id <existing id> to update one.`,
+        question: `I could not tell which saved row that belongs to. Re-run with --id ${verdict.id} to keep it as a new row, or --id <existing id> to update one.`,
       });
       return;
     }
+    if (verdict.mode === "id") id = verdict.id;
   }
   const section = id ? (id.startsWith("p.") ? "preference" : "fact") : kind;
 
@@ -267,13 +290,17 @@ async function main() {
   });
 }
 
-main()
-  .catch((err) => {
-    if (err instanceof Blocked) {
-      emit({ status: "blocked", reason: err.message });
-      return;
-    }
-    log(err?.stack ?? String(err));
-    process.exitCode = 1;
-  })
-  .finally(() => closeJevClient());
+// Importable: the id rule and the value rule above are asserted in eval/plan.test.mjs, and a
+// module that ran its CLI on import could not be read that way.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main()
+    .catch((err) => {
+      if (err instanceof Blocked) {
+        emit({ status: "blocked", reason: err.message });
+        return;
+      }
+      log(err?.stack ?? String(err));
+      process.exitCode = 1;
+    })
+    .finally(() => closeJevClient());
+}

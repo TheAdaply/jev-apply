@@ -166,10 +166,30 @@ Live, end to end: real Greenhouse (Together AI) and Ashby (Baseten) forms filled
 deterministic resolve, Jev, then Playwright with every write read back — at **1–2 Jev requests per
 posting**, about **$0.0004 of Jev per posting**.
 
-Ten-posting real-profile run (`bench/results/accuracy-ten.md`, 136 fields, real Greenhouse and
-Ashby boards, `--no-submit`): **89.7%** of fields correct, median **12.7s** wall clock per posting,
-median **$0.00026** per posting. Full per-posting table and graph:
-[`bench/results/accuracy-ten.md`](bench/results/accuracy-ten.md).
+Ten-posting real-profile run, judged twice — before and after a round of correctness fixes
+(`--no-submit`, 136 fields, real Greenhouse and Ashby boards, each round judged cold field-by-field
+against the stored profile by an independent second pass): **128/136 fields correct (94.1%)**, up
+from 122/136 (89.7%) before the fixes; 97%+ of filled fields correct; median **~13 s** and
+**~$0.0003** per application.
+
+![Ten-posting accuracy, before vs. after](bench/results/accuracy-ten.png)
+
+| company | fields | correct (before→after) | accuracy | time | cost |
+|---|---:|---|---:|---:|---:|
+| together-ai | 10 | 10 | 100.0% | 11.0s | $0.000000 |
+| tenstorrent | 15 | 14 | 93.3% | 15.8s | $0.000246 |
+| graphcore | 17 | 15 | 88.2% | 15.9s | $0.000273 |
+| scale-ai | 20 | 18→20 | 100.0% | 22.1s | $0.000241 |
+| modal | 4 | 4 | 100.0% | 4.8s | $0.000242 |
+| d-matrix | 10 | 9 | 90.0% | 8.9s | $0.000248 |
+| decagon | 10 | 9→10 | 100.0% | 8.8s | $0.000474 |
+| cerebras | 11 | 10 | 90.9% | 11.2s | $0.000496 |
+| mistral | 19 | 16→18 | 94.7% | 22.0s | $0.011390 |
+| snowflake | 20 | 17→18 | 90.0% | 16.8s | $0.001175 |
+
+Full per-posting table, method, and the root causes behind every row that moved:
+[`bench/results/accuracy-ten.md`](bench/results/accuracy-ten.md) ·
+[`docs/POSTMORTEM.md`](docs/POSTMORTEM.md).
 
 ## Working on it
 
@@ -195,7 +215,7 @@ node eval/plan.test.mjs                 # resolve+Jev+gate pipeline against reco
 node scripts/controls-smoke.mjs         # every browser control kind, driven live
 node scripts/writer-smoke.mjs --detect  # which writer backend this environment would use
 node scripts/bench.mjs --postings bench/smoke.txt --limit 2 --home /tmp/jev-bench
-node scripts/canon-scan.mjs --companies private/companies-seed.yml   # rebuild the corpus
+node scripts/canon-scan.mjs             # rebuild the corpus (reads the seed list scan.mjs uses)
 node scripts/canon-cluster.mjs          # corpus → canon/questions.yaml
 node scripts/canon-eval.mjs             # hold-out coverage report
 ```

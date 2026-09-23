@@ -77,6 +77,17 @@ export const SENSITIVE_RE =
 export const DEFERS_SENSITIVE_RE =
   /\b(?:other than|apart from|aside from|besides|excluding|not including|in addition to)\b[^?]{0,90}\b(?:survey|section|question|questions|below|above|form)\b/i;
 
+// …and the labels that name a protected characteristic only to *offer* the candidate the right to
+// take it off their own materials. Snowflake's required checkbox ("you may redact or remove
+// age-identifying information … you will not be penalized") is not a demographic question at all:
+// nothing is being asked about the user, there is an acknowledgement to sign, and `SENSITIVE_RE`
+// claimed it on the word "age" and then refused it through the EEO decline stance — a right
+// outcome reached for a wrong reason, and one that stayed unanswerable even after the user stated
+// a preference (docs/research/17-eval-judge-ten2.md §3 F6). It is a `policy_gate`, answered from
+// the explicit `p.legal.age_redaction_ack` the user states and from nothing else.
+export const REDACTION_OFFER_RE =
+  /\b(?:you may|feel free to|are (?:free|welcome|entitled) to)\b[^?]{0,90}\bredact\b|\bredact or remove\b|\bnot be penali[sz]ed\b[^?]{0,90}\bredact/i;
+
 // An accommodation / adjustment **request**. Answered from one standing `p.accommodation` the user
 // stated and from nothing else — a demographic value is never an accommodation — so it is routed
 // to the resolver's circumstance pass rather than left as an unrecognised free-text prompt.
@@ -110,16 +121,27 @@ export function isAccommodationRequest(label) {
 // location phrasings at the end are the ones real boards ask in (judge §3.6): Figma's "From where do
 // you intend to work?" and DeepL's "What is your current city and country of residence?" both
 // classified `company_specific` while the location fact sat on file.
+//
+// One box asking for *several* links ("Social Network and Web Links") is the same identity row
+// wearing a textarea: the saved `f.identity.*` link facts are exactly what it asks for, and
+// classing it `optional_text` is what let d-matrix's row be skipped as "no saved item answers it"
+// while three of them sat on file (docs/research/17-eval-judge-ten2.md §3 F7).
 export const IDENTITY_RE =
-  /^(?:(?:first|last|legal|preferred|full|middle|given|family|nick)\s+)*names?\b|\be-?mail\b|\bphone\b|\bresum[ée]\b|\bcv\b|cover letter|linked-?in|git-?hub|google scholar|\btwitter\b|\bportfolio\b|personal (?:web)?site|\bwebsite\b|\bweb page\b|\bblog\b|^(?:(?:your|current|candidate)\s+)*(?:location|city|address|country)\b|\b(?:legal|home|mailing|street) address\b|where are you (?:currently )?(?:located|based)|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)|^current (?:company|employer|job ?title|title|role|position)\b|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:employer|company|job ?title|title|role|position)|^pronunciation/i;
+  /^(?:(?:first|last|legal|preferred|full|middle|given|family|nick)\s+)*names?\b|\be-?mail\b|\bphone\b|\bresum[ée]\b|\bcv\b|cover letter|linked-?in|git-?hub|google scholar|\btwitter\b|\bportfolio\b|personal (?:web)?site|\bwebsite\b|\bweb page\b|\bblog\b|\b(?:social(?: network| media)?|web|online|profile|relevant)\s+links?\b|^(?:(?:your|current|candidate)\s+)*(?:location|city|address|country)\b|\b(?:legal|home|mailing|street) address\b|where are you (?:currently )?(?:located|based)|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)|^current (?:company|employer|job ?title|title|role|position)\b|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:employer|company|job ?title|title|role|position)|^pronunciation/i;
 
 export const WHY_US_RE =
   /^\s*why\b(?!.*\b(?:did|leave|left|should we)\b)|\bwhy (?:do|would) you want to (?:work|join)\b|\bwhat (?:interests|excites|draws|attracts) you\b/i;
 
 // Situation questions: everything the memory answers from facts/preferences rather than writing.
 // `\breferr` is anchored: without the boundary it fires inside "Preferred First Name".
+// `u.s. person` is here because an export-control status row is a question about the user's
+// citizenship whether or not it spells the word out ("Which of the following best describes your
+// U.S. person status?"), and it has to reach the resolver's circumstance pass to be answered from
+// `f.citizenship` at all (docs/research/17-eval-judge-ten2.md §3 F2). The attestation beside it
+// ("I have read and understand the Export Control statement") names no person category and is
+// untouched by this: it stays the `ask` the policy-gate invariant puts it on.
 export const CIRCUMSTANCE_RE =
-  /legally authorized|authoriz(?:ed|ation) to work|work authoriz|right to work|sponsor|visa|h-?1b|immigration|citizen|relocat|willing to (?:work|travel|commute|move)|open to (?:working|work|relocat|travel|commut|mov)|in[- ]?office|in[- ]?person|on[- ]?site|onsite|hybrid|\bremote\b|office locations?|prefer to be based|days? (?:a|per) week|times? (?:a|per) week|time ?zone|commut|start date|available to start|when (?:can|could) you start|notice period|salary|compensation|pay expectation|expected (?:pay|salary)|currently (?:reside|live|located|based)|based in|previously (?:applied|worked|interviewed|employed)|ever (?:applied|interviewed|worked|been employed)|interviewed (?:at|with)|applied (?:to|for)[^?]{0,40}before|worked (?:at|for)[^?]{0,40}before|(?:how|where) did you (?:hear|find|learn)|\breferr|graduat|18 years|security clearance|\bclearance\b|non-?compete|restrictive|bound by any agreement|government employee|post-government|years of experience|how many years/i;
+  /legally authorized|authoriz(?:ed|ation) to work|work authoriz|right to work|sponsor|visa|h-?1b|immigration|citizen|u\.?\s?s\.? person|relocat|willing to (?:work|travel|commute|move)|open to (?:working|work|relocat|travel|commut|mov)|in[- ]?office|in[- ]?person|on[- ]?site|onsite|hybrid|\bremote\b|office locations?|prefer to be based|days? (?:a|per) week|times? (?:a|per) week|time ?zone|commut|start date|available to start|when (?:can|could) you start|notice period|salary|compensation|pay expectation|expected (?:pay|salary)|currently (?:reside|live|located|based)|based in|previously (?:applied|worked|interviewed|employed)|ever (?:applied|interviewed|worked|been employed)|interviewed (?:at|with)|applied (?:to|for)[^?]{0,40}before|worked (?:at|for)[^?]{0,40}before|(?:how|where) did you (?:hear|find|learn)|\breferr|graduat|18 years|security clearance|\bclearance\b|non-?compete|restrictive|bound by any agreement|government employee|post-government|years of experience|how many years/i;
 
 // A prompt whose answer is a **datum about the user** — which languages they speak, which tools
 // they use, how many years of something, their salary, notice, start date, location, visa or
@@ -149,6 +171,7 @@ const PROSE_TYPES = new Set(["text", "textarea"]);
 export function classify(label, help = "", type = "text", required = false) {
   const name = cleanLabel(label);
   const body = `${name} ${htmlToText(help)}`;
+  if (REDACTION_OFFER_RE.test(name)) return "policy_gate";
   if (SENSITIVE_RE.test(name) && !DEFERS_SENSITIVE_RE.test(name)) return "sensitive";
   if (POLICY_GATE_RE.test(body)) return "policy_gate";
   if (isAccommodationRequest(name)) return "circumstance";

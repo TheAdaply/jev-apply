@@ -1,5 +1,48 @@
 # Changelog
 
+## v0.5.0
+
+A correctness pass driven by five cold judgements of filled, screenshotted forms rather than by
+code review alone — the round-one/round-two eval-shots harness graded 136 real-profile Decision
+rows twice, once before and once after this release's fixes. `docs/POSTMORTEM.md` (new) is the
+resulting record: all 35 failure classes found across every graded round, 21 fixed in-tree and 14
+open, each with its root cause, why earlier checks missed it, and the guard that now catches it —
+no personal value, store path, or real answer text appears in it.
+
+- `docs/POSTMORTEM.md` (new) — the failure-class ledger. §4 documents the nine ordered stages a
+  fill now passes through before a submit click is even considered; §5 names what still cannot be
+  verified automatically (a score-based captcha's silent rejection, whether a saved value is still
+  true, option lists inside a closed `react_select`).
+- `src/plan/preflight.mjs`, `scripts/preflight.mjs` (new), `eval/fixtures/preflight-*.json` (new) —
+  the last gate before the click, judging what is *on the form* rather than what the plan intended:
+  `sensitive_source`, `policy_gate_source`, `draft_gates`, `fact_from_writer`,
+  `dependency_child_filled`, `work_mode_as_location`, `prose_into_date_control`, `required_empty`
+  (from the page's own live snapshot when there is one), `readback_failed`, and `name_split_blind`.
+  A refusal is `blocked{reason:"preflight"}` with `clicked:false`, so the posting stays retryable —
+  not retroactive theatre: records frozen during the graded rounds still fail it today.
+- `src/plan/draft.mjs` — two Jev relevance gates bracket every writer call: does the saved material
+  answer this prompt, before the call; does the drafted text answer it, after. A draft with no
+  verdict on record is refused rather than submitted (`draft_gates`), and a fact-seeking textarea
+  (e.g. "what languages are you fluent in") is classified as a fact and never handed to the writer
+  in the first place.
+- `src/plan/resolve.mjs`, `src/schema/normalize.mjs`, `src/schema/classes.mjs` — the guards behind
+  six of the postmortem's open findings: a question naming another organisation no longer derives
+  an answer from the user's own application pipeline (B4); a citizenship/work-authorization pair
+  now answers an export-control status row instead of leaving it blank (B5); a relocation
+  preference reaches a country the label names even when the country table can't map it (B6); a
+  Yes/No confirmation or a categorical select is never fed the wrong-shaped value behind a sibling
+  row (B7); a notice offering to redact a protected characteristic is classed `policy_gate`, not
+  `sensitive` (B10); and a work-authorization `why` renders the fact's resolved value instead of its
+  field name (B11).
+- `eval/plan.test.mjs` — 29 `guard:` assertions, one per named failure class in
+  `docs/POSTMORTEM.md`; B1, B2 and B14 additionally refuse at runtime.
+- `bench/results/accuracy-ten.{md,json,png}` — the ten-posting, 136-field, real-profile accuracy
+  report, now judged twice by two independent cold passes: **89.7% → 94.1%** correct (122 → 128 of
+  136 rows), **97.1% → 98.1%** of filled fields correct. The report's per-posting table, three-panel
+  verdict/time/cost chart, and root-cause list live at `bench/results/accuracy-ten.md`.
+- `README.md` — the "Measured" section embeds the before/after chart and a compact per-posting
+  table, and links to the full report and `docs/POSTMORTEM.md`.
+
 ## v0.4.0
 
 Setup, simplified. Two product changes came out of user-facing review: the "who can this run for"

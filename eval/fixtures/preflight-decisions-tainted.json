@@ -1,0 +1,158 @@
+{
+ "_comment": "The clean record with exactly one row changed: the demographic row is filled from a saved story instead of p.eeo. `node scripts/preflight.mjs --file eval/fixtures/preflight-decisions-tainted.json` must print ok:false naming sensitive_source. Same invented person, same invented posting.",
+ "slug": "acme-2",
+ "status": "ready_to_submit",
+ "url": "https://job-boards.greenhouse.io/acme/jobs/1",
+ "job": "Inference Engineer",
+ "company": "Acme",
+ "decisions": [
+  {
+   "qid": "first_name",
+   "label": "First Name",
+   "class": "identity",
+   "source": "fact",
+   "action": "fill",
+   "why": "f.identity.first_name",
+   "value": "Robin",
+   "readback": {
+    "ok": true,
+    "observed": "Robin",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "last_name",
+   "label": "Last Name",
+   "class": "identity",
+   "source": "fact",
+   "action": "fill",
+   "why": "f.identity.last_name",
+   "value": "Sanchez",
+   "readback": {
+    "ok": true,
+    "observed": "Sanchez",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "location",
+   "label": "Current location (city and country)",
+   "class": "identity",
+   "source": "fact",
+   "action": "fill",
+   "why": "f.identity.city",
+   "value": "Berlin, Germany",
+   "readback": {
+    "ok": true,
+    "observed": "Berlin, Germany",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "start_date",
+   "label": "Start date",
+   "class": "circumstance",
+   "source": "derived",
+   "action": "fill",
+   "topic": "notice",
+   "why": "f.identity.start_date",
+   "value": "2026-11-02",
+   "readback": {
+    "ok": true,
+    "observed": "2026-11-02",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "languages",
+   "label": "What spoken languages are you fluent in?",
+   "class": "circumstance",
+   "source": "user",
+   "action": "fill",
+   "why": "you answered — remembered",
+   "value": "German, English",
+   "readback": {
+    "ok": true,
+    "observed": "German, English",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "restrictive",
+   "label": "Are you bound by any agreement that would restrict this work?",
+   "class": "circumstance",
+   "source": "preference",
+   "action": "fill",
+   "why": "p.legal.restrictive_agreements (global)",
+   "value": "No",
+   "option": "No",
+   "readback": {
+    "ok": true,
+    "observed": "No",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "restrictive_detail",
+   "label": "If yes, please describe the restriction.",
+   "class": "circumstance",
+   "source": "none",
+   "action": "skip",
+   "why": "only asked when \"Are you bound by any agreement…\" is Yes — you answered No"
+  },
+  {
+   "qid": "privacy_ack",
+   "label": "I have read and acknowledge Acme's Candidate Privacy Policy.",
+   "class": "policy_gate",
+   "source": "preference",
+   "action": "fill",
+   "why": "p.legal.privacy_policy_ack (company:acme)",
+   "value": "Yes",
+   "option": "Yes",
+   "readback": {
+    "ok": true,
+    "observed": "Yes",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "gender",
+   "label": "Gender",
+   "section": "EEOC",
+   "class": "sensitive",
+   "source": "story",
+   "action": "fill",
+   "topic": "eeo",
+   "why": "b.story.latency (closest saved item)",
+   "value": "Woman",
+   "option": "Woman",
+   "readback": {
+    "ok": true,
+    "observed": "Woman",
+    "attempts": 1
+   }
+  },
+  {
+   "qid": "why_us",
+   "label": "Why Acme?",
+   "class": "why_us",
+   "source": "writer",
+   "action": "draft",
+   "why": "drafted from your sentence + the posting",
+   "value": "Acme runs inference at a scale where p99 latency is the product, which is the work I cut my teeth on.",
+   "words": 20,
+   "gates": {
+    "kind": "why_us",
+    "draft": 0.93
+   },
+   "grounding_used": [
+    "b.story.latency"
+   ],
+   "readback": {
+    "ok": true,
+    "observed": "Acme runs inference at a scale where p99 latency is the product, which is the work I cut my teeth on.",
+    "attempts": 1
+   }
+  }
+ ]
+}

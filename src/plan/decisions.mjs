@@ -12,6 +12,7 @@
 //                   same question asked twice on one form (or once per posting in a queue) is
 //                   asked once.
 
+import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -203,6 +204,56 @@ export function matchesForm(frozen, formPlan) {
   const want = (formPlan?.questions ?? []).map((q) => q.qid).sort();
   const have = (frozen.decisions ?? []).map((d) => d.qid).sort();
   return want.length === have.length && want.every((qid, i) => qid === have[i]);
+}
+
+/**
+ * The identity of the form a plan was made against: the board, and every row's qid, control and
+ * required flag, in the order the page publishes them. Deterministic and cheap — it is a
+ * digest of the shape, never of an answer, so nothing personal is in it and two runs against an
+ * unchanged posting produce the same string.
+ */
+export function formFingerprint(formPlan) {
+  const rows = (formPlan?.questions ?? []).map((q) => `${q.qid}:${q.control ?? q.type ?? ""}:${q.required ? 1 : 0}`);
+  const body = `${formPlan?.ats ?? ""}\n${rows.join("\n")}`;
+  return createHash("sha256").update(body).digest("hex").slice(0, 16);
+}
+
+/**
+ * B1 — plan-vs-DOM identity. `apply.mjs --url` re-opens the tab, *reloads* it and re-fills from
+ * scratch before it reaches the submit gate. While the posting is unchanged that is only wasted
+ * work; when the board has changed the form underneath it, the re-fill silently discards the
+ * state a human reviewed and Submit would send something nobody read.
+ *
+ * So a run that is about to re-fill compares today's form against the fingerprint frozen beside
+ * the decisions. Different shape plus at least one row the page confirmed = refuse, and say what
+ * to do about it. `--refill` is the user saying "re-fill it anyway", which is the only thing
+ * that may overrule this.
+ *
+ * A record frozen before fingerprints existed carries none; it is reported as unchecked rather
+ * than refused, because refusing every pre-existing application would cost the user the runs it
+ * is supposed to protect.
+ *
+ * @returns {{ok:boolean, checked:boolean, reason:string|null, detail:string|null}}
+ */
+export function refillGuard({ frozen = null, formPlan = null, refill = false } = {}) {
+  const clear = (detail = null) => ({ ok: true, checked: true, reason: null, detail });
+  if (!frozen) return clear();
+  const reviewed = (frozen.decisions ?? []).filter((d) => d?.readback?.ok === true);
+  if (!reviewed.length) return clear();
+  if (!frozen.form) {
+    return { ok: true, checked: false, reason: null, detail: "the frozen record predates the page fingerprint — its identity cannot be checked" };
+  }
+  const now = formFingerprint(formPlan);
+  if (now === frozen.form) return clear();
+  if (refill) return clear(`the form changed since the fill (${frozen.form} → ${now}) and --refill was given`);
+  return {
+    ok: false,
+    checked: true,
+    reason: "plan_identity",
+    detail:
+      `this posting's form is not the one that was filled: ${reviewed.length} row(s) were written and read back against form ${frozen.form}, and the page now publishes ${now}. ` +
+      `Re-filling would discard what you reviewed — run \`apply.mjs --resume ${frozen.slug ?? "<slug>"}\` to see it, or re-run with --refill to plan the new form from scratch.`,
+  };
 }
 
 export async function writeSummary(slug, text) {
@@ -495,13 +546,24 @@ export function unfilled(decisions, { live = null } = {}) {
     }));
 }
 
-/** Option labels a `needs_user` question should offer the host (the form's own vocabulary). */
-export function withOptions(decisions, formPlan) {
+/**
+ * The facts about a row that come from the form itself rather than from memory: the vocabulary a
+ * `needs_user` question offers the host, and whether the board marks the control required.
+ *
+ * `required` is carried onto the Decision — and through `publicDecision` into `decisions.json` —
+ * because "required and empty" was otherwise only countable live, off the page: every
+ * required/optional judgement in five graded rounds was read off an asterisk in a screenshot
+ * (docs/POSTMORTEM.md B2). A form that says nothing about a row leaves it `false`, which is what
+ * a board not marking a control means; a row the plan has no question for keeps whatever it came
+ * in with.
+ */
+export function withFormFacts(decisions, formPlan) {
   const byQid = new Map((formPlan?.questions ?? []).map((q) => [q.qid, q]));
   return decisions.map((d) => {
     const q = byQid.get(d.qid);
-    const options = (q?.options ?? []).map((o) => (typeof o === "string" ? o : o?.label)).filter(Boolean);
-    return options.length ? { ...d, options } : d;
+    if (!q) return d;
+    const options = (q.options ?? []).map((o) => (typeof o === "string" ? o : o?.label)).filter(Boolean);
+    return { ...d, required: Boolean(q.required), ...(options.length ? { options } : {}) };
   });
 }
 

@@ -42,6 +42,7 @@ import {
   finalize,
   freeze,
   load as loadFrozen,
+  formFingerprint,
   matchesForm,
   mergedNeedsUser,
   needsUser,
@@ -49,7 +50,8 @@ import {
   routeAnswers,
   tally,
   unfilled,
-  withOptions,
+  refillGuard,
+  withFormFacts,
   writeSummary,
 } from "../src/plan/decisions.mjs";
 import { acceptHostDrafts, draftFor, draftRows, hostDraftAsks } from "../src/plan/draft.mjs";
@@ -63,9 +65,11 @@ import {
   priorSubmit,
   runBrowser,
   submitApplication,
+  submitObstruction,
   submitOutcome,
   submitReadiness,
 } from "../src/plan/execute.mjs";
+import { preflight, preflightLines, submitGate } from "../src/plan/preflight.mjs";
 import { resolveForm } from "../src/plan/resolve.mjs";
 import { resolvePreference } from "../src/memory/resolve.mjs";
 import { normalizeUrl } from "../src/discover/dedupe.mjs";
@@ -75,14 +79,14 @@ import { usageTotals as writerSpend } from "../src/writer/openai.mjs";
 const USAGE = [
   "usage: apply.mjs --url <posting> | --tab | --queue <n> | --resume <slug> | --schema <file>",
   "       [--answers <file>] [--dry-run] [--record-schema] [--json]",
-  "       [--submit | --no-submit] [--detect-submit]",
+  "       [--submit | --no-submit] [--detect-submit] [--preflight] [--refill]",
 ].join("\n");
 
 // ─── args ─────────────────────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
   // `submit: null` is "ask the user's `p.auto_submit`"; the two flags force it for one run.
-  const args = { dryRun: false, recordSchema: false, json: false, tab: false, submit: null, detectSubmit: false };
+  const args = { dryRun: false, recordSchema: false, json: false, tab: false, submit: null, detectSubmit: false, preflight: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = () => argv[++i];
@@ -95,9 +99,11 @@ function parseArgs(argv) {
     else if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--record-schema") args.recordSchema = true;
     else if (arg === "--json") args.json = true;
+    else if (arg === "--refill") args.refill = true;
     else if (arg === "--submit") args.submit = true;
     else if (arg === "--no-submit") args.submit = false;
     else if (arg === "--detect-submit") args.detectSubmit = true;
+    else if (arg === "--preflight") args.preflight = true;
     else throw new Error(`unknown flag ${arg}`);
   }
   const targets = ["url", "schema", "resume", "queue"].filter((k) => args[k] != null).concat(args.tab ? ["tab"] : []);
@@ -168,7 +174,7 @@ async function planPosting({ source, stores, budget, phases = newPhases(), reatt
   // `finalize` is handed memory and the posting's context: that is what turns a `why_us`/essay
   // row into `action:"draft"` when `p.auto_draft` is on, instead of handing it back to the user.
   const settled = finalize(decisions, { mem, context });
-  return { formPlan, slug, context, decisions: withOptions(settled, formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
+  return { formPlan, slug, context, decisions: withFormFacts(settled, formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
 }
 
 /** Step 9's second half: the host's answers → memory + the `ask` rows, re-planning only those. */
@@ -193,7 +199,7 @@ async function applyToPlan(plan, answers, { stores, budget }) {
     plan.jev = sumJev(plan.jev, second);
     budget.spend(second.requests);
   }
-  plan.decisions = withOptions(finalize(decisions, { mem, context: plan.context }), plan.formPlan);
+  plan.decisions = withFormFacts(finalize(decisions, { mem, context: plan.context }), plan.formPlan);
   plan.stored = out.stored;
   plan.applied = out.applied;
   return { ...out, decisions: plan.decisions };
@@ -205,13 +211,15 @@ async function applyToPlan(plan, answers, { stores, budget }) {
  * the limit, `groundingCheck` and `substitutionCheck` — and filled as a `draft`, so the summary
  * still lists it under ► DRAFTED. What it returns is the rest of the answers, for `applyToPlan`.
  */
-function takeHostDrafts(plan, answers, { stores, args }) {
-  const out = acceptHostDrafts({
+async function takeHostDrafts(plan, answers, { stores, args }) {
+  const out = await acceptHostDrafts({
     decisions: plan.decisions,
     answers,
     pipeline: stores.pipeline,
     company: plan.formPlan?.job?.company ?? plan.context?.company ?? null,
     dry: Boolean(args.dryRun),
+    slug: plan.slug,
+    jev: plan.jev,
     onLog: log,
   });
   if (out.accepted.length) log(`drafts from you: ${out.accepted.length} accepted, ${out.refused.length} refused`);
@@ -248,7 +256,7 @@ function replanFor({ plan, stores, budget }) {
       const out = await timed(plan.phases, "plan", () => planWithJev({ formPlan: synthetic, decisions: resolved, mem, context: plan.context, slug: plan.slug, canon, baselines, pipeline }));
       budget.spend(out.requests);
       plan.jev = sumJev(plan.jev, out);
-      return withOptions(finalize(out.decisions, { mem, context: plan.context }), synthetic);
+      return withFormFacts(finalize(out.decisions, { mem, context: plan.context }), synthetic);
     },
   };
 }
@@ -328,6 +336,29 @@ async function maybeSubmit({ plan, browser, stores, args }) {
     log(`submit: refused — ${plan.slug} already has a submit on record (${prior.confirmed ? "confirmed" : "clicked, never confirmed"}, per ${prior.sources.join(" + ")}); check the tab before trying again`);
     return null;
   }
+  // The last gate (src/plan/preflight.mjs). `submitReadiness` above counts what is *open*; this
+  // reads what is *on the form*: a demographic answered from something that is not the user's own
+  // `p.eeo`, an attestation ticked from the answer bank, an unchecked draft, a work mode in a
+  // geocoder, a conditional child answered under a No, a failed read-back. None of those is a
+  // reason to stop filling — every one of them is a reason not to send. The live snapshot is
+  // handed over too, so "required and empty" is the page's own reading and not the plan's hope,
+  // and so is the submit control's own geometry: a button under the board's cookie card takes a
+  // click that never reaches it (B12).
+  const obstruction = await submitObstruction({ page: browser.page, ats: plan.formPlan.ats, formPlan: plan.formPlan }).catch(() => null);
+  const gate = submitGate({
+    decisions: plan.decisions,
+    questions: plan.formPlan.questions,
+    mem: stores.mem,
+    live: browser.state,
+    submit: obstruction,
+  });
+  if (!gate.ok) {
+    for (const line of preflightLines(gate.report)) log(line);
+    log(`submit: refused by the preflight — ${gate.report.failures.length} rule failure(s), nothing was clicked`);
+    await appendTrace(plan.slug, { op: "submit", stage: "preflight", clicked: false, failures: gate.report.failures.map((f) => ({ rule: f.rule, qid: f.qid })) });
+    return gate.refusal;
+  }
+  log(`submit: preflight clear (${gate.report.checked.length} rules${gate.report.unchecked.length ? `, ${gate.report.unchecked.length} not checkable` : ""})`);
   log(`submit: ${want.why} — clicking Submit and waiting for the board's confirmation`);
   const result = await timed(plan.phases, "browser", () =>
     submitApplication({ page: browser.page, ats: plan.formPlan.ats, formPlan: plan.formPlan, slug: plan.slug }),
@@ -397,7 +428,13 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
   // A row nobody could write for the user carries what it takes to write it: the prompt, the
   // grounding and the field's limit (src/plan/draft.mjs `hostDraftAsks`).
   const questions = hostDraftAsks(asked.questions, decisions);
-  const outcome = submitOutcome(submit);
+  // A submit the preflight refused never reached the button, so it is not a `submit_failed`:
+  // it is `blocked{reason:"preflight"}` carrying the rules that refused it, and the record stays
+  // retryable (`clicked:false` → `priorSubmit` still says "never attempted").
+  const outcome =
+    submit?.cause === "preflight"
+      ? { status: "blocked", reason: "preflight", detail: submit.detail, failures: submit.preflight.failures }
+      : submitOutcome(submit);
   const status = outcome?.status ?? (questions.length ? "needs_user" : "ready_to_submit");
   const usage = usageFor({ plan, started });
   const summary = renderSummary({ formPlan, decisions, slug, status, usage, submit });
@@ -410,13 +447,20 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
       job: formPlan.job.title,
       company: formPlan.job.company,
       requests: jev.requests,
+      // The identity of the form these rows were filled against (B1). `refillGuard` reads it on
+      // the next run and refuses to throw away a reviewed fill for a page that has changed.
+      form: formFingerprint(formPlan),
       // `submit_attempted` is the double-submit guard's memory: true once the button was
       // actually clicked, whatever the board then said (PLAN §2.2 step 12).
       ...(submit
         ? {
             submitted: submit.ok === true,
             submit_attempted: submit.clicked === true,
-            ...(submit.ok ? { confirmation: submit.confirmation } : { submit_failed: submit.detail ?? submit.cause ?? true }),
+            ...(submit.ok
+              ? { confirmation: submit.confirmation }
+              : submit.cause === "preflight"
+                ? { submit_refused: "preflight", preflight: submit.preflight.failures }
+                : { submit_failed: submit.detail ?? submit.cause ?? true }),
           }
         : {}),
       ...(extra.length ? { extra } : {}),
@@ -428,7 +472,14 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
 
   return {
     status,
-    ...(outcome && !submit.ok ? { reason: outcome.reason, ...(outcome.screenshot ? { screenshot: outcome.screenshot } : {}), detail: outcome.detail } : {}),
+    ...(outcome && !submit.ok
+      ? {
+          reason: outcome.reason,
+          ...(outcome.screenshot ? { screenshot: outcome.screenshot } : {}),
+          ...(outcome.failures ? { failures: outcome.failures } : {}),
+          detail: outcome.detail,
+        }
+      : {}),
     ...(submit?.ok ? { confirmation: submit.confirmation } : {}),
     slug,
     url: formPlan.url,
@@ -536,7 +587,7 @@ async function singleRun(args, stores) {
     if (answers) {
       // A row the host agent was asked to write comes back as text, not as an `ask`: it is
       // checked against its own grounding and filled as a `draft` (src/plan/draft.mjs).
-      const host = takeHostDrafts(plan, answers, { stores, args });
+      const host = await takeHostDrafts(plan, answers, { stores, args });
       const out = await applyToPlan(plan, host.answers, { stores, budget });
       log(`answers: applied ${out.applied.length}, ignored ${out.ignored.length}, remembered ${out.stored.length}`);
       for (const { section, row } of out.stored) log(`  remembered ${section}: ${row.id ?? row.qid} (${row.scope ?? "global"})`);
@@ -576,8 +627,20 @@ async function singleRun(args, stores) {
       });
       // The dry pass is where a `host` backend hands a row over, so the host's own text for a
       // row *this* run just handed over is accepted right after it.
-      if (answers) takeHostDrafts(plan, answers, { stores, args });
+      if (answers) await takeHostDrafts(plan, answers, { stores, args });
     } else {
+      // B1 — plan-vs-DOM identity. A `--url` run re-opens the tab, *reloads* it and re-fills
+      // from scratch; when the board has changed the form since the fill that was reviewed, that
+      // re-fill silently discards it. `--answers` re-attaches to the tab that already holds the
+      // reviewed state instead, so it is the re-fill — and only the re-fill — that is gated.
+      // `--refill` is the user saying to do it anyway.
+      const guard = answers ? { ok: true, detail: null } : refillGuard({ frozen: await loadFrozen(plan.slug), formPlan: plan.formPlan, refill: args.refill });
+      if (!guard.ok) {
+        log(`refill: refused — ${guard.detail}`);
+        await appendTrace(plan.slug, { op: "blocked", reason: guard.reason, detail: guard.detail });
+        return blockedReport({ reason: guard.reason, message: guard.detail }, { plan, started, phases });
+      }
+      if (guard.detail) log(`refill: ${guard.detail}`);
       conn ??= await connect({});
       browser = await fill({ conn, plan, stores, budget, attach: Boolean(answers) });
       log(`browser: set ${browser.filled}, failed ${browser.failed}, required still empty ${browser.state.unfilled.length + browser.state.unknown.length}`);
@@ -588,8 +651,20 @@ async function singleRun(args, stores) {
     if (out.status === "submitted") {
       await markApplied(stores, { url: plan.formPlan.url, note: `jev-apply: submitted, ${out.confirmation?.strategy ?? "confirmed"}` });
     }
+    // `--preflight`: the same verdict the submit gate reaches, printed instead of acted on. On a
+    // dry run there is no page, so the required-control rules read the plan rather than the DOM
+    // and say so in `unchecked` — a dry preflight is a rehearsal, not a clearance.
+    const checkedOut = args.preflight
+      ? preflight({ decisions: plan.decisions, questions: plan.formPlan.questions, mem: stores.mem, live: browser?.state ?? null })
+      : null;
+    if (checkedOut) for (const line of preflightLines(checkedOut)) log(line);
     if (!args.json) printTable(plan.decisions);
-    return { ...out, ...(detected ? { submit: detected } : {}), ...(recorded ? { recorded } : {}) };
+    return {
+      ...out,
+      ...(checkedOut ? { preflight: checkedOut } : {}),
+      ...(detected ? { submit: detected } : {}),
+      ...(recorded ? { recorded } : {}),
+    };
   } catch (err) {
     // Every failure is a status the host can act on, with the §2.6 header, the reason and the
     // screenshot — a missing key, a 500 from the board and a dead tab all read the same way.
@@ -635,7 +710,7 @@ async function queueRun(args, stores) {
     for (const job of live()) {
       try {
         const mine = routed.get(job.plan.slug) ?? {};
-        const host = takeHostDrafts(job.plan, mine, { stores, args });
+        const host = await takeHostDrafts(job.plan, mine, { stores, args });
         const out = await applyToPlan(job.plan, host.answers, { stores, budget: job.budget });
         log(`answers ${job.entry.id}: applied ${out.applied.length}, remembered ${out.stored.length}`);
       } catch (err) {
@@ -651,6 +726,17 @@ async function queueRun(args, stores) {
       if (args.dryRun) continue;
       // Per-posting isolation: a dead tab on posting 2 must not cost posting 1 its fill.
       try {
+        // Same identity gate as `singleRun`: a queued posting whose form changed since the fill
+        // that was reviewed is not re-filled from scratch without being asked (B1).
+        const guard = answers
+          ? { ok: true, detail: null }
+          : refillGuard({ frozen: await loadFrozen(job.plan.slug), formPlan: job.plan.formPlan, refill: args.refill });
+        if (!guard.ok) {
+          job.error = new Blocked(guard.reason, guard.detail);
+          log(`${job.entry.id} blocked: ${guard.detail}`);
+          await appendTrace(job.plan.slug, { op: "blocked", reason: guard.reason, detail: guard.detail });
+          continue;
+        }
         job.browser = await fill({ conn, plan: job.plan, stores, budget: job.budget, attach: Boolean(answers) });
         log(`filled ${job.entry.id}: set ${job.browser.filled}, failed ${job.browser.failed}`);
         // Submit as each posting completes, not after the whole queue: the merged `needs_user`

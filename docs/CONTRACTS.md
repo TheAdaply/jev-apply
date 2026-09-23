@@ -160,10 +160,12 @@ export function hostDraftAsks(questions, decisions); // the `needs_user` items, 
 export function hostDraft(d, { kind, prompt, grounding, limits }); // one row → that question
 export function groundingTexts(grounding);   // the writer's grounding objects as plain lines
 export function checkHostDraft(text, host, forbidden); // → the complaint, or null
-export function acceptHostDrafts({ decisions, answers, pipeline, company, dry, onLog });
+export async function acceptHostDrafts({ decisions, answers, pipeline, company, dry, onLog, slug, jev, signal, gate });
 //   → {answers, accepted, refused} — `answers` is what is left for `applyAnswers`. A host-written
-//   draft passes the same limit/groundingCheck/substitutionCheck a model's draft does before it
-//   fills the row (action stays `draft`, source `host`); a failing one stays `ask` with the reason.
+//   draft passes the same limit/groundingCheck/substitutionCheck a model's draft does *and* the
+//   same two Jev relevance gates (`gate`, defaulting to the real call), with both verdicts left on
+//   `d.gates` (action stays `draft`, source `host`); a draft either check refuses — or one whose
+//   gate cannot be reached — stays `ask` with the reason, at fill time rather than at the click.
 ```
 
 ## src/browser/*.mjs (Playwright library over CDP; PLAN D12)
@@ -220,6 +222,11 @@ export function submitReady({ decisions, state });         // → boolean: zero 
 export async function detectSubmit({ context, formPlan }); // read-only: attaches the tab, returns {selector, text, confirmation} — no click (`--dry-run --detect-submit`)
 export const boardAdapter = (ats) => adapter;               // never throws; falls back to the generic adapter for an unrecognized page
 export function matchLiveControls(live, { questions, decisions }); // → {retry, novel} — pairs live-DOM EEO controls with plan Decisions
+export function rowOrder(questions);      // qid → fill rank; a `mounts_after` row is driven after the row it mounts under (B8)
+export function deferredMount(question, result); // control_not_found on a `mounts_after` row = not on the page yet, never a failed write
+export function observedMatches(observed, wanted); // the verdict a `sensitive` read-back records instead of the value (B3)
+export function restoreRetried(d);        // a row the retry committed never keeps the first attempt's failure `why` (A11)
+export async function submitObstruction({ page, ats, formPlan }); // → {selector, label, overlaps:[{tag,name}]} | null — geometry only (B12)
 export const runnable = (d) => boolean;   // fill/check, or a `draft` that already carries text; not yet read back ok
 export async function runBrowser({ context, formPlan, decisions, slug, budget, replan, draft, attach, rows });
 // `draft` is `{ rows(decisions) }` (src/plan/draft.mjs `draftFor`) — step 10, called before the fill
@@ -259,11 +266,19 @@ with text records the set it was actually handed as `grounding_used:string[]`. B
 the pair is the only way to see from the JSON whether two answers on one application — or three
 applications to three companies — are telling the same story (round-2 judge §3 N4).
 
+Every frozen row carries `required:boolean` from the form's own schema (`withFormFacts`), so
+"required and empty" is countable off `decisions.json` without a browser (B2), and a `sensitive`
+row's `readback` carries `observed_matches:boolean` in place of the value it must not record (B3).
+`decisions.json`'s meta carries `form`, the fingerprint of the form the rows were filled against
+(`formFingerprint`); `refillGuard({frozen, formPlan, refill})` reads it before a `--url` run
+re-fills, and refuses when the shape changed under a fill that was already read back — `--refill`
+is the only thing that overrules it (B1).
+
 ## CLI surface
 - `apply.mjs --url U | --tab | --queue N | --schema F` · `--answers F` · `--resume SLUG` · `--dry-run` ·
   `--record-schema` · `--strict` · `--submit` (force Submit this run) · `--no-submit` (force stop at
   `ready_to_submit`) · `--detect-submit` (dry check: prints the Submit selector + confirmation strategy,
-  no click)
+  no click) · `--refill` (re-fill a posting whose form changed under a reviewed fill; `refillGuard` refuses without it)
 - `learn.mjs --resume a.pdf [--resume b.pdf] --links … | --seed DIR | --answers F`; `remember.mjs "<instruction>" [--scope …]`
 - `scan.mjs [--companies F]`; `pipeline.mjs list|queue <ids>|mark <id> <status>|prune|render`
 - `canon-scan.mjs [--families a,b] [--per-family 20]`; `canon-cluster.mjs`; `canon-eval.mjs`; `answers.mjs --families a,b`

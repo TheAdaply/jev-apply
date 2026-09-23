@@ -483,8 +483,14 @@ async function secondPass(out, { formPlan, byQid, mem, context, canon, baselines
   applySavedItems(items, answers, pools);
 }
 
-/** A matched saved question → its own answer, under this field's `why`. */
-function applyRephrasing(rows, answers, { canon, mem, context, baselines, pipeline, byQid }) {
+/**
+ * A matched saved question → its own answer, under this field's `why`.
+ *
+ * Exported for the A21 guard: "the store answers this in other words" is only true when the
+ * answer is about what the label asks, and `topicGap` is what makes that a rule rather than a
+ * hope (eval/plan.test.mjs).
+ */
+export function applyRephrasing(rows, answers, { canon, mem, context, baselines, pipeline, byQid }) {
   for (const d of rows) {
     const answer = answers[`same_${d.qid}`];
     if (!answer) continue;

@@ -1,0 +1,18 @@
+{
+ "_comment": "Synthetic memory for the regression guards (src/plan/preflight.mjs). An invented person; no row here is read from the real store. Only ids are ever asserted against.",
+ "facts": [
+  { "id": "f.identity.full_name", "value": "Robin Sanchez", "source": "user" },
+  { "id": "f.identity.first_name", "value": "Robin", "source": "user" },
+  { "id": "f.identity.last_name", "value": "Sanchez", "source": "user" },
+  { "id": "f.identity.city", "value": "Berlin, Germany", "source": "user" },
+  { "id": "f.identity.start_date", "value": "2026-11-02", "source": "user" }
+ ],
+ "preferences": [
+  { "id": "p.eeo", "value": { "gender": "female", "veteran_status": "not_protected" }, "source": "user" },
+  { "id": "p.legal.privacy_policy_ack", "value": "Yes", "source": "user" },
+  { "id": "p.legal.restrictive_agreements", "value": "No", "source": "user" }
+ ],
+ "answers": [],
+ "stories": [{ "id": "b.story.latency", "title": "Cut p99 latency", "text": "Cut p99 latency on an inference gateway.", "tags": ["infra"], "source": "user" }],
+ "documents": []
+}

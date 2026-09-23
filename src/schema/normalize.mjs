@@ -74,9 +74,35 @@ const COUNTRY_PLACES = {
   RO: "romania|bucharest|cluj|cluj-napoca|timisoara|timișoara|iasi|iași",
   UA: "ukraine|kyiv|kiev|lviv|kharkiv",
   GR: "greece|athens, greece|thessaloniki",
+  // The rest of the EU/EEA. A posting in one of these named a country the table could not map,
+  // which is not "no country": `countryInQuestion()` returned null for Tenstorrent's Cyprus row
+  // and the relocation preference was then reported as not covering the location
+  // (docs/research/17-eval-judge-ten2.md §3 F3). Country name plus the capital, and only the
+  // cities whose name alone names the country — "split" and "cork" are ordinary words, so they
+  // are listed qualified or not at all.
+  CY: "cyprus|nicosia|limassol|larnaca|paphos",
+  MT: "malta|valletta",
+  LU: "luxembourg",
+  SK: "slovakia|bratislava",
+  SI: "slovenia|ljubljana",
+  HR: "croatia|zagreb|split, croatia",
+  BG: "bulgaria|sofia",
+  HU: "hungary|budapest",
+  EE: "estonia|tallinn|tartu",
+  LV: "latvia|riga",
+  LT: "lithuania|vilnius|kaunas",
+  IS: "iceland|reykjav[íi]k",
+  LI: "liechtenstein|vaduz",
   TR: "t[üu]rkiye|turkey|istanbul|ankara|izmir",
   IL: "israel|tel aviv|tel-aviv|haifa|jerusalem|herzliya|ramat gan",
   AE: "united arab emirates|uae|dubai|abu dhabi",
+  // The rest of the GCC, beside the UAE above: hardware and research postings are written for the
+  // whole bloc and the country a label names has to map, or the relocation row asks for nothing.
+  SA: "saudi arabia|ksa|riyadh|jeddah|dhahran|al khobar|neom",
+  QA: "qatar|doha",
+  KW: "kuwait",
+  BH: "bahrain|manama",
+  OM: "oman|muscat",
   IN: "india|bharat|bengaluru|bangalore|mumbai|bombay|new delhi|delhi|noida|gurgaon|gurugram|hyderabad|chennai|pune|kolkata|ahmedabad|jaipur|trivandrum|thiruvananthapuram",
   SG: "singapore",
   JP: "japan|tokyo|osaka|kyoto|yokohama|fukuoka|nagoya",
@@ -100,6 +126,82 @@ const COUNTRY_PLACES = {
   TH: "thailand|bangkok",
   MY: "malaysia|kuala lumpur|penang",
   ID: "indonesia|jakarta",
+};
+
+/**
+ * Nationality adjectives, for the one fact that states a nationality rather than a place:
+ * `f.citizenship` is written the way a passport reads ("Indian", "Irish citizen"), and the place
+ * table cannot see it — `\bindia\b` does not match "Indian". Kept separate from `COUNTRY_PLACES`
+ * on purpose: "American Indian or Alaska Native" is an EEO option label, and an adjective loose in
+ * the location table would read a demographic option as a country.
+ */
+const COUNTRY_NATIONALITIES = {
+  US: "american|u\\.?s\\.? citizen|united states citizen",
+  CA: "canadian",
+  GB: "british|briton|english|scottish|welsh|northern irish",
+  IE: "irish",
+  DE: "german",
+  FR: "french",
+  NL: "dutch",
+  CH: "swiss",
+  AT: "austrian",
+  BE: "belgian",
+  ES: "spanish|spaniard",
+  PT: "portuguese",
+  IT: "italian",
+  SE: "swedish",
+  NO: "norwegian",
+  DK: "danish",
+  FI: "finnish",
+  PL: "polish",
+  CZ: "czech",
+  RO: "romanian",
+  UA: "ukrainian",
+  GR: "greek",
+  CY: "cypriot",
+  MT: "maltese",
+  LU: "luxembourgish",
+  SK: "slovak",
+  SI: "slovenian|slovene",
+  HR: "croatian",
+  BG: "bulgarian",
+  HU: "hungarian",
+  EE: "estonian",
+  LV: "latvian",
+  LT: "lithuanian",
+  IS: "icelandic",
+  LI: "liechtensteiner",
+  TR: "turkish",
+  IL: "israeli",
+  AE: "emirati",
+  SA: "saudi",
+  QA: "qatari",
+  KW: "kuwaiti",
+  BH: "bahraini",
+  OM: "omani",
+  IN: "indian",
+  SG: "singaporean",
+  JP: "japanese",
+  KR: "south korean|korean",
+  CN: "chinese",
+  HK: "hong konger",
+  TW: "taiwanese",
+  AU: "australian",
+  NZ: "new zealander|kiwi",
+  BR: "brazilian",
+  MX: "mexican",
+  AR: "argentine|argentinian",
+  CL: "chilean",
+  CO: "colombian",
+  ZA: "south african",
+  NG: "nigerian",
+  KE: "kenyan",
+  EG: "egyptian",
+  PH: "filipino|filipina|philippine",
+  VN: "vietnamese",
+  TH: "thai",
+  MY: "malaysian",
+  ID: "indonesian",
 };
 
 /** US states by name. `georgia` is deliberately absent: it is also a country (GE). */
@@ -137,6 +239,13 @@ const PROSE_RULES = [
   [new RegExp(`\\b(?:${US_STATE_NAMES})\\b`), "US"],
 ];
 
+// A nationality, then the place names: "Irish citizen" and "Ireland" both read as IE, and a fact
+// that states the country outright still works.
+const NATIONALITY_RULES = [
+  ...Object.entries(COUNTRY_NATIONALITIES).map(([cc, alts]) => [new RegExp(`\\b(?:${alts})\\b`), cc]),
+  ...PLACE_RULES,
+];
+
 const REMOTE_RE = /\b(?:remote|remotely|work from home|wfh|distributed|anywhere|virtual)\b/;
 
 /** Lowercase, dashes unified, NBSP collapsed — punctuation kept, because ", WA" is a state. */
@@ -166,6 +275,24 @@ function firstPlace(rules, text) {
  */
 export function countryFromText(text) {
   return firstPlace(PLACE_RULES, text);
+}
+
+/**
+ * The country a *nationality* names — what `f.citizenship` states, as an ISO-3166 alpha-2 code.
+ *
+ * Three readings, because the fact is written whichever way the user wrote it: a bare alpha-2
+ * code (the store's own convention, the way `f.work_auth.<CC>` is keyed), the nationality
+ * adjective a passport reads ("Irish"), or the country's own name. The place table alone sees
+ * none of the first two — `\bindia\b` does not match "Indian", and a bare code is deliberately
+ * not a place name there because "us" is a pronoun in prose.
+ *
+ * Used only where the text is the user's own citizenship statement; never on a form's option
+ * labels, where "American Indian or Alaska Native" is a demographic answer and not a country.
+ */
+export function countryOfNationality(text) {
+  const stated = String(text ?? "").trim();
+  if (/^[a-z]{2}$/i.test(stated)) return stated.toUpperCase();
+  return firstPlace(NATIONALITY_RULES, stated);
 }
 
 /**

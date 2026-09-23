@@ -12,8 +12,8 @@
 //   viewport-<n>.png 1280 CSS px wide at device-scale 2, one per scroll step — small labels,
 //                    helper text and chip contents stay legible when a human or a vision model
 //                    reads them back
-//   expected.json    one row per Decision: {qid, label, class, control, action, value, source,
-//                    why, readback} — the answer key the screenshots are graded against
+//   expected.json    one row per Decision: {qid, label, class, control, required, action, value,
+//                    source, why, readback} — the answer key the screenshots are graded against
 //   result.json      the runner's own stdout JSON for that posting
 //
 // Three rules this module does not bend:
@@ -228,6 +228,13 @@ export async function fieldIndex({ url, trace = [], extra = [] }) {
  * harness notes). Grading `value` against the photograph then flags a wrong fill where nothing
  * was written at all, so the value moves to `intended`, which says exactly that: this is what the
  * row would have typed, and the form must not show it.
+ *
+ * `required` comes from the same `fieldIndex` as `control` — the posting's own schema, the frozen
+ * record's `extra[]`, and the trace, in that order. Without it every required/optional call in a
+ * judgement is read off the asterisk in a screenshot, and one misread flips a submit verdict:
+ * round `ten` graded scale-ai blocked on an in-office select that carries no asterisk
+ * (docs/research/17-eval-judge-ten2.md §2d, and the caveat that closing this gap is worth more
+ * than any single row fix). `null` where no source knew, which is not `false`.
  */
 export function expectedRows(decisions = [], fields = new Map()) {
   const TYPED = new Set(["fill", "check", "draft"]);
@@ -236,11 +243,13 @@ export function expectedRows(decisions = [], fields = new Map()) {
     const carried = d.option ?? d.value ?? null;
     const shown = carried == null ? null : sensitive ? REDACTED : String(carried);
     const typed = TYPED.has(d.action) && carried != null;
+    const field = fields.get(d.qid);
     return {
       qid: d.qid ?? null,
       label: d.label ?? null,
       class: d.class ?? null,
-      control: fields.get(d.qid)?.control ?? null,
+      control: field?.control ?? null,
+      required: field?.required ?? null,
       action: d.action ?? null,
       value: typed ? shown : null,
       ...(typed || shown == null ? {} : { intended: shown }),

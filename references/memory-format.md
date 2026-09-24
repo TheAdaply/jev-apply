@@ -52,7 +52,31 @@ Never model-written. `since:` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is stored instea
 Two more pairs are asked for by name on real forms and have their own ids: the role with no end
 date is `f.employment.current` (the employer) plus `f.employment.current_title` (the title), and
 the most recent degree is `f.education.school`, `f.education.field` and `f.education.degree` —
-each a single-valued row, so a second claim is dropped rather than suffixed. Citizenship is
+each a single-valued row, so a second claim is dropped rather than suffixed.
+
+**The whole history.** A form's repeating Education / Employment section needs every degree and
+every role, not the latest one, so each also has a row of its own — `f.education.<slug>` and
+`f.employment.<slug>`, start date in `since:`:
+
+```yaml
+- id: f.education.bachelor_of_technology_iit_patna
+  value: {school: IIT Patna, degree: Bachelor of Technology, field: Electrical Engineering, until: "2020-05"}
+  since: "2016-08"                # "YYYY" when the CV prints only the year — never completed
+- id: f.employment.staff_engineer_acme
+  value: {company: Acme, role: Staff Engineer, employment_type: full_time, current: true}
+  since: "2024-07"
+- id: f.education.bachelor_of_technology_iit_patna.start   # added later by the user's answer
+  value: "2016-08"
+  source: user
+```
+
+`educationHistory()` / `employmentHistory()` (`src/memory/derive.mjs`) read them newest first; a
+prose row ("B.Tech, EEE — IIT Patna (2016 – 2020)") is read the way `latestEducation()` reads it,
+and its parts are filled as `check`. School-leaving certificates are not entries. A part a form
+requires and the row does not state is asked once and kept beside the entry as
+`<entry id>.<part>` (`school`, `degree`, `field`, `employer`, `title`, `start`, `end`), never
+written over the résumé's own row. `extractResume()` writes these rows from its `history` list and
+`extractBasic()` from the lines under an Education heading. Citizenship is
 `f.citizenship`, and three rules read it: "what is your nationality?", the jurisdiction a remote
 posting that names no country at all is answered for, and the export-control / "U.S. person"
 status rows, which are the one class of question that is *about* citizenship

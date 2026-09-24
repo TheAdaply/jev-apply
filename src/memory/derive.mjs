@@ -232,10 +232,15 @@ export function fullTimeYears(mem, now = new Date()) {
  *            ended:boolean|null, until:string|null, current:boolean}|null}
  */
 export function latestEmployment(mem, now = new Date()) {
-  return latestRow(mem, "f.employment.", now, (head, value) => ({
+  return latestRow(mem, "f.employment.", now, employmentParts);
+}
+
+/** A role's title and employer, from its structured value or else its headline's own words. */
+function employmentParts(head, value) {
+  return {
     title: value?.role ?? value?.title ?? clause(beforeDash(head)),
     employer: value?.company ?? value?.employer ?? clause(afterDash(head)),
-  }));
+  };
 }
 
 /**
@@ -243,19 +248,173 @@ export function latestEmployment(mem, now = new Date()) {
  *            prose:boolean, ended:boolean|null, until:string|null, current:boolean}|null}
  */
 export function latestEducation(mem, now = new Date()) {
-  return latestRow(mem, "f.education.", now, (head, value) => {
-    // "Bachelor of Technology, Electrical and Electronics Engineering — IIT Patna, Bihar, India":
-    // the degree names itself before the first comma, the field after it, the school after the
-    // dash. A row written any other way states fewer parts, and the unstated ones stay null.
-    const left = beforeDash(head);
-    const comma = left.indexOf(",");
-    return {
-      degree: value?.degree ?? clause(left),
-      field: value?.field ?? (comma >= 0 ? clause(left.slice(comma + 1)) : null),
-      school: value?.school ?? value?.institution ?? clause(afterDash(head)),
-    };
-  });
+  return latestRow(mem, "f.education.", now, educationParts);
 }
+
+/** A degree's parts, from its structured value or else its headline's own words. */
+function educationParts(head, value) {
+  // "Bachelor of Technology, Electrical and Electronics Engineering — IIT Patna, Bihar, India":
+  // the degree names itself before the first comma, the field after it, the school after the
+  // dash. A row written any other way states fewer parts, and the unstated ones stay null.
+  const left = beforeDash(head);
+  const comma = left.indexOf(",");
+  // "M.S. in Computer Science" / "Bachelor of Science in Physics" names its field after "in".
+  const named = comma < 0 ? /^(.+?)\s+in\s+(.+)$/i.exec(left.trim()) : null;
+  return {
+    degree: value?.degree ?? clause(named ? named[1] : left),
+    field: value?.field ?? value?.major ?? (comma >= 0 ? clause(left.slice(comma + 1)) : named ? clause(named[2]) : null),
+    school: value?.school ?? value?.institution ?? clause(afterDash(head)),
+  };
+}
+
+// ─── the whole history, for a form's repeating Education / Employment section ─────────────────
+
+/**
+ * The single-valued rows a form's one-box questions read ("What university did you attend?").
+ * They restate one entry of the history rather than add one, so a list built from the per-degree
+ * and per-role rows skips them — and falls back to them only when nothing else is on file.
+ */
+const CANONICAL_HISTORY_IDS = new Set([
+  "f.education.school",
+  "f.education.field",
+  "f.education.degree",
+  "f.employment.current",
+  "f.employment.current_title",
+]);
+
+/**
+ * The parts a user's answer can add to one history entry after the fact, stored as its own row
+ * beside it: `f.education.btech_iit_patna.start` holds the start date the résumé left out. The
+ * entry's own row is never rewritten — it keeps the résumé's provenance, and the addition keeps
+ * the user's.
+ */
+export const HISTORY_PARTS = Object.freeze({
+  education: ["school", "degree", "field", "start", "end"],
+  employment: ["employer", "title", "start", "end"],
+});
+
+const HIGH_SCHOOL_RE = /\b(high school|secondary|higher secondary|senior secondary|matriculation|hsc|ssc|cbse|icse|a[- ]levels?|gcse|o[- ]levels?|abitur|baccalaur[ée]at|class (?:x|xii|10|12)|(?:10|12)th (?:grade|standard|class))\b/i;
+
+/** Is this row a part added to another entry (`<entry id>.<part>`)? */
+function isCompanion(id, kind) {
+  const parts = String(id).split(".");
+  return parts.length >= 4 && HISTORY_PARTS[kind].includes(parts.at(-1));
+}
+
+/**
+ * Every degree on file, newest first — each one an entry a form's repeating Education section can
+ * take. High school is left out: the section asks for higher education, and a form that wants a
+ * school leaving certificate asks for it by name.
+ *
+ * @returns {Array<{id:string, school:string|null, degree:string|null, field:string|null,
+ *   start:string|null, end:string|null, current:boolean, prose:boolean, added:string[]}>}
+ */
+export function educationHistory(mem, now = new Date()) {
+  const entries = historyRows(mem, "education", now, educationParts).filter(
+    (e) => !HIGH_SCHOOL_RE.test(`${e.degree ?? ""} ${e.school ?? ""}`),
+  );
+  if (entries.length) return entries;
+  // A store that only carries the single-valued rows still has one degree to offer.
+  const school = statedText(getFact(mem, "f.education.school"));
+  if (!school) return [];
+  return [
+    {
+      id: "f.education.school",
+      school,
+      degree: statedText(getFact(mem, "f.education.degree")),
+      field: statedText(getFact(mem, "f.education.field")),
+      start: null,
+      end: null,
+      current: false,
+      prose: false,
+      added: [],
+    },
+  ];
+}
+
+/**
+ * Every role on file, newest first — internships and part-time roles included, because a form's
+ * Employment section asks for the history, not for the seniority `fullTimeYears()` counts.
+ *
+ * @returns {Array<{id:string, employer:string|null, title:string|null, type:string|null,
+ *   start:string|null, end:string|null, current:boolean, prose:boolean, added:string[]}>}
+ */
+export function employmentHistory(mem, now = new Date()) {
+  const entries = historyRows(mem, "employment", now, employmentParts);
+  if (entries.length) return entries;
+  const employer = statedText(getFact(mem, "f.employment.current"));
+  if (!employer) return [];
+  // `f.employment.current` is, by its own definition, the role with no end date.
+  return [
+    {
+      id: "f.employment.current",
+      employer,
+      title: statedText(getFact(mem, "f.employment.current_title")),
+      type: null,
+      start: null,
+      end: null,
+      current: true,
+      prose: false,
+      added: [],
+    },
+  ];
+}
+
+const statedText = (row) => (row && typeof row.value === "string" && row.value.trim() ? row.value.trim() : null);
+
+/** One entry per per-degree / per-role row, with any parts the user added beside it. */
+function historyRows(mem, kind, now, parts) {
+  const prefix = `f.${kind}.`;
+  const rows = listFacts(mem, prefix);
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const entries = [];
+  const seen = new Set();
+  rows.forEach((row, order) => {
+    if (CANONICAL_HISTORY_IDS.has(row.id) || isCompanion(row.id, kind)) return;
+    const value = row.value;
+    const prose = typeof value === "string";
+    if (!prose && (!value || typeof value !== "object")) return;
+    const read = parts(prose ? headline(value) : "", prose ? null : value);
+    const end = statedEnd(row, now);
+    const entry = {
+      id: row.id,
+      ...Object.fromEntries(Object.entries(read).map(([k, v]) => [k, v || null])),
+      ...(kind === "employment" ? { type: prose ? null : (value.employment_type ?? null) } : {}),
+      start: row.since != null && parseSince(row.since) ? String(row.since) : null,
+      end: end.until,
+      current: end.ended === false,
+      prose,
+      added: [],
+      _order: order,
+    };
+    // A part the user answered for this entry outranks what was read off the résumé's headline.
+    for (const part of HISTORY_PARTS[kind]) {
+      const extra = byId.get(`${row.id}.${part}`);
+      const stated = extra == null ? null : String(extra.value ?? "").trim();
+      if (!stated) continue;
+      entry[part] = stated;
+      entry.added.push(part);
+    }
+    const primary = kind === "education" ? entry.school : entry.employer;
+    const secondary = kind === "education" ? entry.degree : entry.title;
+    if (!primary && !secondary) return;
+    const key = `${normKey(primary)}|${normKey(secondary)}`;
+    if (seen.has(key)) return; // the same degree or role written twice is one entry
+    seen.add(key);
+    entries.push(entry);
+  });
+  // Newest first by the entry's own start date; an undated entry cannot be placed, so it keeps
+  // the order the store holds it in, after every dated one — never slotted in by a guess.
+  entries.sort((a, b) => {
+    const [da, db] = [parseSince(a.start), parseSince(b.start)];
+    if (da && db) return db.getTime() - da.getTime();
+    if (da || db) return da ? -1 : 1;
+    return a._order - b._order;
+  });
+  return entries.map(({ _order, ...entry }) => entry);
+}
+
+const normKey = (s) => String(s ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 /** The newest `since:` row under `prefix`, with `parts()` read off its headline. */
 function latestRow(mem, prefix, now, parts) {
@@ -291,10 +450,15 @@ function clause(text) {
 const MONTH = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?";
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 /** "Mar 2026 – June 2026" · "Jan 2025 – Present" — a stated range, never a date found loose in prose. */
-const RANGE_RE = new RegExp(`${MONTH}\\s+\\d{4}\\s*[–—-]\\s*(?:(present|current|now|ongoing|date)\\b|(?:(${MONTH})\\s+)?(\\d{4})\\b)`, "i");
+// The opening month is optional: a CV that prints years only ("2016 – 2020") states a range too.
+const RANGE_RE = new RegExp(`(?:${MONTH}\\s+)?\\b(?:19|20)\\d{2}\\s*[–—-]\\s*(?:(present|current|now|ongoing|date)\\b|(?:(${MONTH})\\s+)?((?:19|20)\\d{2})\\b)`, "i");
 
 /** Has this role/degree ended, per the row's own `until:` or its own stated date range? */
 function statedEnd(row, now) {
+  // A structured row says "ongoing" in words: `current: true`, or an `until:` of "present".
+  if (row?.value?.current === true || /^(present|current|now|ongoing)$/i.test(String(row?.value?.until ?? row?.until ?? "").trim())) {
+    return { ended: false, until: null };
+  }
   const until = parseSince(row?.value?.until ?? row?.until);
   const today = new Date(now).getTime();
   if (until) return { ended: until.getTime() < today, until: String(row?.value?.until ?? row?.until) };
@@ -303,7 +467,9 @@ function statedEnd(row, now) {
   if (m[1]) return { ended: false, until: null };
   const month = m[2] ? MONTHS.indexOf(m[2].slice(0, 3).toLowerCase()) + 1 : 12;
   const end = Date.UTC(Number(m[3]), month, 0); // day 0 of the next month = the last day of this one
-  return { ended: end < today, until: `${m[3]}-${String(month).padStart(2, "0")}` };
+  // A range that prints only the closing year states a year, and `until` says no more than that —
+  // a form's End Month is asked for, not filled with a December nobody wrote.
+  return { ended: end < today, until: m[2] ? `${m[3]}-${String(month).padStart(2, "0")}` : m[3] };
 }
 
 /**

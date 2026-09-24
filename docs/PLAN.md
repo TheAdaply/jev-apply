@@ -376,7 +376,7 @@ docs/PLAN.md · docs/CHANGELOG.md
 ```
 Dependencies: `@typesafe-ai/sdk`, `playwright` (library only), `openai`, `yaml`, `pdf-parse`. Node ≥ 20.
 No framework, no build step. Deferred (post-demo, same repo): DOM-snapshot fallback (`schema/dom.mjs`,
-adapters/generic), embedded-iframe Greenhouse, repeaters, `--watch-submit`, Playwright-Extension attach,
+adapters/generic), embedded-iframe Greenhouse, `--watch-submit`, Playwright-Extension attach,
 `select.mjs` smart-paste helper.
 
 ## 4. Build order (one session; offline first, browser last, pipeline after the two demos)

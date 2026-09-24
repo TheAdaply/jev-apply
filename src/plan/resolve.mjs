@@ -28,6 +28,7 @@ import { EEO_VALUES } from "../memory/schema.mjs";
 import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { PRONOUN_ROW_RE, isAccommodationRequest } from "../schema/classes.mjs";
 import { countryFromText, countryInQuestion, countryOfNationality, statesNamed } from "../schema/normalize.mjs";
+import { expandRepeaters, repeatRow } from "./repeat.mjs";
 
 // ─── posting country ──────────────────────────────────────────────────────────────────────────
 // The table itself lives in `src/schema/normalize.mjs`, which stamps every FormPlan with
@@ -495,6 +496,10 @@ export function jobContext(formPlan, mem) {
  * @returns {{decisions:object[], context:object}} rows with `_open:true` are what Jev is asked about.
  */
 export function resolveForm(formPlan, { mem, pipeline = null, baselines = null, now = new Date() } = {}) {
+  // A repeating Education / Employment section becomes one row per box per entry on file, here —
+  // the first point a FormPlan meets memory — so every later stage sees ordinary rows. In place
+  // and idempotent: the caller's plan is the one the browser fills and the record freezes.
+  if (formPlan) expandRepeaters(formPlan, mem, { now });
   const context = jobContext(formPlan, mem);
   const decisions = (formPlan?.questions ?? []).map((q) => {
     const base = {
@@ -519,7 +524,7 @@ export function resolveForm(formPlan, { mem, pipeline = null, baselines = null, 
       // and every question about the user's circumstances, are still handed back as an `ask`.
       _onNone: !q.required && (q.class === "optional_text" || q.class === "company_specific") ? "skip" : "ask",
     };
-    const resolved = resolveQuestion(q, { mem, pipeline, baselines, now, context });
+    const resolved = resolveQuestion(q, { mem, pipeline, baselines, now, context, ats: formPlan?.ats ?? null });
     const decision = { ...base, ...resolved };
     if (decision.action === "ask" && !decision.remember_as) decision.remember_as = rememberAs(q, decision, context);
     return decision;
@@ -626,6 +631,9 @@ export function conditionPolarity(label, condition = null) {
 const clipLabel = (text, n = 40) => (String(text ?? "").length > n ? `${String(text).slice(0, n - 1)}…` : String(text ?? ""));
 
 function resolveQuestion(q, ctx) {
+  // One box of a repeating Education / Employment section: read off its own history entry, and
+  // nothing else — no other rule may answer "School (education 2)" from the newest degree.
+  if (q.repeat) return repeatRow(q, ctx);
   // Shape before content (docs/research/17-eval-judge-ten2.md §3 F4). "Have you added your full
   // legal name and surname?" is a Yes/No confirmation *about* a field the form already carries,
   // whatever class its wording landed in, and its answer is Yes exactly when the fact behind that

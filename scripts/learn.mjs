@@ -16,7 +16,7 @@ import { CONFIG_DIR, paths, slugify } from "../src/config.mjs";
 import { BASELINES, installDocument, loadMemory, mergeSection, saveAuxText, upsertRow } from "../src/memory/store.mjs";
 import { enrichMemoryQuietly } from "../src/memory/enrich.mjs";
 import { listFacts, resolvePreference } from "../src/memory/resolve.mjs";
-import { noticeRule, workAuthCountries } from "../src/memory/derive.mjs";
+import { educationHistory, employmentHistory, noticeRule, workAuthCountries } from "../src/memory/derive.mjs";
 import { eeoCanonical, nameSplit } from "../src/plan/resolve.mjs";
 import { EEO_VALUES, STANDARD_ACKS_ID, stamp, validateRow } from "../src/memory/schema.mjs";
 import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
@@ -428,6 +428,14 @@ function echoFor(mem, baselinesRows) {
     `preferences: ${mem.preferences.length}; answers: ${mem.answers.length}`,
     `stories: ${mem.stories.length}${hidden ? ` (${hidden} flagged use:never, kept but never offered)` : ""}`,
   ];
+  // What a form's repeating Education / Employment section will be filled with, newest first —
+  // the line to check when a degree or a role is missing from it.
+  const degrees = educationHistory(mem);
+  const roles = employmentHistory(mem);
+  if (degrees.length || roles.length) {
+    const named = (list, a, b) => list.map((e) => [e[a], e[b]].filter(Boolean).join(" — ")).slice(0, 3).join("; ");
+    lines.splice(1, 0, `history: ${degrees.length} degree(s)${degrees.length ? ` (${named(degrees, "degree", "school")})` : ""}, ${roles.length} role(s)${roles.length ? ` (${named(roles, "title", "employer")})` : ""}`);
+  }
   if (mem.documents.length) lines.push(`documents: ${mem.documents.length} → ${mem.documents.map((d) => short(d.path)).join(", ")}`);
   if (baselinesRows) lines.push(`salary table: ${baselinesRows} rows`);
   return lines.slice(0, 6);

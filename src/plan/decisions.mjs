@@ -27,6 +27,7 @@ import { resolvePreference, usableStories } from "../memory/resolve.mjs";
 import { FACT_SEEKING_RE, fitsLimits } from "../schema/classes.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
 import { applyDependencies, workAuthKind, yesNoOf } from "./resolve.mjs";
+import { shapeRepeatAnswer } from "./repeat.mjs";
 
 /** Internal planning fields never reach `decisions.json`. */
 const INTERNAL = /^_/;
@@ -354,8 +355,15 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
       applied.push(d.qid);
       continue;
     }
+    // One answer can reach two boxes of a history entry ("2016-08" → Start month + Start year):
+    // each takes the half it needs, and a box the answer does not cover stays with the user.
+    const shaped = q?.repeat ? shapeRepeatAnswer(q, value) : String(value);
+    if (shaped == null) {
+      ignored.push(d.qid);
+      continue;
+    }
     d.source = "user";
-    d.value = String(value);
+    d.value = shaped;
     d.action = "fill";
     d.confidence = undefined;
     d.gap = undefined;
@@ -373,7 +381,10 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
         reopen.push(d);
       }
     }
-    if (remember) rows.push(memoryRow({ decision: d, question: q, remember, value: String(value), context }));
+    // Month and year rows share one memory home; the date is stored once, as the user wrote it.
+    if (remember && !(q?.repeat && rows.some((r) => r?.row?.id === remember.id))) {
+      rows.push(memoryRow({ decision: d, question: q, remember, value: String(value), context }));
+    }
   }
 
   // The parent of a conditional follow-up may be one of the rows just answered, so the dependency

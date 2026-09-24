@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+**Repeating Education / Employment sections.** A form that asks for the education history now gets
+every degree on file — a Bachelor's *and* a Master's — each in its own entry, instead of one box
+typed with the newest degree or nothing at all. Read live on 2026-09-24: 15 of 90 hosted Greenhouse
+postings (50 boards) show an Education section and 5 require it; Ashby's `EducationHistoryField`
+was being planned as a plain text box.
+
+- `src/writer/prompts.mjs`, `src/writer/openai.mjs` (`historyFacts`), `src/writer/extract-basic.mjs`
+  — résumé reading keeps the whole history: one `f.education.<slug>` / `f.employment.<slug>` row
+  per degree and per role, structured, start date in `since:`. The prompt used to ask for "the most
+  recent degree" only, and the no-model reader skipped the Education heading altogether.
+- `src/memory/derive.mjs` — `educationHistory()` / `employmentHistory()`, newest first, with parts
+  the user added later (`<entry>.start`) outranking the résumé's headline; a year-only range
+  ("2016 – 2020") is read, and a closing year is no longer turned into a December nobody wrote.
+- `src/schema/greenhouse.mjs` — the hosted page's own `education_config` / `employment` (which the
+  board API does not publish) becomes one `type: "repeater"` row; `src/schema/ashby.mjs` reads
+  Ashby's history fields the same way, dates split into month and year.
+- `src/plan/repeat.mjs` (new) — the repeater expands into ordinary rows (`education[1].school`), so
+  resolve, the option ladder, read-back, preflight and the summary treat each box like any other.
+  Greenhouse's ten degree buckets are reached by a fixed table ("B.Tech" → Bachelor's Degree),
+  never by nearest match; a missing required date is one question for its month and year boxes;
+  an optional section never grows an entry the form would then refuse.
+- `src/browser/repeat.mjs` (new), `src/plan/execute.mjs` — entry N is made to exist by the
+  section's own add button before its boxes are filled, and on Ashby (whose cards repeat the same
+  ids) each box is found by its label inside its card. A school is matched literally, never by the
+  model; a school Greenhouse's catalogue does not carry is its "Other" entry, as a `check`. A box
+  whose list the saved words do not match (a Discipline) comes back as a question carrying that
+  list, so the answer is one of the form's own entries.
+- `eval/plan.test.mjs` — 16 `history:` assertions over two newly recorded fixtures
+  (`greenhouse-togetherai-4188119007.json`, `ashby-plaid-5d8abedc.json`). Live `--no-submit` on
+  both forms with a two-degree test profile: every box of both entries set and read back; the one
+  row left to the user was a Discipline Jev would not pick at 0.46.
+
 The twelve never-seen postings of `docs/research/20-eval-judge-fresh.md`, graded from their own
 screenshots, put six rows wrong and left two answerable ones empty. Each of the eight has a fix at
 the rule that produced it and a deterministic assertion in `eval/plan.test.mjs` (131 → 148).

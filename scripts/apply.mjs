@@ -55,6 +55,7 @@ import {
   writeSummary,
 } from "../src/plan/decisions.mjs";
 import { acceptHostDrafts, draftFor, draftRows, hostDraftAsks } from "../src/plan/draft.mjs";
+import { inferRows, inferredRows, persistInferred } from "../src/plan/infer.mjs";
 import {
   Blocked,
   attachPosting,
@@ -79,14 +80,14 @@ import { usageTotals as writerSpend } from "../src/writer/openai.mjs";
 const USAGE = [
   "usage: apply.mjs --url <posting> | --tab | --queue <n> | --resume <slug> | --schema <file>",
   "       [--answers <file>] [--dry-run] [--record-schema] [--json]",
-  "       [--submit | --no-submit] [--detect-submit] [--preflight] [--refill]",
+  "       [--submit | --no-submit] [--detect-submit] [--preflight] [--refill] [--no-infer]",
 ].join("\n");
 
 // ─── args ─────────────────────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
   // `submit: null` is "ask the user's `p.auto_submit`"; the two flags force it for one run.
-  const args = { dryRun: false, recordSchema: false, json: false, tab: false, submit: null, detectSubmit: false, preflight: false };
+  const args = { dryRun: false, recordSchema: false, json: false, tab: false, submit: null, detectSubmit: false, preflight: false, infer: true };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = () => argv[++i];
@@ -104,6 +105,9 @@ function parseArgs(argv) {
     else if (arg === "--no-submit") args.submit = false;
     else if (arg === "--detect-submit") args.detectSubmit = true;
     else if (arg === "--preflight") args.preflight = true;
+    // The evidence tier (`src/plan/infer.mjs`) off for one run: every row it would have answered
+    // from saved evidence goes back to being an `ask`, which is what this runner did before it.
+    else if (arg === "--no-infer") args.infer = false;
     else throw new Error(`unknown flag ${arg}`);
   }
   const targets = ["url", "schema", "resume", "queue"].filter((k) => args[k] != null).concat(args.tab ? ["tab"] : []);
@@ -138,11 +142,12 @@ function applyUrl(source) {
 }
 
 /**
- * Steps 1–7 for one posting: schema → FormPlan → deterministic Decisions → Jev requests 1 and 2.
+ * Steps 1–7 for one posting: schema → FormPlan → deterministic Decisions → Jev requests 1 and 2 →
+ * the evidence tier over whatever is still an `ask` (step 6½, `src/plan/infer.mjs`).
  * `reattach` reuses the frozen plan when it still describes this form, so `--answers` re-plans
  * only what the host just answered instead of paying for the whole form again.
  */
-async function planPosting({ source, stores, budget, phases = newPhases(), reattach = false, quiet = false }) {
+async function planPosting({ source, stores, budget, phases = newPhases(), reattach = false, quiet = false, infer = true }) {
   const { mem, baselines, pipeline, canon } = stores;
   const formPlan = await timed(phases, "schema", () => loadFormPlan(source));
   const slug = applicationSlug(formPlan);
@@ -167,6 +172,16 @@ async function planPosting({ source, stores, budget, phases = newPhases(), reatt
   if (!reuse) {
     jev = await timed(phases, "plan", () => planWithJev({ formPlan, decisions, mem, context, slug, canon, baselines, pipeline }));
     decisions = jev.decisions;
+    // Step 6½ — the rows every stage above left open, answered from saved evidence where the
+    // evidence justifies one exact answer. Two requests at most, and `--no-infer` skips it.
+    if (infer) {
+      const tier = await timed(phases, "plan", () => inferRows({ formPlan, decisions, mem, context, slug, pipeline }));
+      decisions = tier.decisions;
+      jev = sumJev(jev, tier);
+      if (!quiet && (tier.inferred.length || tier.requests)) {
+        log(`infer: ${tier.inferred.length} row(s) answered from evidence in ${tier.requests} request(s)${tier.inferred.length ? ` — ${tier.inferred.map((r) => `${r.qid} (${r.topic ?? "no topic"}, justified ${r.justified})`).join(", ")}` : ""}`);
+      }
+    }
   }
   budget.spend(jev.requests);
   // `openaiBase` is the writer's counter as this posting starts; `fill()` re-takes it so a queue
@@ -246,6 +261,11 @@ const sumJev = (a, b) => ({
  * The executor's way back into the planner: a conditional follow-up that only exists once the
  * form is half-filled gets the same deterministic + Jev pass as a question from the schema, so
  * this file never decides an answer itself (PLAN §2.2 step 9).
+ *
+ * The evidence tier deliberately does not run here. A row that mounts mid-fill is a conditional
+ * child ("If yes, please explain"), which is the parent's answer to elaborate on rather than
+ * anything saved evidence settles — and the tier's two-request budget is per posting, not per
+ * re-plan.
  */
 function replanFor({ plan, stores, budget }) {
   const { mem, baselines, pipeline, canon } = stores;
@@ -466,6 +486,13 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
       ...(extra.length ? { extra } : {}),
     });
     await writeSummary(slug, summary);
+    // An inference is worth paying for once. Each row the tier answered this run is filed as an
+    // `answers` row keyed by its topic (`source: "inferred"`, so a later `remember.mjs` statement
+    // overwrites it and never the other way round), and the next form that asks the same thing
+    // replays it with no model at all (`storedInference`). A dry run writes none of this: it
+    // touches no user data, here or anywhere else.
+    const saved = await persistInferred(decisions, plan.context);
+    for (const qid of saved.saved) log(`inferred → remembered answers:${qid}`);
   }
   await appendTrace(slug, { op: "plan", status, ...counts, requests: jev.requests, ms: Date.now() - started, ...(dryRun ? { dry_run: true } : {}) });
   await appendTrace(slug, { op: "usage", ...usage });
@@ -489,6 +516,20 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
     ...(browser ? { set: browser.filled, failed: browser.failed, appeared: browser.added.length, tab: formPlan.url } : {}),
     asks: questions,
     checks: decisions.filter((d) => d.action === "check").map((d, i) => ({ handle: `c${i + 1}`, qid: d.qid, label: d.label, value: d.class === "sensitive" ? "••••" : d.option ?? d.value ?? null })),
+    // Every row the evidence tier answered, with the reading behind it — the value itself is
+    // already in `checks` above (an inferred row is always a `check`), so this block is about
+    // provenance: which topic, what shape of value, which saved items, how sure the
+    // justification was.
+    inferred: inferredRows(decisions).map((d, i) => ({
+      handle: `i${i + 1}`,
+      qid: d.qid,
+      label: d.label,
+      topic: d.inference?.topic ?? null,
+      kind: d.option != null ? "option" : valueKind(d.value),
+      evidence: d.inference?.evidence ?? [],
+      justified: d.inference?.justified ?? null,
+      ...(d.inference?.replayed ? { replayed: true } : {}),
+    })),
     // The draft itself, clipped: it is the one value in this report the user did not write, so
     // "190 words" alone is not enough to decide whether to keep it, and a `--dry-run` says
     // outright that the text was never typed into the form.
@@ -510,6 +551,15 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
     ms: Date.now() - started,
     summary,
   };
+}
+
+/** The *shape* of an inferred value, for a report that must not transcribe personal values. */
+function valueKind(value) {
+  const v = String(value ?? "");
+  if (!v) return "none";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return "date";
+  if (/^\d+(?:\.\d+)?$/.test(v)) return "number";
+  return v.includes(" ") ? "text" : "word";
 }
 
 const dedupeQuestions = (questions) => [...new Map(questions.map((q) => [q.qid, q])).values()];
@@ -583,7 +633,7 @@ async function singleRun(args, stores) {
     }
 
     const answers = args.answers ? await readAnswersFile(args.answers) : null;
-    plan = await planPosting({ source, stores, budget, phases, reattach: Boolean(answers) });
+    plan = await planPosting({ source, stores, budget, phases, reattach: Boolean(answers), infer: args.infer });
     if (answers) {
       // A row the host agent was asked to write comes back as text, not as an `ask`: it is
       // checked against its own grounding and filled as a `draft` (src/plan/draft.mjs).
@@ -693,7 +743,7 @@ async function queueRun(args, stores) {
   const jobs = await mapLimit(entries, 4, async (entry) => {
     const job = { entry, budget: newBudget({}), plan: null, browser: null, submit: null, error: null };
     try {
-      job.plan = await planPosting({ source: applyUrl(entry.url), stores, budget: job.budget, reattach: Boolean(answers), quiet: true });
+      job.plan = await planPosting({ source: applyUrl(entry.url), stores, budget: job.budget, reattach: Boolean(answers), quiet: true, infer: args.infer });
       log(`planned ${entry.id}: ${job.plan.formPlan.questions.length} questions, ${job.plan.jev.requests} Jev request(s)`);
     } catch (err) {
       job.error = err;

@@ -13,6 +13,14 @@ export const GATES = {
   checkGap: 0.15,
   /** Noul probability at or above which a multi-select option is ticked (`src/jev/plan.mjs`). */
   noulSelect: 0.5,
+  /**
+   * Justification probability an *inferred* answer must reach (`src/plan/infer.mjs`). Higher than
+   * `askBelow` on purpose: an exact answer is a value the user stated and a thin score only
+   * decides how it is shown, while an inferred one is a reading of evidence — below this the row
+   * goes back to being their question. It is also the threshold `inferred_justified` refuses a
+   * submit on, so a record frozen before the tier existed cannot pass it by accident.
+   */
+  inferBelow: 0.7,
 };
 
 /**

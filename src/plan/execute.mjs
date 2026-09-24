@@ -446,6 +446,9 @@ const placeTokens = (segments) => segments.join(" ").split(" ").filter(Boolean);
  *      ("Bengaluru – India" ≡ "Bengaluru, India"). Word-aligned, so "Cork" never matches "Corker".
  *   2. **country suffix.** The last hierarchy level dropped from both sides, but only when the two
  *      whole strings name the same country ("Dublin, Ireland" ≡ "Dublin, IE").
+ *   3. **inserted hierarchy.** The saved segments are an ordered subsequence of the entry's, the
+ *      first segment is the same city and both name the same country ("Bengaluru, India" ⊂
+ *      "Bengaluru, Karnataka, India"). Rung 1 misses this because the region sits between.
  *
  * A work mode is refused outright, before either rung. "Remote" is not a place, and a picker
  * filtered on it returns real addresses that contain the word — "Remote, Oregon, United States"
@@ -477,7 +480,16 @@ export function samePlace(labels, value) {
   const folded = rows.filter(
     (row) => row.segments.length >= 2 && row.segments.slice(0, -1).join(" ") === core && countryFromText(row.label) === country,
   );
-  return folded.length === 1 ? { label: folded[0].label, why: "the list writes the same place's country suffix differently" } : null;
+  if (folded.length === 1) return { label: folded[0].label, why: "the list writes the same place's country suffix differently" };
+
+  const inserted = rows.filter((row) => {
+    if (row.segments.length <= wantSegments.length || row.segments[0] !== wantSegments[0]) return false;
+    if (countryFromText(row.label) !== country) return false;
+    let i = 0;
+    for (const seg of row.segments) if (seg === wantSegments[i]) i += 1;
+    return i === wantSegments.length;
+  });
+  return inserted.length === 1 ? { label: inserted[0].label, why: "the list spells the same place with its region inserted" } : null;
 }
 
 /**

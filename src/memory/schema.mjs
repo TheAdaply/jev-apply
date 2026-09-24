@@ -63,6 +63,15 @@ export const EEO_VALUES = Object.freeze({
  */
 export const YES_NO_PREFERENCES = Object.freeze(["p.legal.restrictive_agreements", "p.legal.previously_employed"]);
 
+/**
+ * The one blanket legal stance: "accept the standard application acknowledgements — truthfulness,
+ * interview recording, privacy — automatically?" (`scripts/learn.mjs` asks it once). It answers a
+ * gate *only* when that gate has no `p.legal.<slug>` of its own, only for those three subjects,
+ * only through the evidence tier's justification check, and never for an arbitration clause or any
+ * other gate that commits the candidate to something (`src/plan/infer.mjs`).
+ */
+export const STANDARD_ACKS_ID = "p.legal.standard_acks";
+
 /** Booleans the runner reads as behaviour switches; absent is *unanswered*, never "no". */
 export const SWITCH_PREFERENCES = Object.freeze(["p.auto_submit", "p.auto_draft"]);
 
@@ -121,6 +130,10 @@ export const ID_CATALOGUE = Object.freeze({
   "p.legal.terms_ack": { shape: "yes_no", what: "Whether the user agrees to a company's terms of use or code of conduct." },
   "p.legal.application_truthful_ack": { shape: "yes_no", what: "Whether the user attests that their application is truthful and complete." },
   "p.legal.export_control_ack": { shape: "yes_no", what: "Whether the user agrees to an export-control or sanctions attestation." },
+  "p.legal.standard_acks": {
+    shape: "yes_no",
+    what: "Whether the assistant may accept the standard application acknowledgements — truthfulness, interview recording, privacy — on the user's behalf, without asking each time.",
+  },
   "p.eeo.gender": { shape: "text", what: "What the user answers when a form asks their gender." },
   "p.eeo.race": { shape: "text", what: "What the user answers when a form asks their race." },
   "p.eeo.hispanic_latino": { shape: "text", what: "What the user answers when a form asks whether they are Hispanic or Latino." },

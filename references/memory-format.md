@@ -312,6 +312,21 @@ user's behalf in round 1 (`docs/research/12-eval-judge-round1.md` §3.1). Those 
 questions are no longer authored into `answers.yaml` at all (`POLICIES` in
 `src/canon/answers.mjs`) — the class decides, not the answer bank.
 
+**`p.legal.standard_acks` — the one blanket stance, and the only one there is.** Three
+acknowledgements say the same three things on every board: this application is truthful, interviews
+may be recorded, the candidate privacy notice has been read. `learn.mjs` asks once whether the
+runner may accept those for the user (`g.legal.standard_acks`), and a `"Yes"` lets the evidence
+tier answer a gate whose *own* `p.legal.<slug>` is absent — as a `check`, with a justification on
+record, and for those three subjects only (`STANDARD_ACK_SLUGS`, `src/plan/infer.mjs`). It is not a
+neighbouring preference standing in for a missing one: it is read only after `policyGateRow()` has
+already looked for the gate's own row, it never outranks one, and four things are outside it by
+construction — `arbitration_ack` (a right being given up, not a notice being read),
+`ai_usage_ack` (a statement about what the candidate did while applying), any gate whose wording
+names a specific obligation (a waiver, a fee, a background check, a relocation commitment), and
+every other slug. Those keep asking, each under its own id. `preflight` enforces the boundary:
+`policy_gate_source` accepts an inferred gate only when its `why` names this id *and*
+`inferred_justified` passes.
+
 ## `documents.yaml` — the files a form uploads
 
 `path` always points inside `~/.config/jev-apply/documents/`; `learn.mjs` copies the file there and
@@ -383,6 +398,33 @@ long they have worked change without anybody editing memory, and a stored number
 stale year count on a real application. `q.core.how_heard` and `q.core.pronouns` are the opposite
 case — a standing choice the user makes once — and are written as `constant` rows from
 `p.how_heard` and `f.identity.pronouns`, only when that row exists.
+
+**`q.inferred.<topic>` rows — an inference, filed so it is paid for once.** The evidence tier
+(`src/plan/infer.mjs`) answers a row nothing on file states but saved evidence justifies, and files
+what it concluded here: `qid: q.inferred.how_heard`, `source: inferred`, the questions it answers,
+and an `inference` block carrying the evidence ids and the justification score. The next form that
+asks the same thing replays it with no model call at all (`storedInference`), and it is still a
+`check` on every form it reaches — an inferred answer is never silently filled, on the run that
+inferred it or any run after. `source: inferred` is what keeps the row subordinate: `mergeSection`
+lets a `source: user` row overwrite one and never the reverse, so a `remember.mjs` correction (or a
+`corrections.yaml` rule naming the topic) replaces the inference permanently. Topics whose answer
+belongs to one employer (`previously_employed`, `how_heard`, `policy_ack`) are written
+`scope: company:<slug>`; the rest are `global`. A dry run writes none of them.
+
+```yaml
+- qid: q.inferred.how_heard
+  kind: company
+  scope: "company:acme-inc"
+  value: Company careers page
+  source: inferred            # a user-stated row over the same qid always wins
+  answers_questions: ["How did you hear about this opportunity?"]
+  topics: [how heard]
+  inference:
+    evidence: [pipeline.acme-123, posting]
+    justified: 0.86
+    label: How did you hear about this opportunity?
+  updated: 2026-09-24
+```
 
 ## `stories.yaml` — raw material (résumé bullets, accepted drafts, interview answers)
 

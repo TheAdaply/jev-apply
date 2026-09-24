@@ -28,10 +28,12 @@ import { normalizeAshby } from "../src/schema/ashby.mjs";
 import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
 import { NONE } from "../src/jev/client.mjs";
+import { GATES } from "../src/jev/gates.mjs";
 import { CANON_RULES, applyRephrasing, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
 import { ID_CATALOGUE } from "../src/memory/schema.mjs";
 import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
 import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
+import { inferBlocked, inferRows, inferredMemoryRows } from "../src/plan/infer.mjs";
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
 import { deferredMount, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
 import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
@@ -53,10 +55,10 @@ function check(label, ok) {
   if (!ok) failures += 1;
 }
 
-/** Runs `apply.mjs --dry-run --schema <fixture> --json` and returns the parsed stdout payload. */
-function planFixture(fixture) {
+/** Runs `apply.mjs --dry-run --schema <fixture> --json [extra…]` and returns the parsed payload. */
+function planFixture(fixture, extra = []) {
   const schema = path.join(ROOT, "eval", "fixtures", fixture);
-  const proc = spawnSync(process.execPath, [APPLY, "--dry-run", "--schema", schema, "--json"], {
+  const proc = spawnSync(process.execPath, [APPLY, "--dry-run", "--schema", schema, "--json", ...extra], {
     cwd: ROOT,
     encoding: "utf8",
   });
@@ -107,10 +109,9 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     "greenhouse: the location row is filled from the stated city, not asked",
     !plan.asks.some((q) => q.qid === "location"),
   );
-  // requests <= 2 holds while canon/questions.yaml is absent (saved-item request + options
-  // request). Once the canon bank lands, a row whose label misses every canonical id adds a
-  // third (story-fallback) request by design — bump this to <= 3 if that starts failing.
-  check(`greenhouse: requests <= 2 (got ${plan.requests})`, plan.requests <= 2);
+  // Budget: saved-item request + options request, plus the evidence tier's two batched requests
+  // (gather/propose, justify) when any row is still open — never more than 4 on this fixture.
+  check(`greenhouse: requests <= 4 (got ${plan.requests})`, plan.requests <= 4);
 }
 
 // ─── the round-1 policy (docs/research/12-eval-judge-round1.md) ────────────────────────────────
@@ -1724,6 +1725,276 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
       !/priya/i.test(String(conditional.value)) &&
       noElse.action === "ask" &&
       /condition about you/.test(noElse.why),
+  );
+}
+
+// ─── the evidence tier (src/plan/infer.mjs) ────────────────────────────────────────────────────
+// The root cause these twelve assertions pin: on 12 unseen postings, 54 rows came back unfilled
+// recording "no <key> on file" for questions the runner understood, while memory held the evidence
+// for the answer (pipeline provenance, the relocation stance, employment `since:` dates, the
+// stated full name, the blanket acknowledgement stance). Memory was a lookup table; the tier makes
+// it evidence to reason over, and every row it answers is a `check` with its evidence on record.
+//
+// Deterministic: the two Jev passes are driven through `inferRows`'s own transport seam with
+// fabricated answers, exactly as the request-2 assertions above drive `applyRephrasing`. What is
+// being asserted is the tier's reasoning — which rows it may reach, what it proposes, what the
+// gates do with a verdict — not the model's opinion, which the real dry runs measure.
+{
+  const now = new Date("2026-09-24T00:00:00Z");
+  const mem = {
+    facts: [
+      { id: "f.identity.full_name", value: "Priya Raman", source: "user" },
+      { id: "f.identity.city", value: "Bengaluru, India", source: "user" },
+      { id: "f.employment.newest_co", value: "ML Engineer — Newest Co, Jan 2023 – Present", since: "2023-01", source: "cv.pdf#p1" },
+      { id: "f.employment.older_co", value: "Intern — Older Co", since: "2022-06", until: "2022-12", source: "cv.pdf#p1" },
+    ],
+    preferences: [
+      { id: "p.relocation", value: { willing: true, anywhere_except: ["IN"] }, source: "user" },
+      { id: "p.looking_for", value: { acceptable_locations: { rule: "any_country_except", except: ["IN"] } }, source: "user" },
+      { id: "p.eeo", value: { gender: "male", race: "asian", hispanic_latino: "no", veteran_status: "not_veteran", disability_status: "no" }, source: "user" },
+      { id: "p.legal.standard_acks", value: "Yes", source: "user" },
+    ],
+    answers: [],
+    stories: [],
+    documents: [],
+    corrections: [],
+  };
+  const pipeline = { jobs: [{ id: "vercel-1", url: "https://job-boards.greenhouse.io/vercel/jobs/1", company: "Vercel", provider: "greenhouse", status: "queued", found: "2026-09-22" }] };
+  const JOB = { company: "Vercel", title: "ML Engineer", location: "Berlin, Germany", country: "DE" };
+  const yesNo = [{ label: "Yes" }, { label: "No" }];
+  const q = {
+    how: { qid: "how", label: "How did you hear about this opportunity?", required: true, type: "single_select", control: "react_select", class: "circumstance", options: [{ label: "Company careers page" }, { label: "LinkedIn" }, { label: "Recruiter" }] },
+    office: { qid: "office", label: "Are you comfortable working in-office 3 days a week?", required: true, type: "boolean", control: "radio", class: "circumstance", options: yesNo },
+    years: { qid: "years", label: "How many years of professional experience do you have?", required: true, type: "number", control: "text", class: "circumstance", options: [] },
+    prior: { qid: "prior", label: "Have you previously been employed by Vercel?", required: true, type: "boolean", control: "radio", class: "company_specific", options: yesNo },
+    pronouns: { qid: "pronouns", label: "What pronouns would you like our team to use?", required: false, type: "text", control: "text", class: "sensitive", options: [] },
+    gender: { qid: "gender", label: "Gender", required: true, type: "single_select", control: "select", class: "sensitive", options: [{ label: "Man" }, { label: "Woman" }] },
+    preferred: { qid: "preferred", label: "Preferred Name", required: false, type: "text", control: "text", class: "identity", options: [] },
+    truthful: { qid: "truthful", label: "I certify that the information in this application is true and complete.", required: true, type: "boolean", control: "checkbox", class: "policy_gate", options: [{ label: "I agree" }] },
+    ai: { qid: "ai", label: "I acknowledge that I did not use AI tools to write my answers.", required: true, type: "boolean", control: "checkbox", class: "policy_gate", options: [{ label: "I agree" }] },
+    thirdParty: { qid: "pwc", label: "Have you ever been previously employed by PricewaterhouseCoopers?", required: true, type: "boolean", control: "radio", class: "circumstance", options: yesNo },
+  };
+  const formPlan = { ats: "greenhouse", url: "https://job-boards.greenhouse.io/vercel/jobs/1", job: JOB, questions: Object.values(q) };
+
+  /**
+   * The transport seam, answering as a decider that reads the evidence: every offered item bears,
+   * the proposal is `picks[qid]` (or `none_of_these` where the evidence settles nothing), and the
+   * justification is `verdict`. One object per test so a low verdict is a *different* run, not a
+   * mutated one.
+   */
+  const decider = ({ picks = {}, verdict = 0.88, bears = 0.95 } = {}) => {
+    const seen = { propose: 0, justify: 0 };
+    const ask = async ({ stage, questions, totals }) => {
+      seen[stage === "infer_propose" ? "propose" : "justify"] += 1;
+      totals.requests += 1;
+      totals.stages.push(stage);
+      const out = {};
+      for (const [id, question] of Object.entries(questions)) {
+        if (question.type === "noul") {
+          out[id] = { type: "noul", noul: id.startsWith("bears_") ? bears : verdict };
+          continue;
+        }
+        const labels = Object.keys(question.criteria);
+        const wanted = picks[id.slice("pick_".length)];
+        const choice = wanted && labels.includes(wanted) ? wanted : wanted === NONE ? NONE : labels[0];
+        out[id] = {
+          type: "choice",
+          choice,
+          confidence: 0.9,
+          probabilities: Object.fromEntries(labels.map((l) => [l, l === choice ? 0.9 : 0.1 / (labels.length - 1)])),
+        };
+      }
+      return out;
+    };
+    ask.seen = seen;
+    return ask;
+  };
+
+  const PICKS = { how: "Company careers page", office: "Yes", prior: "No", years: "4", preferred: "Priya", truthful: "I agree" };
+
+  const planned = (over = {}, { picks = PICKS, verdict = 0.88 } = {}) => {
+    const plan = { ...formPlan, ...over };
+    const { decisions, context } = resolveForm(plan, { mem: over.mem ?? mem, pipeline, now });
+    const ask = decider({ picks, verdict });
+    return inferRows({ formPlan: plan, decisions, mem: over.mem ?? mem, context, pipeline, now, ask }).then((out) => ({ ...out, context, ask }));
+  };
+
+  const run = await planned();
+  const row = (qid) => run.decisions.find((d) => d.qid === qid);
+
+  // ── (a) how-heard, answered from where the application was reached ──────────────────────────
+  check(
+    "infer: a how-heard row with no p.how_heard on file takes the company's own careers-page option as a check, citing the posting's provenance",
+    row("how").action === "check" &&
+      row("how").source === "inferred" &&
+      row("how").option === "Company careers page" &&
+      /^inferred — /.test(row("how").why) &&
+      row("how").inference.evidence.some((id) => /^pipeline\.|^posting/.test(id)),
+  );
+
+  // ── (b) in-office, answered from the relocation/location stance ─────────────────────────────
+  check(
+    "infer: an in-office row with a null p.in_office answers Yes as a check from the stance that accepts this posting's country",
+    row("office").action === "check" && row("office").source === "inferred" && row("office").option === "Yes" && row("office").inference.evidence.includes("p.relocation"),
+  );
+
+  // ── (c) years of experience, counted from the user's own `since:` dates ─────────────────────
+  // Two candidates are offered and this is the second: `fullTimeYears()` — the derivation
+  // `CANON_RULES`' `experience.years_total` reads — answers 0 on a store written from a real CV,
+  // because no row there *says* it is full-time. The span the `since:` dates describe is the
+  // reading that is left, and the `why` says which rule produced the number.
+  check(
+    "infer: a years-of-experience row is a computed number counted from the saved roles' own since: dates, never a stored count",
+    row("years").action === "check" && row("years").source === "inferred" && row("years").value === "4" && /since:/.test(row("years").why),
+  );
+
+  // ── (d) previously employed *here*, with a history naming other employers ───────────────────
+  check(
+    "infer: a previously-employed-by-this-company row answers No as a check, and its why states the reading the answer rests on",
+    row("prior").action === "check" && row("prior").option === "No" && /no role at this company/.test(row("prior").why),
+  );
+
+  // ── (e) pronouns: the refusal, not an inference ──────────────────────────────────────────────
+  // The design asked for pronouns to be derived from the saved gender. It is not: a pronoun read
+  // off `p.eeo.gender` is a heuristic over a neighbouring demographic field, which is the one
+  // thing the EEO invariant forbids (AGENTS.md; `PRONOUN_FACT_RE` in preflight admits a *stated*
+  // pronoun fact and nothing else). The row stays the user's, and `pronounRow()` still fills it
+  // outright the moment `f.identity.pronouns` or `p.eeo.pronouns` is on file.
+  const withPronouns = { ...mem, preferences: [...mem.preferences, { id: "p.eeo.pronouns", value: "they/them", source: "user" }] };
+  const stated = resolveForm({ ...formPlan, questions: [q.pronouns] }, { mem: withPronouns, pipeline, now }).decisions[0];
+  check(
+    "infer: a pronouns row is never inferred from a saved gender — it stays the user's question, and a stated pronoun row still fills it",
+    inferBlocked(row("pronouns"), q.pronouns, { context: run.context, mem }) === "a pronoun is stated, never inferred" &&
+      row("pronouns").source !== "inferred" &&
+      stated.action === "fill" &&
+      /pronouns/.test(stated.why),
+  );
+
+  // ── (f) preferred name, read off the stated full name ───────────────────────────────────────
+  check(
+    "infer: an optional preferred-name box skipped for want of a fact is answered with the given name of the stated full name, as a check",
+    row("preferred").action === "check" && row("preferred").source === "inferred" && row("preferred").value === "Priya" && row("preferred").inference.evidence.includes("f.identity.full_name"),
+  );
+
+  // ── (g) the standard acknowledgements, and the attestation that is not one ───────────────────
+  check(
+    "infer: a truthfulness acknowledgement is signed from p.legal.standard_acks as a check, an AI-usage attestation still asks, and the preflight accepts the first and only the first",
+    row("truthful").action === "check" &&
+      row("truthful").source === "inferred" &&
+      /p\.legal\.standard_acks/.test(row("truthful").why) &&
+      row("ai").action === "ask" &&
+      /ai_usage_ack/.test(row("ai").why) &&
+      !preflight({ decisions: [row("truthful")], questions: [q.truthful], mem }).failures.some((f) => f.rule === "policy_gate_source" || f.rule === "inferred_justified"),
+  );
+
+  // ── (g2) arbitration is outside the blanket stance, whatever slug it lands on ────────────────
+  const arbitration = { qid: "arb", label: "I agree that any dispute arising from my application will be resolved by binding arbitration.", required: true, type: "boolean", control: "checkbox", class: "policy_gate", options: [{ label: "I agree" }] };
+  const arbRow = resolveForm({ ...formPlan, questions: [arbitration] }, { mem, pipeline, now }).decisions[0];
+  check(
+    "infer: an arbitration clause is never signed from the blanket stance — a right given up is not a notice read",
+    typeof inferBlocked(arbRow, arbitration, { context: run.context, mem }) === "string" && /arbitration_ack|specific/.test(inferBlocked(arbRow, arbitration, { context: run.context, mem })),
+  );
+
+  // ── (h) a protected characteristic, never ────────────────────────────────────────────────────
+  // `Gender` is a *fill* here — `p.eeo` states it, which is the one source a demographic row has.
+  // The row that would tempt the tier is the survey question no `p.eeo` field covers, which is
+  // still an `ask` with a whole demographic block on file: that is the one to pin.
+  const lgbtq = { qid: "lgbtq", label: "Do you identify as a member of the LGBTQ+ community?", required: false, type: "single_select", control: "select", class: "sensitive", options: [{ label: "Yes" }, { label: "No" }] };
+  const survey = await planned({ questions: [...Object.values(q), lgbtq] });
+  const surveyRow = survey.decisions.find((d) => d.qid === "lgbtq");
+  check(
+    "infer: a demographic row is never inferred — a survey question no p.eeo field covers still asks with the whole block on file, and no sensitive row on the plan is ever sourced `inferred`",
+    surveyRow.action === "ask" &&
+      inferBlocked(surveyRow, lgbtq, { context: run.context, mem }) === "a protected characteristic is never inferred" &&
+      inferBlocked(row("gender"), q.gender, { context: run.context, mem }) === "not an open ask" &&
+      row("gender").source === "preference" &&
+      !survey.decisions.some((d) => d.class === "sensitive" && d.source === "inferred"),
+  );
+
+  // ── (i) somebody else's employment history, never ───────────────────────────────────────────
+  check(
+    "infer: a prior-employment row naming a third organisation is nobody's to infer — it stays an ask (B4 survives the tier)",
+    row("pwc").action === "ask" && /another organisation/.test(inferBlocked(row("pwc"), q.thirdParty, { context: run.context, mem })),
+  );
+
+  // ── (j) the justification gate ───────────────────────────────────────────────────────────────
+  const weak = await planned({}, { verdict: GATES.inferBelow - 0.2 });
+  const refusedNone = await planned({}, { picks: { ...PICKS, how: NONE } });
+  check(
+    `infer: a justification below ${GATES.inferBelow} sends the row back to the user, and so does a proposal of none_of_these`,
+    weak.decisions.every((d) => d.source !== "inferred") &&
+      weak.decisions.find((d) => d.qid === "how").action === "ask" &&
+      /did not justify/.test(weak.decisions.find((d) => d.qid === "how").why) &&
+      refusedNone.decisions.find((d) => d.qid === "how").action === "ask" &&
+      /does not settle/.test(refusedNone.decisions.find((d) => d.qid === "how").why),
+  );
+
+  // ── (j2) an inferred row with no justification on record never reaches a real employer ──────
+  const forged = { ...row("how"), inference: { ...row("how").inference, justified: 0.2 } };
+  const unbacked = { ...row("how"), inference: undefined };
+  const silent = { ...row("how"), action: "fill" };
+  check(
+    "infer: preflight's inferred_justified refuses an inferred row whose justification is low, missing, or that is about to be filled instead of shown",
+    [forged, unbacked, silent].every((d) => preflight({ decisions: [d], questions: [q.how], mem }).failures.some((f) => f.rule === "inferred_justified")) &&
+      finalize([silent])[0].action === "check",
+  );
+
+  // ── (k) the budget, and the tier's own accounting ────────────────────────────────────────────
+  check(
+    `infer: the whole tier costs two Jev requests for a nine-row form (got ${run.requests}), one to propose and one to justify`,
+    run.requests === 2 && run.ask.seen.propose === 1 && run.ask.seen.justify === 1,
+  );
+
+  // ── (l) an inference is paid for once: the second form replays it with no model at all ──────
+  const saved = inferredMemoryRows(run.decisions, run.context);
+  const mem2 = { ...mem, answers: saved };
+  const second = resolveForm(formPlan, { mem: mem2, pipeline, now });
+  const replay = await inferRows({
+    formPlan,
+    decisions: second.decisions,
+    mem: mem2,
+    context: second.context,
+    pipeline,
+    now,
+    ask: async () => {
+      throw new Error("a replayed inference must not reach the model");
+    },
+  });
+  const replayed = (qid) => replay.decisions.find((d) => d.qid === qid);
+  // …and a correction the user states overrides it: `remember.mjs` writes `source: user` over the
+  // same qid, and `mergeSection` lets that through in exactly one direction.
+  const corrected = { ...mem, answers: saved.map((r) => (r.qid === "q.inferred.how_heard" ? { ...r, value: "Recruiter", source: "user" } : r)) };
+  const afterCorrection = await inferRows({
+    formPlan: { ...formPlan, questions: [q.how] },
+    decisions: resolveForm({ ...formPlan, questions: [q.how] }, { mem: corrected, pipeline, now }).decisions,
+    mem: corrected,
+    context: run.context,
+    pipeline,
+    now,
+    ask: async () => {
+      throw new Error("a user-corrected answer must not reach the model either");
+    },
+  });
+  const correctedRow = afterCorrection.decisions[0];
+  check(
+    "infer: an inferred answer is filed under its topic and fills the next form directly — no Jev request, still a check — and a user correction over the same qid replaces it",
+    saved.some((r) => r.qid === "q.inferred.how_heard" && r.source === "inferred" && r.answers_questions.length) &&
+      replay.requests === 0 &&
+      replayed("how").action === "check" &&
+      replayed("how").source === "inferred" &&
+      replayed("how").option === "Company careers page" &&
+      replayed("how").inference.replayed === true &&
+      correctedRow.action === "check" &&
+      correctedRow.source === "answer" &&
+      correctedRow.option === "Recruiter" &&
+      /answered this before/.test(correctedRow.why),
+  );
+
+  // ── (k2) --no-infer restores exactly today's behaviour, end to end through the CLI ──────────
+  const off = planFixture("greenhouse-togetherai-5179372007.json", ["--no-infer"]);
+  check(
+    `infer: --no-infer skips the tier — no inferred row, and the run stays inside its old request budget (got ${off.requests})`,
+    Array.isArray(off.inferred) && off.inferred.length === 0 && off.requests <= 2 && !off.checks.some((c) => /^inferred/.test(String(c.why ?? ""))),
   );
 }
 if (failures > 0) {

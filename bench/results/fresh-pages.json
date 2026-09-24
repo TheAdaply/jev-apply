@@ -2,7 +2,7 @@
   "report": "fresh-pages",
   "title": "Twelve never-seen job pages, real profile, screenshot-judged",
   "generated": "2026-09-24",
-  "captured": "2026-09-23",
+  "captured": "2026-09-24",
   "method": {
     "postings": 12,
     "unseen": true,
@@ -14,46 +14,59 @@
     "vocabulary": ["right", "wrong", "missed", "couldnt"],
     "rounds": {
       "baseline": "fresh-baseline",
-      "final": "fresh3"
+      "final": "fresh3",
+      "inference": "fresh4"
     }
   },
   "postings": [
     {"n": 1,  "company": "twilio",     "family": "ml_engineer",        "ats": "greenhouse",
-     "baseline": {"rows": 16, "right": 10, "wrong": 0, "missed": 0, "couldnt": 6, "asks": 4, "seconds": 28.7, "usd": 0.000281},
-     "final":    {"rows": 16, "right": 11, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 30.1, "usd": 0.000281}},
+     "baseline":  {"rows": 16, "right": 10, "wrong": 0, "missed": 0, "couldnt": 6, "asks": 4, "seconds": 28.7, "usd": 0.000281},
+     "final":     {"rows": 16, "right": 11, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 30.1, "usd": 0.000281},
+     "inference": {"rows": 16, "right": 12, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 3, "seconds": 31.7, "usd": 0.000445, "inferred": 1}},
     {"n": 2,  "company": "gitlab",     "family": "backend",            "ats": "greenhouse",
-     "baseline": {"rows": 19, "right": 13, "wrong": 1, "missed": 1, "couldnt": 4, "asks": 4, "seconds": 34.0, "usd": 0.000702},
-     "final":    {"rows": 19, "right": 14, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 3, "seconds": 34.4, "usd": 0.000675}},
+     "baseline":  {"rows": 19, "right": 13, "wrong": 1, "missed": 1, "couldnt": 4, "asks": 4, "seconds": 34.0, "usd": 0.000702},
+     "final":     {"rows": 19, "right": 14, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 3, "seconds": 34.4, "usd": 0.000675},
+     "inference": {"rows": 19, "right": 14, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 3, "seconds": 34.5, "usd": 0.000675, "inferred": 0}},
     {"n": 3,  "company": "gusto",      "family": "ml_engineer",        "ats": "greenhouse",
-     "baseline": {"rows": 23, "right": 15, "wrong": 1, "missed": 0, "couldnt": 7, "asks": 5, "seconds": 40.8, "usd": 0.000981},
-     "final":    {"rows": 23, "right": 16, "wrong": 0, "missed": 3, "couldnt": 4, "asks": 5, "seconds": 40.0, "usd": 0.000981}},
+     "baseline":  {"rows": 23, "right": 15, "wrong": 1, "missed": 0, "couldnt": 7, "asks": 5, "seconds": 40.8, "usd": 0.000981},
+     "final":     {"rows": 23, "right": 16, "wrong": 0, "missed": 3, "couldnt": 4, "asks": 5, "seconds": 40.0, "usd": 0.000981},
+     "inference": {"rows": 23, "right": 20, "wrong": 0, "missed": 0, "couldnt": 3, "asks": 1, "seconds": 42.7, "usd": 0.000567, "inferred": 1}},
     {"n": 4,  "company": "remote-com", "family": "product_manager",    "ats": "greenhouse",
-     "baseline": {"rows": 24, "right": 13, "wrong": 2, "missed": 0, "couldnt": 9, "asks": 8, "seconds": 43.7, "usd": 0.000765},
-     "final":    {"rows": 24, "right": 15, "wrong": 0, "missed": 2, "couldnt": 7, "asks": 8, "seconds": 42.4, "usd": 0.000527}},
+     "baseline":  {"rows": 24, "right": 13, "wrong": 2, "missed": 0, "couldnt": 9, "asks": 8, "seconds": 43.7, "usd": 0.000765},
+     "final":     {"rows": 24, "right": 15, "wrong": 0, "missed": 2, "couldnt": 7, "asks": 8, "seconds": 42.4, "usd": 0.000527},
+     "inference": {"rows": 24, "right": 17, "wrong": 0, "missed": 0, "couldnt": 7, "asks": 6, "seconds": 45.2, "usd": 0.000677, "inferred": 0}},
     {"n": 5,  "company": "vercel",     "family": "infra_sre",          "ats": "greenhouse",
-     "baseline": {"rows": 24, "right": 18, "wrong": 2, "missed": 1, "couldnt": 3, "asks": 3, "seconds": 42.8, "usd": 0.000970},
-     "final":    {"rows": 24, "right": 21, "wrong": 0, "missed": 0, "couldnt": 3, "asks": 2, "seconds": 46.7, "usd": 0.000718}},
+     "baseline":  {"rows": 24, "right": 18, "wrong": 2, "missed": 1, "couldnt": 3, "asks": 3, "seconds": 42.8, "usd": 0.000970},
+     "final":     {"rows": 24, "right": 21, "wrong": 0, "missed": 0, "couldnt": 3, "asks": 2, "seconds": 46.7, "usd": 0.000718},
+     "inference": {"rows": 24, "right": 21, "wrong": 0, "missed": 0, "couldnt": 3, "asks": 2, "seconds": 43.5, "usd": 0.000718, "inferred": 0}},
     {"n": 6,  "company": "discord",    "family": "security",           "ats": "greenhouse",
-     "baseline": {"rows": 26, "right": 22, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 2, "seconds": 57.3, "usd": 0.0105},
-     "final":    {"rows": 26, "right": 22, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 2, "seconds": 53.7, "usd": 0.007138}},
+     "baseline":  {"rows": 26, "right": 22, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 2, "seconds": 57.3, "usd": 0.0105},
+     "final":     {"rows": 26, "right": 22, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 2, "seconds": 53.7, "usd": 0.007138},
+     "inference": {"rows": 26, "right": 23, "wrong": 0, "missed": 0, "couldnt": 3, "asks": 1, "seconds": 57.9, "usd": 0.010480, "inferred": 1}},
     {"n": 7,  "company": "notion",     "family": "security",           "ats": "ashby",
-     "baseline": {"rows": 10, "right": 7,  "wrong": 0, "missed": 0, "couldnt": 3, "asks": 3, "seconds": 11.5, "usd": 0.0},
-     "final":    {"rows": 10, "right": 7,  "wrong": 0, "missed": 0, "couldnt": 3, "asks": 3, "seconds": 13.1, "usd": 0.0}},
+     "baseline":  {"rows": 10, "right": 7,  "wrong": 0, "missed": 0, "couldnt": 3, "asks": 3, "seconds": 11.5, "usd": 0.0},
+     "final":     {"rows": 10, "right": 7,  "wrong": 0, "missed": 0, "couldnt": 3, "asks": 3, "seconds": 13.1, "usd": 0.0},
+     "inference": {"rows": 10, "right": 8,  "wrong": 0, "missed": 0, "couldnt": 2, "asks": 2, "seconds": 18.8, "usd": 0.000249, "inferred": 1}},
     {"n": 8,  "company": "harvey",     "family": "backend",            "ats": "ashby",
-     "baseline": {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.8, "usd": 0.000955},
-     "final":    {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.3, "usd": 0.000955}},
+     "baseline":  {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.8, "usd": 0.000955},
+     "final":     {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.3, "usd": 0.000955},
+     "inference": {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.7, "usd": 0.001203, "inferred": 0}},
     {"n": 9,  "company": "plaid",      "family": "data_engineer",      "ats": "ashby",
-     "baseline": {"rows": 17, "right": 9,  "wrong": 0, "missed": 0, "couldnt": 8, "asks": 6, "seconds": 26.3, "usd": 0.0107},
-     "final":    {"rows": 17, "right": 10, "wrong": 0, "missed": 1, "couldnt": 6, "asks": 6, "seconds": 28.7, "usd": 0.009891}},
+     "baseline":  {"rows": 17, "right": 9,  "wrong": 0, "missed": 0, "couldnt": 8, "asks": 6, "seconds": 26.3, "usd": 0.0107},
+     "final":     {"rows": 17, "right": 10, "wrong": 0, "missed": 1, "couldnt": 6, "asks": 6, "seconds": 28.7, "usd": 0.009891},
+     "inference": {"rows": 17, "right": 11, "wrong": 0, "missed": 0, "couldnt": 6, "asks": 5, "seconds": 32.1, "usd": 0.012251, "inferred": 0}},
     {"n": 10, "company": "lambda",     "family": "gpu_performance",    "ats": "ashby",
-     "baseline": {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 20.5, "usd": 0.001134},
-     "final":    {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 21.5, "usd": 0.001134}},
+     "baseline":  {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 20.5, "usd": 0.001134},
+     "final":     {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 21.5, "usd": 0.001134},
+     "inference": {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 25.8, "usd": 0.001306, "inferred": 0}},
     {"n": 11, "company": "luma-ai",    "family": "research_scientist", "ats": "ashby",
-     "baseline": {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 23.4, "usd": 0.000467},
-     "final":    {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 23.7, "usd": 0.000467}},
+     "baseline":  {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 23.4, "usd": 0.000467},
+     "final":     {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 23.7, "usd": 0.000467},
+     "inference": {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 26.0, "usd": 0.000467, "inferred": 0}},
     {"n": 12, "company": "openai",     "family": "research_engineer",  "ats": "ashby",
-     "baseline": {"rows": 20, "right": 12, "wrong": 0, "missed": 0, "couldnt": 8, "asks": 7, "seconds": 21.1, "usd": 0.001151},
-     "final":    {"rows": 20, "right": 12, "wrong": 0, "missed": 1, "couldnt": 7, "asks": 7, "seconds": 22.9, "usd": 0.001151}}
+     "baseline":  {"rows": 20, "right": 12, "wrong": 0, "missed": 0, "couldnt": 8, "asks": 7, "seconds": 21.1, "usd": 0.001151},
+     "final":     {"rows": 20, "right": 12, "wrong": 0, "missed": 1, "couldnt": 7, "asks": 7, "seconds": 22.9, "usd": 0.001151},
+     "inference": {"rows": 20, "right": 12, "wrong": 0, "missed": 1, "couldnt": 7, "asks": 7, "seconds": 25.6, "usd": 0.001447, "inferred": 0}}
   ],
   "totals": {
     "baseline": {
@@ -66,20 +79,55 @@
     "final": {
       "postings": 12, "rows": 229, "right": 168, "wrong": 0, "missed": 7, "couldnt": 54,
       "asks": 48, "jev_requests": 27, "seconds": 374.5, "usd": 0.023918,
+      "jev_usd": 0.008990, "writer_usd": 0.014928,
       "median_seconds": 29.4, "median_usd": 0.0008365,
       "correct_of_all_rows": 0.7336, "correct_of_filled_rows": 1.0,
       "safe_to_submit": 1
     },
+    "inference": {
+      "postings": 12, "rows": 229, "right": 178, "wrong": 0, "missed": 1, "couldnt": 50,
+      "inferred": 4, "asks": 38, "jev_requests": 41, "seconds": 401.5, "usd": 0.030485,
+      "jev_usd": 0.009962, "writer_usd": 0.020523,
+      "median_seconds": 31.9, "median_usd": 0.0006975,
+      "correct_of_all_rows": 0.7773, "correct_of_filled_rows": 1.0,
+      "safe_to_submit": 1
+    },
     "delta": {
-      "right": 9, "wrong": -6, "missed": 5, "couldnt": -8, "asks": -2,
-      "jev_requests": 0, "seconds": 6.6, "usd": -0.004688,
-      "correct_of_filled_rows_pts": 3.64
+      "final_vs_baseline": {
+        "right": 9, "wrong": -6, "missed": 5, "couldnt": -8, "asks": -2,
+        "jev_requests": 0, "seconds": 6.6, "usd": -0.004688,
+        "correct_of_filled_rows_pts": 3.64
+      },
+      "inference_vs_final": {
+        "right": 10, "wrong": 0, "missed": -6, "couldnt": -4, "asks": -10,
+        "jev_requests": 14, "seconds": 27.0, "usd": 0.006567,
+        "jev_usd": 0.000972, "writer_usd": 0.005595,
+        "correct_of_all_rows_pts": 4.37
+      }
     }
+  },
+  "inference_tier": {
+    "rows_entering_tier": 20,
+    "committed_to_a_page": 4,
+    "judged_right": 4,
+    "judged_wrong": 0,
+    "judged_defensible_but_check": 0,
+    "kill_criterion_triggered": false,
+    "topics_committed": ["how_heard"],
+    "refused_none_of_these": 7,
+    "refused_low_proposal": 3,
+    "refused_low_justification": 6,
+    "postings_with_no_tier_request": ["gitlab", "vercel", "luma-ai"],
+    "shown_to_user_before_submit": true,
+    "inferred_rows_on_the_one_auto-submittable_posting": 0
   },
   "notes": [
     "A row is `right` when it is filled and correct for the question and the candidate; `wrong` when filled and incorrect; `missed` when left empty although the saved store answered it; `couldnt` when nothing was on file, a policy gate correctly refused, or the control could not take the answer.",
-    "`missed` is graded on a stricter rule than the baseline report used; six rows unanswered in both rounds move from `couldnt` to `missed` on both sides, so the two columns stay comparable.",
-    "No Submit control was clicked on any posting: the harness passes `--no-submit` to every child run.",
+    "`missed` is graded on a stricter rule than the baseline report used; six rows unanswered in the baseline and final rounds move from `couldnt` to `missed` on both sides, so the columns stay comparable.",
+    "No Submit control was clicked on any posting in any round: the harness passes `--no-submit` to every child run.",
+    "An inferred row is written to the page as a `check` and listed under ► INFERRED in the summary the user reads before Submit; it is never a silent fill.",
+    "The inference round is not a clean A/B of the inference tier alone. Ten rows are newly filled against the final round: 4 by the inference tier (`source: inferred`) and 6 by deterministic fixes that landed after the final round was captured. The two are separable because the tier stamps its own rows.",
+    "Of the +$0.0066 total spend against the final round, $0.0010 is the inference tier's 14 extra Jev requests; $0.0056 is non-deterministic writer spend on the two postings that put a writer call on the critical path.",
     "`usd` is the measured Jev + writer spend for that posting; `seconds` is wall clock from URL to last write."
   ]
 }

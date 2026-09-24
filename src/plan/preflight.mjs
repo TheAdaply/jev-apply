@@ -3,7 +3,7 @@
 // Everything else in this repo decides what to *put* on a form. This module decides whether what
 // is on the form may be *sent* — once, irreversibly, to a real employer. It is deliberately not a
 // second planner: it never edits a Decision, never asks a model anything and never reads the
-// network. It re-states the invariants of AGENTS.md as fourteen refusals over the frozen record
+// network. It re-states the invariants of AGENTS.md as fifteen refusals over the frozen record
 // plus (when the runner has one) the live required-control snapshot and the submit button's own
 // geometry, and every failure it reports names a row and one thing the user can do about it.
 //
@@ -23,6 +23,7 @@
 //   readback_failed         a write the page never confirmed
 //   sensitive_readback      a demographic value the page did not read back as the one written
 //   name_split_blind        a first/last name split out of a full name while the user stated both
+//   inferred_justified      an evidence-based answer with no passing justification behind it
 //   overlay_over_submit     something covering the Submit control, so a click lands on the overlay
 //
 // Shape: `preflight({decisions, questions, mem, live, submit}) → {ok, failures[], checked[],
@@ -33,8 +34,10 @@
 // Nothing personal is ever put in a failure message: rows are named by label and qid, sources and
 // memory ids by name. A judgement about a value never transcribes it.
 
+import { GATES } from "../jev/gates.mjs";
 import { isWorkMode } from "../memory/derive.mjs";
 import { getFact, resolvePreference } from "../memory/resolve.mjs";
+import { STANDARD_ACKS_ID } from "../memory/schema.mjs";
 import { LOCATION_RE, conditionPolarity, yesNoOf } from "./resolve.mjs";
 
 /** A date control takes a date: `YYYY-MM-DD`, the only thing every board's picker reads back. */
@@ -59,6 +62,15 @@ const FACT_CLASSES = new Set(["identity", "circumstance"]);
 const COMPOSED = new Set(["writer", "story", "host"]);
 /** Actions that put something on the form. `ask`/`skip` leave the control alone. */
 const WRITES = new Set(["fill", "check", "draft"]);
+/** An evidence-based answer (`src/plan/infer.mjs`) — always `check`, never `fill`. */
+const INFERRED = "inferred";
+/**
+ * Does this inferred row carry a justification the tier would have accepted? A row frozen with no
+ * `inference` block, or one below the threshold, is an answer nobody can show the evidence for.
+ */
+const justified = (d) => typeof d?.inference?.justified === "number" && d.inference.justified >= GATES.inferBelow && (d.inference.evidence?.length ?? 0) > 0;
+/** The blanket stance an inferred standard-notice gate is allowed to come from, and only that. */
+const STANDARD_ACKS_RE = new RegExp(STANDARD_ACKS_ID.replace(/\./g, "\\."), "i");
 
 const text = (v) => (v == null ? "" : String(v));
 const clip = (s, n = 60) => (text(s).length > n ? `${text(s).slice(0, n - 1)}…` : text(s));
@@ -171,7 +183,12 @@ export const RULES = [
     run: ({ decisions }) =>
       decisions
         .filter((d) => d.class === "policy_gate" && writes(d))
-        .filter((d) => !fromPreference(d, LEGAL_SOURCE_RE))
+        // One source besides the gate's own `p.legal.<slug>` and the user: the blanket
+        // `p.legal.standard_acks` stance, and only through the evidence tier — which means the
+        // gate is one of three standard notices, its own slug was *not* on file, the row is a
+        // `check` the user reads before Submit, and a justification is on record. Everything
+        // else, arbitration included, still refuses (`src/plan/infer.mjs`).
+        .filter((d) => !fromPreference(d, LEGAL_SOURCE_RE) && !(d.source === INFERRED && STANDARD_ACKS_RE.test(text(d.why)) && justified(d)))
         .map((d) =>
           fail(
             "policy_gate_source",
@@ -367,6 +384,35 @@ export const RULES = [
           ),
         );
     },
+  },
+  {
+    // The evidence tier's own refusal. An inferred answer is the one class of value on the form
+    // that nobody stated and nobody wrote: it was *read off* saved evidence, so the evidence and
+    // the verdict that it justifies this exact answer are the whole of its warrant. A row that
+    // carries neither — a record frozen before the tier existed, a value some later stage copied
+    // onto an inferred row, a justification below the threshold — is an answer with no account of
+    // itself, and it never reaches a real employer. It must also still be a `check`: an inferred
+    // value the user was never shown is the failure mode this tier exists to avoid.
+    name: "inferred_justified",
+    needs: [],
+    run: ({ decisions }) =>
+      decisions
+        .filter((d) => d.source === INFERRED && writes(d))
+        .map((d) => {
+          if (d.action !== "check") {
+            return fail("inferred_justified", d, `${named(d)} was inferred from your saved material and is about to be submitted as "${text(d.action)}" — an inferred answer is always shown for review first.`);
+          }
+          if (!justified(d)) {
+            const score = typeof d.inference?.justified === "number" ? d.inference.justified : null;
+            return fail(
+              "inferred_justified",
+              d,
+              `${named(d)} was inferred ${score == null ? "with no justification check on record" : `at a justification of ${score}, under the ${GATES.inferBelow} this needs`}${(d.inference?.evidence?.length ?? 0) === 0 ? " and cites no evidence" : ""} — answer it yourself with --answers, or re-plan the posting.`,
+            );
+          }
+          return null;
+        })
+        .filter(Boolean),
   },
   {
     // B12. Every rule above judges the *fill*; this one judges the button. A board's own cookie

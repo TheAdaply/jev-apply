@@ -67,6 +67,10 @@ export function summaryPath(slug) {
 export function finalize(decisions, { mem = null, context = null } = {}) {
   const out = decisions.map((d) => {
     const row = { ...d };
+    // An evidence-based answer is never committed silently, whatever a later stage did to it:
+    // `src/plan/infer.mjs` only ever writes `check`, and this is the one place that can be read
+    // as the guarantee (`inferred_justified` refuses the submit if it is ever broken).
+    if (row.source === "inferred" && row.action === "fill") row.action = "check";
     if (row.action !== "fill" || typeof row.confidence !== "number") return row;
     if (row.confidence < GATES.askBelow) row.action = "ask";
     else if (typeof row.gap === "number" && row.gap < GATES.checkGap) row.action = "check";

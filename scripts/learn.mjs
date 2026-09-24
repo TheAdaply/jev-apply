@@ -18,7 +18,7 @@ import { enrichMemoryQuietly } from "../src/memory/enrich.mjs";
 import { listFacts, resolvePreference } from "../src/memory/resolve.mjs";
 import { noticeRule, workAuthCountries } from "../src/memory/derive.mjs";
 import { eeoCanonical, nameSplit } from "../src/plan/resolve.mjs";
-import { EEO_VALUES, stamp, validateRow } from "../src/memory/schema.mjs";
+import { EEO_VALUES, STANDARD_ACKS_ID, stamp, validateRow } from "../src/memory/schema.mjs";
 import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
 
 class Blocked extends Error {}
@@ -350,6 +350,22 @@ function gapsFor(mem) {
       "Should I write short answers to 'why us' / essay questions for you from your background? yes/no." +
         " You see every one of them before anything is submitted.",
       preference("p.auto_draft"),
+    );
+  }
+
+  // The standard acknowledgements (`src/plan/infer.mjs`). Every attestation is the user's to sign,
+  // and most forms carry three that say the same three things on every board: this application is
+  // truthful, interviews may be recorded, the candidate privacy notice has been read. This is the
+  // one sentence that answers those three everywhere — and only those three. An arbitration
+  // clause, an AI-usage attestation and anything naming a specific obligation are deliberately
+  // outside it and keep asking, each under its own `p.legal.<slug>`.
+  if (!resolvePreference(mem, STANDARD_ACKS_ID)) {
+    add(
+      "g.legal.standard_acks",
+      "Should I accept the standard application acknowledgements for you — that the application is truthful, that interviews may be recorded," +
+        " and that you have read the candidate privacy notice? yes/no. You see every one of them before anything is submitted, and arbitration," +
+        " AI-usage and anything else that commits you to something still comes back to you.",
+      preference(STANDARD_ACKS_ID),
     );
   }
 

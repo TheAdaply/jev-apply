@@ -266,6 +266,35 @@ with text records the set it was actually handed as `grounding_used:string[]`. B
 the pair is the only way to see from the JSON whether two answers on one application — or three
 applications to three companies — are telling the same story (round-2 judge §3 N4).
 
+## src/plan/infer.mjs (the evidence tier; PLAN §2.2 step 6½)
+```js
+export async function inferRows({ formPlan, decisions, mem, context, slug, pipeline, now, signal, ask });
+// → { decisions, requests, ms, usage, stages, inferred:[{qid,topic,evidence,justified}], refused:[{qid,why}] }
+// Runs after the deterministic pass and both Jev passes, over the rows they left `ask` (and the
+// ones they left `skip` saying `optional — no … on file`). ≤2 Jev requests: evidence Nouls +
+// proposal Choice in one, the justification Noul in the other. `ask` is the transport seam — the
+// pure appliers (`proposeRequest`/`applyProposals`, `justifyRequest`/`applyJustifications`) take
+// fabricated answers, which is how the tier is asserted without a live model.
+export function inferBlocked(d, q, { context, mem });  // → null (inferable) | the reason it is not
+export function evidenceFor({ q, d, topic, mem, pipeline, formPlan, context });  // ≤12 {id,kind,text}
+export function candidatesFor({ q, d, topic, mem, context, formPlan, now });     // the form's own
+//   options, else a computed number/date, else ≤5 rendered texts. Empty ⇒ the row stays an ask.
+export function storedInference(mem, { q, d, topic, context });  // a `q.inferred.<topic>` replay
+export function inferredMemoryRows(decisions, context);  // the `answers` rows a run leaves behind
+export async function persistInferred(decisions, context);  // writes them — never on a dry run
+export const inferredRows = (decisions) => decisions.filter((d) => d.source === "inferred");
+export const INFER_CLASSES;        // identity · circumstance · company_specific · optional_text · policy_gate
+export const STANDARD_ACK_SLUGS;   // application_truthful_ack · interview_recording_consent · privacy_policy_ack
+```
+A row it answers is `action:"check"`, `source:"inferred"`, `why:"inferred — <justification>
+(evidence: <ids>)"`, plus a frozen `inference {topic, evidence[], candidates, confidence,
+justified}`. Never `fill` — `finalize()` re-asserts that and `preflight`'s `inferred_justified`
+refuses a submit without a justification at or above `GATES.inferBelow` (0.7). Never for a
+`sensitive` row (pronouns included — a pronoun is stated, never derived from a saved gender), a
+third party's history, a `why_us`/essay row, a file row, an option list longer than 12, an
+arbitration clause or any gate naming a specific obligation, or a `policy_gate` outside
+`STANDARD_ACK_SLUGS` with `p.legal.standard_acks: Yes` on file. `--no-infer` skips the stage.
+
 Every frozen row carries `required:boolean` from the form's own schema (`withFormFacts`), so
 "required and empty" is countable off `decisions.json` without a browser (B2), and a `sensitive`
 row's `readback` carries `observed_matches:boolean` in place of the value it must not record (B3).
@@ -279,6 +308,7 @@ is the only thing that overrules it (B1).
   `--record-schema` · `--strict` · `--submit` (force Submit this run) · `--no-submit` (force stop at
   `ready_to_submit`) · `--detect-submit` (dry check: prints the Submit selector + confirmation strategy,
   no click) · `--refill` (re-fill a posting whose form changed under a reviewed fill; `refillGuard` refuses without it)
+  · `--no-infer` (skip the evidence tier: every row it would answer from saved evidence stays an `ask`)
 - `learn.mjs --resume a.pdf [--resume b.pdf] --links … | --seed DIR | --answers F`; `remember.mjs "<instruction>" [--scope …]`
 - `scan.mjs [--companies F]`; `pipeline.mjs list|queue <ids>|mark <id> <status>|prune|render`
 - `canon-scan.mjs [--families a,b] [--per-family 20]`; `canon-cluster.mjs`; `canon-eval.mjs`; `answers.mjs --families a,b`

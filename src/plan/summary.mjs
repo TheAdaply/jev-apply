@@ -51,9 +51,14 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
   const header = `${clip(company, 40)} — ${clip(job.title ?? "", 60)} · ${clip(formPlan?.url ?? "", 90)}   ${HEADLINE[status] ?? status}`;
 
   const drafts = decisions.filter((d) => d.action === "draft");
-  const checks = decisions.filter((d) => d.action === "check");
+  // An inferred row is a `check` too, and it is listed once: under ► INFERRED, which says what the
+  // reading was and which saved items it was read off. Printing it a second time under ► CHECK
+  // would spend two of twenty lines saying the same thing about one row.
+  const inferred = decisions.filter((d) => d.source === "inferred" && isFilled(d));
+  const inferredQids = new Set(inferred.map((d) => d.qid));
+  const checks = decisions.filter((d) => d.action === "check" && !inferredQids.has(d.qid));
   const answered = decisions.filter((d) => d.source === "user");
-  const policies = decisions.filter((d) => d.class === "policy_gate" && isFilled(d));
+  const policies = decisions.filter((d) => d.class === "policy_gate" && isFilled(d) && !inferredQids.has(d.qid));
   const money = decisions.filter((d) => d.topic === "salary" && isFilled(d));
   const asks = decisions.filter((d) => d.action === "ask");
   const resume = decisions.find((d) => d.source === "document" && /resum|cv/i.test(d.label ?? ""));
@@ -75,6 +80,14 @@ export function renderSummary({ formPlan, decisions, slug, status = "ready_to_su
   }
   for (const [i, d] of checks.entries()) {
     lines.push(row("CHECK", `c${i + 1} "${short(d.label)}": ${valueOf(d)} (${reason(d.why, 44)})`));
+  }
+  // ► INFERRED — the rows nothing on file stated and evidence answered. Each line carries the
+  // reading and the ids it was read off, because "where did this come from?" is the only question
+  // a user can usefully ask of one. The handles continue the ► CHECK series so a correction names
+  // one row unambiguously; a `sensitive` row can never appear here (`src/plan/infer.mjs`).
+  for (const [i, d] of inferred.entries()) {
+    const cites = (d.inference?.evidence ?? []).slice(0, 3).join(", ");
+    lines.push(row("INFERRED", `c${checks.length + i + 1} "${short(d.label, 34)}": ${valueOf(d, 28)} — ${reason(d.why, 46)}${cites ? ` [${clip(cites, 40)}]` : ""}`));
   }
   if (answered.length) lines.push(row("YOU ANSWERED", join(answered.map((d) => `${short(d.label, 30)}: ${valueOf(d, 24)} (${reason(d.why.replace(/^you answered — /, ""))})`))));
   for (const d of policies) lines.push(row("POLICY", `"${short(d.label)}": ${valueOf(d)} — answered by you, ${company} only`));

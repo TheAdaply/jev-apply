@@ -336,7 +336,10 @@ const POLICY_SLUGS = [
   [/\bAI\b|artificial intelligence|AI-generated/i, "ai_usage_ack"],
   [/keep (?:your|my) (?:application|details|data|profile)|on file for|talent (?:community|network|pool)|future (?:roles|openings|opportunities|contact)|contact (?:you|me) (?:about|regarding) future|stay in touch/i, "retention_consent"],
   [/terms of (?:use|service)|code of conduct/i, "terms_ack"],
-  [/(?:true|truthful|accurate|complete)[^?]{0,40}(?:to the best|information|statements)|falsif/i, "application_truthful_ack"],
+  // Two shapes of the same signature: "…true to the best of my knowledge", and the commoner
+  // "the information in this application is true and complete", which the first half misses
+  // because nothing follows "true" but the conjunction.
+  [/(?:true|truthful|accurate|complete)[^?]{0,40}(?:to the best|information|statements)|falsif|\b(?:information|statements?|answers?|application|details)\b[^?]{0,40}\b(?:is|are|being)\b[^?]{0,24}\b(?:true|truthful|accurate|complete|correct)\b/i, "application_truthful_ack"],
   [/export control|itar|sanction/i, "export_control_ack"],
 ];
 

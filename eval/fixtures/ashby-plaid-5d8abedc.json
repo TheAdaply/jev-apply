@@ -1,0 +1,879 @@
+{
+ "_source_url": "https://jobs.ashbyhq.com/plaid/5d8abedc-018a-4b42-ae1f-0e70b34f2007/application",
+ "data": {
+  "jobPosting": {
+   "id": "5d8abedc-018a-4b42-ae1f-0e70b34f2007",
+   "title": "Strategic Initiatives",
+   "departmentName": "All Cost Centers",
+   "locationName": "San Francisco HQ",
+   "employmentType": "FullTime",
+   "workplaceType": "Hybrid",
+   "isListed": true,
+   "isConfidential": false,
+   "applicationDeadline": null,
+   "descriptionHtml": "<p style=\"min-height:1.5em\">We believe that the way people interact with their finances will drastically improve in the next few years. We’re dedicated to empowering this transformation by building the tools and experiences that thousands of developers use to create their own products. Plaid powers the tools millions of people rely on to live a healthier financial life. We work with thousands of companies like Venmo, SoFi, several of the Fortune 500, and many of the largest banks to make it easy for people to connect their financial accounts to the apps and services they want to use. Plaid’s network covers 12,000 financial institutions across the US, Canada, UK and Europe. Founded in 2013, the company is headquartered in San Francisco with offices in New York, Seattle, Washington D.C., Raleigh, London, and Amsterdam.</p><p style=\"min-height:1.5em\">Responsibilities:</p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">Work directly with leaders across Plaid on the company's most important and least-defined problems, particularly those at the seams of multiple teams or functions</p></li><li><p style=\"min-height:1.5em\">Identify unowned, high-leverage opportunities across the business and driving them to clean outcomes</p></li><li><p style=\"min-height:1.5em\">Operate across a wide aperture (strategy, GTM, operations, product, etc.) without being boxed into a single lane</p></li><li><p style=\"min-height:1.5em\">Lead (directly or indirectly) high performing teams</p></li><li><p style=\"min-height:1.5em\">Use AI tools and agents as a default part of how you work — not as an experiment, but as a force multiplier</p></li></ul><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\">Qualifications:</p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">10+ years of total experience, with meaningful time in consulting as well as direct operating roles (BizOps, Strategy &amp; Ops, Finance, Chief of Staff, etc.</p></li><li><p style=\"min-height:1.5em\">A track record of independently identifying problems and driving them to outcomes with limited top-down direction</p></li><li><p style=\"min-height:1.5em\">High agency, sense of ownership, and willingness to roll up your sleeves</p></li><li><p style=\"min-height:1.5em\">Ability to build relationships at all levels and drive cross-functional teams to action</p></li><li><p style=\"min-height:1.5em\">Strong analytical and structured-thinking skills; comfort translating ambiguity into frameworks, plans, and decisions</p></li><li><p style=\"min-height:1.5em\">Experience directly managing high-performing teams</p></li><li><p style=\"min-height:1.5em\">Familiarity with AI tools and agents to accelerate workflows is a plus</p></li><li><p style=\"min-height:1.5em\">Knowledge of SQL and Tableau preferred</p></li><li><p style=\"min-height:1.5em\">Experience in fintech, payments, or high-growth SaaS preferred</p></li></ul><p style=\"min-height:1.5em\">Our mission at Plaid is to unlock financial freedom for everyone. To support that mission, we seek to build a diverse team of driven individuals who care deeply about making the financial ecosystem more equitable. We recognize that strong qualifications can come from both prior work experiences and lived experiences. We encourage you to apply to a role even if your experience doesn't fully match the job description. We are always looking for team members that will bring something unique to Plaid!</p><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\">Plaid is proud to be an equal opportunity employer and values diversity at our company. We do not discriminate based on race, color, national origin, ethnicity, religion or religious belief, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, transgender status, sexual stereotypes, age, military or veteran status, disability, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state, and local laws. Plaid is committed to providing reasonable accommodations for candidates with disabilities in our recruiting process. If you need any assistance with your application or interviews due to a disability, please let us know at accommodations@plaid.com.</p><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\">Please review our Candidate Privacy Notice <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://plaid.com/legal/#candidate-privacy-notice\"><u>here</u></a>.<br /></p><p style=\"min-height:1.5em\">Additional compensation in the form(s) of equity and/or commission are dependent on the position offered. Plaid provides a comprehensive benefit plan, including medical, dental, vision, and 401(k). Pay is based on factors such as (but not limited to) scope and responsibilities of the position, candidate's work experience and skillset, and location. Pay and benefits are subject to change at any time, consistent with the terms of any applicable compensation or benefit plans.</p>",
+   "compensationTierSummary": "$189.6K – $290.4K • Offers Equity",
+   "surveyForms": [],
+   "compensationTiers": [
+    {
+     "id": "b0664de7-7653-4400-a846-b740eaaab09c",
+     "title": "Zone 1",
+     "tierSummary": "$189.6K – $290.4K • Offers Equity"
+    }
+   ],
+   "applicationForm": {
+    "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0",
+    "fieldEntries": [
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_resume",
+      "field": {
+       "id": "c1611e5f-d346-48e4-8d00-bf8763dab13a",
+       "path": "_systemfield_resume",
+       "humanReadablePath": "Resume",
+       "title": "Resume",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "File",
+       "__autoSerializationID": "FileField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_name",
+      "field": {
+       "id": "9daf60f5-8a00-440b-8da3-ab92891130df",
+       "path": "_systemfield_name",
+       "humanReadablePath": "Name",
+       "title": "Name",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_email",
+      "field": {
+       "id": "13e0f14e-61a4-4421-8aef-d127760038f3",
+       "path": "_systemfield_email",
+       "humanReadablePath": "Email",
+       "title": "Email",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Email",
+       "__autoSerializationID": "EmailField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_b6586651-4b41-475f-9ad6-8295bc68d14c",
+      "field": {
+       "id": "9d6d9d79-2fca-4e79-a618-d28cda4c3aae",
+       "path": "b6586651-4b41-475f-9ad6-8295bc68d14c",
+       "humanReadablePath": "",
+       "title": "Phone Number",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Phone",
+       "__autoSerializationID": "PhoneField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_location",
+      "field": {
+       "id": "62ef0270-be61-46eb-90df-3ca334383630",
+       "path": "_systemfield_location",
+       "humanReadablePath": "Location",
+       "title": "Location",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Location",
+       "locationTypes": [
+        "Country",
+        "Region",
+        "City"
+       ],
+       "__autoSerializationID": "LocationField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_education_history",
+      "field": {
+       "id": "a3173256-1f4e-4734-a394-a229d8243b18",
+       "path": "_systemfield_education_history",
+       "humanReadablePath": "Education History",
+       "title": "Education History",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "EducationHistory",
+       "schoolName": "required",
+       "degree": "optional",
+       "major": "optional",
+       "startDate": "optional",
+       "endDate": "optional",
+       "isRepeatable": true,
+       "minRepeat": 0,
+       "__autoSerializationID": "EducationHistoryField"
+      },
+      "isRequired": false,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_687b3361-536e-425d-81dd-ff7fd90d0a42",
+      "field": {
+       "id": "ebca9238-eae9-4ef1-96d0-9506ad3a254b",
+       "path": "687b3361-536e-425d-81dd-ff7fd90d0a42",
+       "humanReadablePath": "",
+       "title": "Current/Last Company",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_a62b9b56-1667-44cf-91c4-cded3b03ec25",
+      "field": {
+       "id": "1d633f60-cd1b-4ff4-8a94-342bf450c9b9",
+       "path": "a62b9b56-1667-44cf-91c4-cded3b03ec25",
+       "humanReadablePath": "",
+       "title": "LinkedIn",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "String",
+       "__autoSerializationID": "StringField"
+      },
+      "isRequired": false,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_ef4889bc-55bc-4eec-819d-04751b9806c1",
+      "field": {
+       "id": "efb64e91-140f-4cb7-bf44-cb64941c2f19",
+       "path": "ef4889bc-55bc-4eec-819d-04751b9806c1",
+       "humanReadablePath": "",
+       "title": "GitHub",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Url",
+       "__autoSerializationID": "UrlField"
+      },
+      "isRequired": false,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_d437b29e-57a4-45ce-a828-e8fdc36153fe",
+      "field": {
+       "id": "a4fe63fc-ca15-4fa4-95cd-72656955b03c",
+       "path": "d437b29e-57a4-45ce-a828-e8fdc36153fe",
+       "humanReadablePath": "",
+       "title": "Portfolio",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Url",
+       "__autoSerializationID": "UrlField"
+      },
+      "isRequired": false,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_564f5ebb-59e7-403e-8cdf-7d96e4daa3ef",
+      "field": {
+       "id": "d548ebf4-c488-433b-bc16-85d4300524c8",
+       "path": "564f5ebb-59e7-403e-8cdf-7d96e4daa3ef",
+       "humanReadablePath": "",
+       "title": "Other URL",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Url",
+       "__autoSerializationID": "UrlField"
+      },
+      "isRequired": false,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_cf26d652-4890-489c-b5ec-7f7e8538d1d5",
+      "field": {
+       "id": "ee18bbae-5f4b-4ca4-b129-1e29dfe47338",
+       "path": "cf26d652-4890-489c-b5ec-7f7e8538d1d5",
+       "humanReadablePath": "",
+       "title": "Have you ever been previously employed by Plaid, Quovo or Cognito?",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Boolean",
+       "__autoSerializationID": "BooleanField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_fce0d060-0d2d-4ae5-9832-1b1010adb270",
+      "field": {
+       "id": "fcbaa134-1522-4097-ba53-2d77a8143ced",
+       "path": "fce0d060-0d2d-4ae5-9832-1b1010adb270",
+       "humanReadablePath": "",
+       "title": "Will you now or in the future require Plaid to provide immigration-related support or sponsorship in order to employ you?",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Boolean",
+       "__autoSerializationID": "BooleanField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_55cd0838-aa7a-43cd-b808-ecfda77608fc",
+      "field": {
+       "id": "00cc8f78-1ff8-4222-87de-1e859450ce3c",
+       "path": "55cd0838-aa7a-43cd-b808-ecfda77608fc",
+       "humanReadablePath": "",
+       "title": "Why are you interested in working at Plaid? Select all that apply.",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "MultiValueSelect",
+       "selectableValues": [
+        {
+         "label": "Plaid's Mission",
+         "value": "Plaid's Mission"
+        },
+        {
+         "label": "Passion for Fintech Industry",
+         "value": "Passion for Fintech Industry",
+         "isArchived": false
+        },
+        {
+         "label": "Plaid's Products & Technical Innovation",
+         "value": "Plaid's Products & Technical Innovation",
+         "isArchived": false
+        },
+        {
+         "label": "Ability to Use and Build AI Products",
+         "value": "Ability to Use and Build AI Products",
+         "isArchived": false
+        },
+        {
+         "label": "Company Culture",
+         "value": "Company Culture",
+         "isArchived": false
+        }
+       ],
+       "__autoSerializationID": "MultiValueSelectField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_2c83a2e9-7f71-4b7a-a719-63da27a1748b",
+      "field": {
+       "id": "6e7da3cb-5e53-4c6f-a4b3-0db652d5e8b7",
+       "path": "2c83a2e9-7f71-4b7a-a719-63da27a1748b",
+       "humanReadablePath": "",
+       "title": "Based on your current impression, how would you rate Plaid’s position in AI compared to other tech companies?",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "ValueSelect",
+       "selectableValues": [
+        {
+         "label": "1 - Slightly below average",
+         "value": "1 - Slightly below average"
+        },
+        {
+         "label": "2 - About average",
+         "value": "2 - About average",
+         "isArchived": false
+        },
+        {
+         "label": "3 - Above average",
+         "value": "3 - Above average",
+         "isArchived": false
+        },
+        {
+         "label": "4 - Among the leaders in the industry",
+         "value": "4 - Among the leaders in the industry",
+         "isArchived": false
+        },
+        {
+         "label": "N/A - Not enough information on Plaid's AI work to say",
+         "value": "N/A - Not enough information on Plaid's AI work to say",
+         "isArchived": false
+        }
+       ],
+       "__autoSerializationID": "ValueSelectField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_3a208fae-425b-4044-8a98-bee4714ea58a",
+      "field": {
+       "id": "07f2b8f2-e178-4866-93a9-ab68b0541dc9",
+       "path": "3a208fae-425b-4044-8a98-bee4714ea58a",
+       "humanReadablePath": "",
+       "title": "Are you able to work from the Plaid office associated with this role at least 3 days per week, with or without a reasonable accommodation?",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "Boolean",
+       "__autoSerializationID": "BooleanField"
+      },
+      "isRequired": false,
+      "isHidden": null,
+      "descriptionHtml": null
+     },
+     {
+      "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_f0bd3613-0432-4194-8895-ae16d30feac9",
+      "field": {
+       "id": "2ac11d47-cfc2-40d1-9021-2df6a3f623b2",
+       "path": "f0bd3613-0432-4194-8895-ae16d30feac9",
+       "humanReadablePath": "",
+       "title": "Preferred Location (In Office)",
+       "isNullable": false,
+       "isPrivate": false,
+       "isDeactivated": false,
+       "isMany": false,
+       "metadata": {},
+       "type": "MultiValueSelect",
+       "selectableValues": [
+        {
+         "label": "San Francisco HQ",
+         "value": "San Francisco HQ",
+         "isArchived": false
+        },
+        {
+         "label": "New York City Office",
+         "value": "New York City Office",
+         "isArchived": false
+        },
+        {
+         "label": "Seattle Office",
+         "value": "Seattle Office",
+         "isArchived": false
+        },
+        {
+         "label": "Raleigh Office",
+         "value": "Raleigh Office",
+         "isArchived": false
+        },
+        {
+         "label": "DC Office",
+         "value": "DC Office",
+         "isArchived": false
+        }
+       ],
+       "__autoSerializationID": "MultiValueSelectField"
+      },
+      "isRequired": true,
+      "isHidden": null,
+      "descriptionHtml": "<p></p>"
+     }
+    ],
+    "sections": [
+     {
+      "title": "General Application",
+      "descriptionHtml": null,
+      "fieldEntries": [
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_resume",
+        "field": {
+         "id": "c1611e5f-d346-48e4-8d00-bf8763dab13a",
+         "path": "_systemfield_resume",
+         "humanReadablePath": "Resume",
+         "title": "Resume",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "File",
+         "__autoSerializationID": "FileField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_name",
+        "field": {
+         "id": "9daf60f5-8a00-440b-8da3-ab92891130df",
+         "path": "_systemfield_name",
+         "humanReadablePath": "Name",
+         "title": "Name",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_email",
+        "field": {
+         "id": "13e0f14e-61a4-4421-8aef-d127760038f3",
+         "path": "_systemfield_email",
+         "humanReadablePath": "Email",
+         "title": "Email",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Email",
+         "__autoSerializationID": "EmailField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_b6586651-4b41-475f-9ad6-8295bc68d14c",
+        "field": {
+         "id": "9d6d9d79-2fca-4e79-a618-d28cda4c3aae",
+         "path": "b6586651-4b41-475f-9ad6-8295bc68d14c",
+         "humanReadablePath": "",
+         "title": "Phone Number",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Phone",
+         "__autoSerializationID": "PhoneField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_location",
+        "field": {
+         "id": "62ef0270-be61-46eb-90df-3ca334383630",
+         "path": "_systemfield_location",
+         "humanReadablePath": "Location",
+         "title": "Location",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Location",
+         "locationTypes": [
+          "Country",
+          "Region",
+          "City"
+         ],
+         "__autoSerializationID": "LocationField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0__systemfield_education_history",
+        "field": {
+         "id": "a3173256-1f4e-4734-a394-a229d8243b18",
+         "path": "_systemfield_education_history",
+         "humanReadablePath": "Education History",
+         "title": "Education History",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "EducationHistory",
+         "schoolName": "required",
+         "degree": "optional",
+         "major": "optional",
+         "startDate": "optional",
+         "endDate": "optional",
+         "isRepeatable": true,
+         "minRepeat": 0,
+         "__autoSerializationID": "EducationHistoryField"
+        },
+        "isRequired": false,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_687b3361-536e-425d-81dd-ff7fd90d0a42",
+        "field": {
+         "id": "ebca9238-eae9-4ef1-96d0-9506ad3a254b",
+         "path": "687b3361-536e-425d-81dd-ff7fd90d0a42",
+         "humanReadablePath": "",
+         "title": "Current/Last Company",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_a62b9b56-1667-44cf-91c4-cded3b03ec25",
+        "field": {
+         "id": "1d633f60-cd1b-4ff4-8a94-342bf450c9b9",
+         "path": "a62b9b56-1667-44cf-91c4-cded3b03ec25",
+         "humanReadablePath": "",
+         "title": "LinkedIn",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "String",
+         "__autoSerializationID": "StringField"
+        },
+        "isRequired": false,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_ef4889bc-55bc-4eec-819d-04751b9806c1",
+        "field": {
+         "id": "efb64e91-140f-4cb7-bf44-cb64941c2f19",
+         "path": "ef4889bc-55bc-4eec-819d-04751b9806c1",
+         "humanReadablePath": "",
+         "title": "GitHub",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Url",
+         "__autoSerializationID": "UrlField"
+        },
+        "isRequired": false,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_d437b29e-57a4-45ce-a828-e8fdc36153fe",
+        "field": {
+         "id": "a4fe63fc-ca15-4fa4-95cd-72656955b03c",
+         "path": "d437b29e-57a4-45ce-a828-e8fdc36153fe",
+         "humanReadablePath": "",
+         "title": "Portfolio",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Url",
+         "__autoSerializationID": "UrlField"
+        },
+        "isRequired": false,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_564f5ebb-59e7-403e-8cdf-7d96e4daa3ef",
+        "field": {
+         "id": "d548ebf4-c488-433b-bc16-85d4300524c8",
+         "path": "564f5ebb-59e7-403e-8cdf-7d96e4daa3ef",
+         "humanReadablePath": "",
+         "title": "Other URL",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Url",
+         "__autoSerializationID": "UrlField"
+        },
+        "isRequired": false,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_cf26d652-4890-489c-b5ec-7f7e8538d1d5",
+        "field": {
+         "id": "ee18bbae-5f4b-4ca4-b129-1e29dfe47338",
+         "path": "cf26d652-4890-489c-b5ec-7f7e8538d1d5",
+         "humanReadablePath": "",
+         "title": "Have you ever been previously employed by Plaid, Quovo or Cognito?",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Boolean",
+         "__autoSerializationID": "BooleanField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_fce0d060-0d2d-4ae5-9832-1b1010adb270",
+        "field": {
+         "id": "fcbaa134-1522-4097-ba53-2d77a8143ced",
+         "path": "fce0d060-0d2d-4ae5-9832-1b1010adb270",
+         "humanReadablePath": "",
+         "title": "Will you now or in the future require Plaid to provide immigration-related support or sponsorship in order to employ you?",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Boolean",
+         "__autoSerializationID": "BooleanField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       }
+      ]
+     },
+     {
+      "title": "AI & Interest in Working at Plaid",
+      "descriptionHtml": null,
+      "fieldEntries": [
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_55cd0838-aa7a-43cd-b808-ecfda77608fc",
+        "field": {
+         "id": "00cc8f78-1ff8-4222-87de-1e859450ce3c",
+         "path": "55cd0838-aa7a-43cd-b808-ecfda77608fc",
+         "humanReadablePath": "",
+         "title": "Why are you interested in working at Plaid? Select all that apply.",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "MultiValueSelect",
+         "selectableValues": [
+          {
+           "label": "Plaid's Mission",
+           "value": "Plaid's Mission"
+          },
+          {
+           "label": "Passion for Fintech Industry",
+           "value": "Passion for Fintech Industry",
+           "isArchived": false
+          },
+          {
+           "label": "Plaid's Products & Technical Innovation",
+           "value": "Plaid's Products & Technical Innovation",
+           "isArchived": false
+          },
+          {
+           "label": "Ability to Use and Build AI Products",
+           "value": "Ability to Use and Build AI Products",
+           "isArchived": false
+          },
+          {
+           "label": "Company Culture",
+           "value": "Company Culture",
+           "isArchived": false
+          }
+         ],
+         "__autoSerializationID": "MultiValueSelectField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_2c83a2e9-7f71-4b7a-a719-63da27a1748b",
+        "field": {
+         "id": "6e7da3cb-5e53-4c6f-a4b3-0db652d5e8b7",
+         "path": "2c83a2e9-7f71-4b7a-a719-63da27a1748b",
+         "humanReadablePath": "",
+         "title": "Based on your current impression, how would you rate Plaid’s position in AI compared to other tech companies?",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "ValueSelect",
+         "selectableValues": [
+          {
+           "label": "1 - Slightly below average",
+           "value": "1 - Slightly below average"
+          },
+          {
+           "label": "2 - About average",
+           "value": "2 - About average",
+           "isArchived": false
+          },
+          {
+           "label": "3 - Above average",
+           "value": "3 - Above average",
+           "isArchived": false
+          },
+          {
+           "label": "4 - Among the leaders in the industry",
+           "value": "4 - Among the leaders in the industry",
+           "isArchived": false
+          },
+          {
+           "label": "N/A - Not enough information on Plaid's AI work to say",
+           "value": "N/A - Not enough information on Plaid's AI work to say",
+           "isArchived": false
+          }
+         ],
+         "__autoSerializationID": "ValueSelectField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": null
+       }
+      ]
+     },
+     {
+      "title": null,
+      "descriptionHtml": null,
+      "fieldEntries": [
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_3a208fae-425b-4044-8a98-bee4714ea58a",
+        "field": {
+         "id": "07f2b8f2-e178-4866-93a9-ab68b0541dc9",
+         "path": "3a208fae-425b-4044-8a98-bee4714ea58a",
+         "humanReadablePath": "",
+         "title": "Are you able to work from the Plaid office associated with this role at least 3 days per week, with or without a reasonable accommodation?",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "Boolean",
+         "__autoSerializationID": "BooleanField"
+        },
+        "isRequired": false,
+        "isHidden": null,
+        "descriptionHtml": null
+       },
+       {
+        "id": "c7ba12a7-2ab0-409d-9467-b0cf3b8fe8a0_f0bd3613-0432-4194-8895-ae16d30feac9",
+        "field": {
+         "id": "2ac11d47-cfc2-40d1-9021-2df6a3f623b2",
+         "path": "f0bd3613-0432-4194-8895-ae16d30feac9",
+         "humanReadablePath": "",
+         "title": "Preferred Location (In Office)",
+         "isNullable": false,
+         "isPrivate": false,
+         "isDeactivated": false,
+         "isMany": false,
+         "metadata": {},
+         "type": "MultiValueSelect",
+         "selectableValues": [
+          {
+           "label": "San Francisco HQ",
+           "value": "San Francisco HQ",
+           "isArchived": false
+          },
+          {
+           "label": "New York City Office",
+           "value": "New York City Office",
+           "isArchived": false
+          },
+          {
+           "label": "Seattle Office",
+           "value": "Seattle Office",
+           "isArchived": false
+          },
+          {
+           "label": "Raleigh Office",
+           "value": "Raleigh Office",
+           "isArchived": false
+          },
+          {
+           "label": "DC Office",
+           "value": "DC Office",
+           "isArchived": false
+          }
+         ],
+         "__autoSerializationID": "MultiValueSelectField"
+        },
+        "isRequired": true,
+        "isHidden": null,
+        "descriptionHtml": "<p></p>"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

@@ -318,6 +318,40 @@ export async function snapshotRequired(page) {
     const norm = (s) => String(s ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
     const rows = [];
     for (const entry of document.querySelectorAll(entrySelector)) {
+      const anchors = [...entry.querySelectorAll("label")].filter((label) => /^(school|company|employer)\s*\*?\s*$/i.test(norm(label.textContent)));
+      if (anchors.length && /history/i.test(entry.getAttribute("data-field-path") ?? "")) {
+        anchors.forEach((anchor, index) => {
+          let card = anchor;
+          while (card.parentElement && card.parentElement !== entry && anchors.filter((a) => card.parentElement.contains(a)).length === 1) card = card.parentElement;
+          const base = card.getAttribute("data-jev-history") || `${entry.getAttribute("data-field-path")}[${index}]`;
+          const requiredParts = JSON.parse(card.getAttribute("data-jev-required-parts") || "[]");
+          const controls = [...card.querySelectorAll("input:not([type=hidden]), select, textarea")];
+          for (const input of controls) {
+            const tied = input.id ? card.querySelector(`label[for="${CSS.escape(input.id)}"]`) : null;
+            let label = tied;
+            if (!label) for (const candidate of card.querySelectorAll("label")) if (candidate.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING) label = candidate;
+            const name = norm(label?.textContent ?? "");
+            const anchorPart = /^(school|company|employer)\s*\*?\s*$/i.test(name);
+            const date = /\b(start|end)\s+date\b/i.exec(name);
+            const unit = /month/i.test(input.options?.[0]?.textContent ?? name) ? "month" : "year";
+            const part = /^school/i.test(name) ? "school" : /^(company|employer)/i.test(name) ? "employer" : date ? `${date[1].toLowerCase()}_${unit}` : /^degree/i.test(name) ? "degree" : /field of study|major/i.test(name) ? "field" : /^title/i.test(name) ? "title" : input.id || name;
+            if (!anchorPart && !requiredParts.includes(part) && !input.required && input.getAttribute("data-jev-required") !== "true" && !/_required_/.test(String(label?.className ?? ""))) continue;
+            if (input.disabled) continue;
+            const qid = input.getAttribute("data-jev-repeat") || `${base}.${part}`;
+            let selector = `[data-jev-repeat="${CSS.escape(qid)}"]`;
+            if (!input.hasAttribute("data-jev-repeat")) {
+              const steps = [];
+              for (let node = input; node && node !== entry; node = node.parentElement) {
+                const siblings = [...node.parentElement.children].filter((sibling) => sibling.tagName === node.tagName);
+                steps.unshift(`${node.tagName.toLowerCase()}:nth-of-type(${siblings.indexOf(node) + 1})`);
+              }
+              selector = `[data-field-path="${CSS.escape(entry.getAttribute("data-field-path"))}"] > ${steps.join(" > ")}`;
+            }
+            rows.push({ qid, selector, label: `${base} — ${name}`, filled: input.type === "checkbox" ? input.checked : norm(input.value) !== "" });
+          }
+        });
+        continue;
+      }
       const heading = entry.querySelector("label");
       const required =
         (heading && /_required_/.test(String(heading.className || ""))) ||

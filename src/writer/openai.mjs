@@ -501,6 +501,47 @@ function normalizeId(raw, prefix, seen, aliases, canonical) {
 }
 
 /**
+ * The résumé's education and work sections → one fact per degree and per role
+ * (`f.education.<slug>`, `f.employment.<slug>`), each a structured value with its start date in
+ * `since:` — the rows `educationHistory()`/`employmentHistory()` (src/memory/derive.mjs) read to
+ * fill a form's repeating Education and Employment sections. The single-valued
+ * `f.education.school`/`f.employment.current` rows the one-box questions read are left exactly as
+ * the facts pass wrote them: these add the history, they do not restate its latest entry.
+ *
+ * Dates are copied, never completed: a year stays a year, and a missing one stays missing so the
+ * form asks rather than prints a month nobody stated.
+ */
+export function historyFacts(history, { source, seen = new Set() }) {
+  const DATE = /^\d{4}(?:-(0[1-9]|1[0-2]))?$/;
+  const ONGOING = /^(present|current|now|ongoing)$/i;
+  const slug = (...parts) =>
+    parts
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 48) || "entry";
+  const out = [];
+  for (const h of history) {
+    const kind = h?.kind === "education" ? "education" : h?.kind === "employment" ? "employment" : null;
+    const organization = String(h?.organization ?? "").trim();
+    if (!kind || !organization) continue;
+    const role = String(h?.role ?? "").trim() || null;
+    const end = String(h?.end ?? "").trim();
+    const until = ONGOING.test(end) ? { current: true } : DATE.test(end) ? { until: end } : {};
+    const value =
+      kind === "education"
+        ? { school: organization, ...(role && { degree: role }), ...(String(h.field ?? "").trim() && { field: String(h.field).trim() }), ...until }
+        : { company: organization, ...(role && { role }), ...(h.employment_type && { employment_type: h.employment_type }), ...until };
+    const id = normalizeId(slug(role, organization), `f.${kind}`, seen);
+    const start = String(h?.start ?? "").trim();
+    out.push({ id, value, ...(DATE.test(start) ? { since: start } : {}), source: source(h.page) });
+  }
+  return out;
+}
+
+/**
  * Stories live in the `b.` namespace everywhere else in the store — the seed's blobs are
  * `b.story.*`/`b.answer.*` and `remember.mjs` mints `b.kept.<slug>` (references/memory-format.md).
  * Any prefix the model reaches for is stripped so a CV-topped-up store keeps one namespace.
@@ -555,6 +596,10 @@ export async function extractResume({ text, pages, doc = "resume", model = OPENA
         const g = groundingCheck(f.value, [marked]);
         if (!g.ok) problems.push(`fact ${f.id}: not in the document: ${g.missing.join(", ")}`);
       }
+      for (const h of o.history ?? []) {
+        const g = groundingCheck([h.organization, h.role, h.field].filter(Boolean).join(" · "), [marked]);
+        if (!g.ok) problems.push(`history ${h.kind} "${h.organization}": not in the document: ${g.missing.join(", ")}`);
+      }
       return problems;
     },
   });
@@ -595,6 +640,7 @@ export async function extractResume({ text, pages, doc = "resume", model = OPENA
   if (seenLocality.has("f.identity.city")) {
     facts = facts.filter((f) => f.id !== "f.identity.location");
   }
+  facts.push(...historyFacts(raw.history ?? [], { source, seen: factIds }));
   const stories = (raw.stories ?? [])
     .filter((s) => String(s.text ?? "").trim())
     .map((s) => ({

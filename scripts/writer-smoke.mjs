@@ -83,7 +83,7 @@ async function runExtractBasic(file) {
   const { facts, stories } = extractBasic(text, { doc: path.basename(file) });
   console.log(`extractBasic ${file} · no model`);
   console.log(`  facts ${facts.length} · stories ${stories.length}`);
-  for (const f of facts) console.log(`  fact  ${f.id} = ${f.value} [${f.source}]`);
+  for (const f of facts) console.log(`  fact  ${f.id} = ${typeof f.value === "object" ? JSON.stringify(f.value) : f.value} [${f.source}]`);
   for (const s of stories.slice(0, 4)) console.log(`  story ${s.id} | ${s.title} [${s.source}]`);
   const questions = stories.filter((s) => s.title.trim().endsWith("?")).length;
   console.log(`  titles that are questions: ${questions}/${stories.length}`);

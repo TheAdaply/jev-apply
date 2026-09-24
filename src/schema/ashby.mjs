@@ -30,6 +30,7 @@
 // attempted" broken outright.
 
 import { readFile } from "node:fs/promises";
+import { repeaterRow } from "../plan/repeat.mjs";
 import { classify, cleanLabel, dependencyOn, htmlToText, parseLimits } from "./classes.mjs";
 
 const ENDPOINT = "https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobPosting";
@@ -147,6 +148,8 @@ function formRow(entry, section, { survey = false } = {}) {
   if (!field || entry.isHidden === true || field.isDeactivated === true) return null;
   const path = field.path;
   const label = cleanLabel(field.title || field.humanReadablePath || path);
+  const history = historyRow(entry, field, label, section);
+  if (history) return history;
   const help = htmlToText(entry.descriptionHtml);
   const required = Boolean(entry.isRequired);
   const { type, control } = controlFor(field, label);
@@ -166,6 +169,42 @@ function formRow(entry, section, { survey = false } = {}) {
     ...(limits && { limits }),
     class: classOf(label, help, type, required, survey),
   };
+}
+
+// Ashby's history fields name their parts on the field itself: `schoolName: "required"`,
+// `degree`/`major`/`startDate`/`endDate: "optional"` (plaid, read live 2026-09-24), with
+// `isRepeatable`/`minRepeat` beside them. A date part is one Month + Year pair of selects on the
+// card, so it becomes two of our parts. The "Still Student?" / current box is on every card and in
+// no config, so it is always offered as optional.
+const HISTORY_KINDS = { EducationHistory: "education", WorkHistory: "employment" };
+const HISTORY_PARTS = {
+  education: { schoolName: ["school"], degree: ["degree"], major: ["field"] },
+  employment: { companyName: ["employer"], company: ["employer"], employerName: ["employer"], title: ["title"], jobTitle: ["title"] },
+};
+const DATE_PARTS = { startDate: ["start_month", "start_year"], endDate: ["end_month", "end_year"] };
+
+/** An Education / Work history field entry → one repeater row (src/plan/repeat.mjs), else null. */
+function historyRow(entry, field, label, section) {
+  const kind = HISTORY_KINDS[String(field.type ?? "").replace(/Field$/, "")] ?? HISTORY_KINDS[String(field.__autoSerializationID ?? "").replace(/Field$/, "")];
+  if (!kind) return null;
+  const parts = {};
+  for (const [key, ours] of Object.entries({ ...HISTORY_PARTS[kind], ...DATE_PARTS })) {
+    const state = String(field[key] ?? "");
+    if (state === "required" || state === "optional") for (const part of ours) parts[part] = state;
+  }
+  parts.current = "optional";
+  const required = Boolean(entry.isRequired) || Number(field.minRepeat ?? 0) > 0;
+  return repeaterRow({
+    qid: field.path,
+    label,
+    required,
+    section,
+    kind,
+    parts,
+    container: `[data-field-path="${field.path}"]`,
+    min: Number(field.minRepeat ?? 0),
+    max: field.isRepeatable === false ? 1 : null,
+  });
 }
 
 /**

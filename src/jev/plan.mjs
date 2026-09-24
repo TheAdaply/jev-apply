@@ -38,7 +38,7 @@ import { acceptsMostRecent, appliedBeforeFor, factText, fileRow, inOfficeFor, re
 import { optionStating, topicsIn, unmetTopics, vocabFor } from "../canon/normalize.mjs";
 // The field's stated limit decides the length variant, and the same rule has to hold in the
 // deterministic pass, here, and in the writer — one definition, in the leaf module both import.
-import { pickVariant } from "../schema/classes.mjs";
+import { pickVariant, promptClauses } from "../schema/classes.mjs";
 import { countryFromText, countryOfLocation } from "../schema/normalize.mjs";
 import { appendTrace } from "../browser/trace.mjs";
 import { NONE, choice, noul, systemOne, withNone } from "./client.mjs";
@@ -240,6 +240,25 @@ export async function planWithJev({ formPlan, decisions, mem, context, slug, can
   if (first.length && canon) await canonStage(first, { formPlan, byQid, mem, context, canon, baselines, pipeline, slug, signal, totals });
   // Request 2 — one more question for every row still open, and never more than one per row.
   await secondPass(out, { formPlan, byQid, mem, context, canon, baselines, pipeline, slug, signal, totals });
+  const reused = out.filter((d) => ["fill", "check"].includes(d.action) && d.value && ["essay", "why_us", "company_specific", "optional_text"].includes(byQid.get(d.qid)?.class) && ["answer", "story"].includes(d.source));
+  if (reused.length) {
+    const state = { rows: {} };
+    const questions = {};
+    for (const d of reused) {
+      const q = byQid.get(d.qid);
+      const prompt = [q.label, q.help].filter(Boolean).join("\n");
+      state.rows[d.qid] = { prompt, clauses: promptClauses(prompt), answer: d.value };
+      questions[`answers_${d.qid}`] = noul(`Does rows.${d.qid}.answer directly answer EVERY clause of rows.${d.qid}.prompt, including the named company, role, consumer-facing audience and requested learning/impact details? Topic overlap alone is not enough.`);
+    }
+    const answers = await ask({ stage: "answer_coverage", state, questions, slug, signal, totals });
+    for (const d of reused) if (!(answers[`answers_${d.qid}`]?.noul >= GATES.noulSelect)) {
+      d.action = "ask";
+      d.why = "saved answer does not address every prompt clause";
+      delete d.value;
+      delete d._answerText;
+      d._open = false;
+    }
+  }
 
   // Rows that stayed open take their class's no-match action (`optional_text` → skip, else ask),
   // and no row is left open afterwards: a re-plan (`--answers`) asks Jev only about what the host
@@ -930,6 +949,30 @@ async function optionStage(rows, { byQid, slug, signal, totals }) {
     pending.push({ d, q, labels });
   }
   if (!pending.length) return;
+  // Each bounded chunk nominates one candidate; a final bounded Choice compares nominees.
+  // No option is truncated, and an ambiguous chunk is not silently discarded.
+  for (const row of pending.filter(({ q, labels }) => q.type !== "multi_select" && labels.length > 254)) {
+    const { d, q, labels } = row;
+    const nominees = [];
+    let uncertain = false;
+    for (let offset = 0; offset < labels.length; offset += 254) {
+      const chunk = labels.slice(offset, offset + 254);
+      const criteria = Object.fromEntries(chunk.map((label, i) => [`o${i}`, label]));
+      const answer = (await ask({ stage: "option_chunk", state: { question: { label: q.label, help: q.help, type: q.type }, answer_text: d._answerText ?? d.value }, questions: { pick: choice("Which option states answer_text for question?", withNone(criteria, "None of these options states the answer")) }, slug, signal, totals })).pick;
+      if (!answer || gate(answer) === "ask") {
+        if (answer?.choice !== NONE) uncertain = true;
+      } else if (answer.choice !== NONE) {
+        const picked = chunk[Number(String(answer.choice).slice(1))];
+        if (picked) nominees.push(picked);
+      }
+    }
+    if (uncertain || !nominees.length) {
+      d.action = "ask";
+      d.why = `${d.why} → no unambiguous option across the catalogue`;
+      pending.splice(pending.indexOf(row), 1);
+    } else row.labels = [...new Set(nominees)];
+  }
+  if (!pending.length) return;
 
   // One request for every option row: the shared state keys each row by qid and each question
   // names its own path, which is how request 1 isolates its questions too (PLAN §2.3).
@@ -938,9 +981,9 @@ async function optionStage(rows, { byQid, slug, signal, totals }) {
   const traced = { rows: {} };
   for (const { d, q, labels } of pending) {
     const answerText = String(d._answerText ?? d.value);
-    state.rows[d.qid] = { question: fieldState(q), answer_text: answerText };
+    state.rows[d.qid] = { question: { label: q.label, help: q.help, type: q.type }, answer_text: answerText };
     // The observed text of an EEO answer *is* the answer: the model needs it, the trace does not.
-    traced.rows[d.qid] = { question: fieldState(q), answer_text: q.class === "sensitive" ? "<redacted:sensitive>" : answerText };
+    traced.rows[d.qid] = { question: state.rows[d.qid].question, answer_text: q.class === "sensitive" ? "<redacted:sensitive>" : answerText };
     if (q.type === "multi_select") {
       labels.forEach((label, i) => {
         questions[`opt_${d.qid}_${i}`] = noul(

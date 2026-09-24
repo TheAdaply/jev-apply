@@ -359,6 +359,17 @@ export async function waitForForm(page, { timeout = 30000 } = {}) {
   return true;
 }
 
+export async function diagnoseMissingForm(page, requestedUrl) {
+  const landed_url = page.url();
+  const requested = new URL(requestedUrl);
+  const landed = new URL(landed_url);
+  const listing = await page.locator("body").innerText().then((text) => /available positions|open positions|current openings/i.test(text)).catch(() => false);
+  if (landed.hostname !== requested.hostname || (!/\/jobs\/\d+/.test(landed.pathname) && listing)) {
+    return { reason: "not_an_application_page", landed_url };
+  }
+  return null;
+}
+
 /** Required controls and whether they are filled — PLAN §2.2 step 11's re-snapshot. */
 export async function snapshotRequired(page) {
   return page.evaluate(() => {

@@ -228,8 +228,15 @@ const PARENT_TYPES = new Set(["single_select", "multi_select", "boolean"]);
  * unless the parent is unanswered.
  */
 export function dependencyOn(row, previous) {
-  const m = DEPENDENCY_RE.exec(row.label);
-  if (!m || !previous || !PARENT_TYPES.has(previous.type)) return null;
+  if (!previous || !PARENT_TYPES.has(previous.type)) return null;
+  const label = String(row.label ?? "").replace(/^\s*\(?optional\)?\s*[:—-]?\s*/i, "");
+  const lead = /^\s*if\b([^,?]+)/i.exec(label)?.[1]?.toLowerCase();
+  const named = lead && !/\b(?:other than|not|except)\b/i.test(lead)
+    ? (previous.options ?? []).map((o) => String(o.label ?? o).toLowerCase()).filter((option) => option && (` ${lead.replace(/["“”']/g, " ")} `).includes(` ${option} `))
+    : [];
+  if (named.length) return { parent: previous.qid, condition: named[0], ...(named.length > 1 ? { anyOf: named } : {}) };
+  const m = DEPENDENCY_RE.exec(label);
+  if (!m) return null;
   const token = (m[1] ?? m[2] ?? (m[3] ? "yes" : "")).toLowerCase();
   const condition = token === "no" ? "no" : token === "so" || token === "" ? "yes" : token;
   return { parent: previous.qid, condition };
@@ -308,4 +315,9 @@ export function pickVariant(variants, limits) {
   if (!order.length) return null;
   if (!limits) return variants.medium ?? order[0];
   return order.find((text) => fitsLimits(text, limits).ok) ?? order[order.length - 1];
+}
+
+/** Keep the full prompt as well as its individual requests in every responsiveness judgment. */
+export function promptClauses(prompt) {
+  return String(prompt ?? "").split(/(?:[?;]\s*|\n+|\band\s+(?=(?:what|why|how|describe|explain|tell|which)\b))/i).map((s) => s.trim()).filter(Boolean);
 }

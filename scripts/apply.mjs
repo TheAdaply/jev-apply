@@ -611,6 +611,7 @@ function blockedReport(err, { plan = null, started = null, phases = null } = {})
   const reason = err?.reason ?? err?.message ?? String(err);
   const lines = [header, `reason: ${reason}`];
   if (err?.shot) lines.push(`screenshot: ${err.shot}`);
+  if (err?.landed_url) lines.push(`landed on: ${err.landed_url}`);
   if (plan?.slug) lines.push(`Run \`apply.mjs --resume ${plan.slug}\` — it lists every field with its intended value.`);
   return {
     status: "blocked",
@@ -871,7 +872,7 @@ async function queueRun(args, stores) {
   };
 }
 
-const blockedRow = (err) => ({ status: "blocked", reason: err?.reason ?? err?.message ?? "unknown", ...(err?.shot ? { screenshot: err.shot } : {}) });
+const blockedRow = (err) => ({ status: "blocked", reason: err?.reason ?? err?.message ?? "unknown", ...(err?.shot ? { screenshot: err.shot } : {}), ...(err?.landed_url ? { landed_url: err.landed_url } : {}) });
 
 /** Bounded fan-out: the ATS schema endpoints are the constraint, not this process. */
 async function mapLimit(items, limit, fn) {
@@ -1024,10 +1025,13 @@ const args = (() => {
   }
 })();
 
+/** One JSON object on stdout; when stdout is a pipe the write is async, so drain it before exiting. */
+const emit = (out) => new Promise((resolve) => process.stdout.write(`${JSON.stringify(out)}\n`, () => resolve()));
+
 try {
   const stores = await loadStores();
   const out = args.resume ? await resumeRun(args, stores) : args.queue ? await queueRun(args, stores) : await singleRun(args, stores);
-  process.stdout.write(`${JSON.stringify(out)}\n`);
+  await emit(out);
   if (out.status === "blocked") log(out.summary ?? `blocked: ${out.reason}`);
   else if (out.queue) log(`${out.status}: ${out.queue.length} posting(s), ${out.questions.length} question(s), ${out.requests} Jev request(s), ${out.ms} ms`);
   else if (out.unfilled) log(`${out.status}: ${out.unfilled.length} field(s) not on the form · tab ${out.tab ?? "not open"}`);
@@ -1036,7 +1040,7 @@ try {
 } catch (err) {
   // Every failure is a status the host can act on (AGENTS: exit 0 for all three statuses).
   const out = blockedReport(err);
-  process.stdout.write(`${JSON.stringify(out)}\n`);
+  await emit(out);
   log(err?.stack ?? String(err));
   log(out.summary);
 } finally {

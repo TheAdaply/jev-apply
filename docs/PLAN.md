@@ -181,9 +181,11 @@ sequentially; per-posting failures are isolated.
 ```ts
 type FormPlan = { ats:"greenhouse"|"ashby"; url:string; job:{title,company,description};
   questions: Array<{ qid:string; label:string; help?:string; required:boolean; section?:string;
-    type:"text"|"textarea"|"file"|"single_select"|"multi_select"|"boolean"|"number"|"date"|"phone"|"url";
-    control:"text"|"textarea"|"react_select"|"native_select"|"radio"|"checkbox"|"tel"|"file"|"date";
-    selector:string; options?:Array<{label:string; value:string}>; limits?:{chars?:number; words?:number};
+    type:"text"|"textarea"|"file"|"single_select"|"multi_select"|"boolean"|"number"|"date"|"phone"|"url"|"repeater";
+    control:"text"|"textarea"|"react_select"|"native_select"|"radio"|"checkbox"|"tel"|"file"|"date"|"repeater";
+    selector:string|null; options?:Array<{label:string; value:string}>; limits?:{chars?:number; words?:number};
+    repeat?:{kind:"education"|"employment"; parts?:Record<string,"required"|"optional"|"hidden">;
+      container:string; min?:number; max?:number; of?:string; index?:number; part?:string; entry?:string|null};
     class:"identity"|"circumstance"|"essay"|"why_us"|"company_specific"|"policy_gate"|"sensitive"|"optional_text";
   }> };
 
@@ -208,6 +210,15 @@ type Decision = { qid:string; label:string; source:"fact"|"preference"|"answer"|
 Rules (from the official Jev skill guidance): ids are for code; one narrow judgment per question; questions
 are isolated so each carries its own context; always a `none` exit; validate `choice ∈ criteria`,
 probabilities sum ≈ 1, argmax == choice; positive one-hop phrasing.
+
+History sections expand before deterministic resolution into numbered ordinary questions. Their
+selectors may be resolved dynamically inside a card because Ashby repeats input ids. Missing minimum
+entries are asks, not invented history. An ongoing entry omits end dates only when a current checkbox
+can express that state. Optional incomplete cards are not retained; new or initially empty cards whose
+required school cannot commit are removed with a traced count readback. School/employer catalogue
+names require case/whitespace-normalised equality, never prefixes or substrings. Greenhouse's explicit
+Other school is a check; Ashby's unmatched query remains an ask. Required snapshots identify each
+card's required controls, independently of the current checkbox.
 
 ### 2.4 Memory (private, `~/.config/jev-apply/memory/`, YAML per section, atomic writes)
 
@@ -376,7 +387,7 @@ docs/PLAN.md · docs/CHANGELOG.md
 ```
 Dependencies: `@typesafe-ai/sdk`, `playwright` (library only), `openai`, `yaml`, `pdf-parse`. Node ≥ 20.
 No framework, no build step. Deferred (post-demo, same repo): DOM-snapshot fallback (`schema/dom.mjs`,
-adapters/generic), embedded-iframe Greenhouse, repeaters, `--watch-submit`, Playwright-Extension attach,
+adapters/generic), embedded-iframe Greenhouse, `--watch-submit`, Playwright-Extension attach,
 `select.mjs` smart-paste helper.
 
 ## 4. Build order (one session; offline first, browser last, pipeline after the two demos)

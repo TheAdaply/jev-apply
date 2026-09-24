@@ -1,0 +1,131 @@
+# Fresh never-before-captured application pages for the real-profile gap run.
+# Public job-board metadata only; verified by schema-dump on 2026-09-25.
+# Excluded URLs from bench/postings.yml, bench/ten-postings.yml, bench/fresh-postings.yml,
+# private/o1-candidates.md, and the stored application slugs were not reused.
+generated: 2026-09-25
+verified: 2026-09-25
+ats_supported: [lever, greenhouse, ashby]
+postings:
+  # Lever: native selects, dependent questions, EEO controls, and checkbox/radio groups.
+  - url: https://jobs.lever.co/spotify/2193db3f-77c5-43b8-b030-8f92c9882bf1/apply
+    company: spotify
+    family: mobile
+    ats: lever
+    title: Android Engineer - Experience
+    controls: [text, textarea, file, native_select, radio, checkbox_group, policy_gate, sensitive]
+    notes: >-
+      London/Stockholm role. Live schema has 17 rows including optional pronouns-sensitive
+      checkbox group, prior-employment checkbox, role-location radio, Android-experience radio,
+      demographic-location select, and marketing-consent policy gate.
+  - url: https://jobs.lever.co/palantir/10dfc8bc-99ad-4ca2-ab76-853cb90a92c2/apply
+    company: palantir
+    family: backend
+    ats: lever
+    title: Backend Software Engineer - Application Development
+    controls: [text, textarea, file, native_select, radio, checkbox_group, policy_gate]
+    notes: >-
+      London role. Live schema has 25 rows with required language checkbox group, work-authorization
+      and UK-clearance radios, university select, years-experience select, three custom essays,
+      and an AI-notetaker policy gate.
+  - url: https://jobs.lever.co/shieldai/938a7ddf-521f-4581-b5ba-c3ba29f9308a/apply
+    company: shield-ai
+    family: gpu_performance
+    ats: lever
+    title: Aerodynamics & Performance Engineer
+    controls: [text, textarea, file, native_select, radio, checkbox_group, policy_gate, sensitive]
+    notes: >-
+      Dallas role. Live schema has 36 rows: conditional sponsorship/export-control/mission/how-heard
+      follow-ups, legal-name field, service-member questions and essays, location select, relocation
+      checkbox group, and gender/race/veteran/disability EEO rows with signature/date.
+  - url: https://jobs.lever.co/zoox/f4746da4-8eb8-43e2-b7ce-bf3c7cf9640d/apply
+    company: zoox
+    family: infra_sre
+    ats: lever
+    title: Autonomy System Test Engineer
+    controls: [text, textarea, file, native_select, radio, checkbox_group, sensitive]
+    notes: >-
+      Foster City hybrid role. Live schema has 17 rows including preferred legal name, required
+      export-control response, sponsorship select, required how-heard checkbox group, EEO gender/race/
+      veteran selects, and pronouns-sensitive checkbox.
+
+  # Greenhouse: hosted boards with country/location autocompletes and varied demographic blocks.
+  - url: https://job-boards.greenhouse.io/monzo/jobs/7115379
+    company: monzo
+    family: mobile
+    ats: greenhouse
+    title: Android Engineer
+    controls: [text, textarea, file, react_select, location, multi_select, policy_gate, sensitive]
+    notes: >-
+      Cardiff/London/Remote UK role. Live schema has 22 rows, including six sensitive identity and
+      demographic multi/select controls (gender, trans status, sexuality, disability,
+      neurodivergence, ethnicity), US-tax-residency select, right-to-work select, location autocomplete,
+      three essays, and a policy gate.
+  - url: https://job-boards.greenhouse.io/reddit/jobs/8189317
+    company: reddit
+    family: backend
+    ats: greenhouse
+    title: Backend Engineer, IAM
+    controls: [text, tel, file, react_select, location, multi_select, policy_gate, sensitive]
+    notes: >-
+      Remote US role. Live schema has 20 rows: authorization/sponsorship selects, current-or-most-recent
+      company text, location autocomplete, policy gate, and six required Reddit U.S. Equal Employment
+      Information controls (gender multi-select, trans, sexuality multi-select, disability, veteran,
+      ethnicity multi-select).
+  - url: https://job-boards.greenhouse.io/inflectionai/jobs/4693117006
+    company: inflection-ai
+    family: research_engineer
+    ats: greenhouse
+    title: Principal Research Engineer, Model Training & Post-Training
+    controls: [text, file, react_select, multi_select, sensitive]
+    notes: >-
+      Palo Alto role. Live schema has 12 rows and the EEOC veteran/race/gender sensitive react-select
+      block alongside the hosted Greenhouse identity fields.
+  - url: https://job-boards.greenhouse.io/sambanovasystems/jobs/6146328004
+    company: sambanova
+    family: gpu_performance
+    ats: greenhouse
+    title: AI Hardware System Architect
+    controls: [text, file, react_select, location]
+    notes: >-
+      San Jose role. The hosted Greenhouse page (the board's canonical served URL) has 10 rows,
+      including required LinkedIn URL, immigration-assistance select, onsite-frequency select,
+      preferred-office checkbox group, and location autocomplete.
+
+  # Ashby: radios, EEO blocks, long custom questionnaires, and a real date control.
+  - url: https://jobs.ashbyhq.com/redis/d8092b32-0985-4fa7-9f55-6563f7f93475/application
+    company: redis
+    family: data_engineer
+    ats: ashby
+    title: Senior Principal Software Engineer, Feature Store
+    controls: [text, tel, file, radio, location, policy_gate, sensitive]
+    notes: >-
+      Canada role. Live schema has 11 rows with EEO gender/race/veteran radios, data-consent policy
+      checkbox, why-us text, Canadian work-authorization boolean, LinkedIn, phone, and resume.
+  - url: https://jobs.ashbyhq.com/exa/41eb773d-9909-422c-b6b8-5bbdc407d318/application
+    company: exa
+    family: backend
+    ats: ashby
+    title: Software Engineer, Backend
+    controls: [text, textarea, file, radio, location]
+    notes: >-
+      San Francisco role. Live schema has 14 rows with required earliest-start text, relocation and
+      sponsorship radios, required why-us and two essays, referral text, and links.
+  - url: https://jobs.ashbyhq.com/ramp/34413f8d-26bf-4bbc-8ade-eb309a0e2245/application
+    company: ramp
+    family: security
+    ats: ashby
+    title: Security Engineer Cloud
+    controls: [text, textarea, file, radio, location, policy_gate]
+    notes: >-
+      New York role. Live schema has 13 rows with payroll-location select, LinkedIn/cover letter,
+      years-experience and AWS booleans, and three custom essays including a long encoded prompt.
+  - url: https://jobs.ashbyhq.com/deepl/e9635327-a951-410e-bfc5-dddcf9094b12/application
+    company: deepl
+    family: security
+    ats: ashby
+    title: Senior Information Security Manager (EU Sovereignty)
+    controls: [text, tel, file, date, radio, checkbox_group, react_select, multi_select, policy_gate, sensitive]
+    notes: >-
+      Munich role, fresh URL not present in prior manifests. Live schema has 23 rows including the
+      required native date control (earliest start), relocation checkbox group, visa boolean, office
+      radios, age/gender/trans/sorientation/community diversity controls, and future-contact consent.

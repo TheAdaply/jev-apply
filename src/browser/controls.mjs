@@ -335,6 +335,10 @@ export function searchKeys(value) {
  *          chooseOption?:Function, allowModel?:boolean}} args
  */
 export async function chooseLabel({ labels, want, question = null, control = "combobox", chooseOption = null, allowModel = true }) {
+  if (["school", "employer"].includes(question?.repeat?.part)) {
+    const exact = labels.map((label, index) => ({ label, index })).filter(({ label }) => normLabel(label) === normLabel(want));
+    return exact.length === 1 ? { ...exact[0], strategy: "exact" } : null;
+  }
   const direct = pickOption(labels, want);
   if (direct) return { ...direct, strategy: direct.match };
   const target = flatten(want);
@@ -430,7 +434,7 @@ export async function waitForOptions(page, input, container, timeout = OPTION_WA
   let options = await menuOptions(page, input, container);
   let labels = [];
   for (;;) {
-    labels = (await options.allTextContents().catch(() => [])).map(norm).filter(Boolean);
+    labels = (await options.evaluateAll((nodes) => nodes.map((node) => (node.querySelector('[class*="canonicalSchoolResultName"]') ?? node).textContent)).catch(() => [])).map(norm);
     if (labels.some((l) => !isPlaceholderLabel(l))) break;
     if (labels.some((l) => EMPTY_RE.test(normLabel(l)))) break; // the widget has answered: nothing
     if (!labels.length) {
@@ -683,9 +687,10 @@ async function setNativeSelect(page, question, value, { input, chooseOption }) {
   const shown = async () => norm(await input.locator("option:checked").first().textContent().catch(() => ""));
   const before = await shown();
 
-  let pick = pickOption(labels, want);
-  let strategy = pick ? `label:${pick.match}` : null;
-  if (!pick) {
+  const identityName = ["school", "employer"].includes(question?.repeat?.part);
+  let pick = identityName ? await chooseLabel({ labels, want, question }) : pickOption(labels, want);
+  let strategy = pick ? `label:${pick.match ?? pick.strategy}` : null;
+  if (!pick && !identityName) {
     const byValue = pickOption(meta.map((m) => m.value), want);
     if (byValue) {
       pick = { index: byValue.index, label: labels[byValue.index] };
@@ -953,7 +958,8 @@ async function setCombobox(page, question, value, ctx, { read = null, allowModel
     },
     read: read ?? (() => committedText(input, container)),
     ok: async (observed) => {
-      if (reason || !matchesWanted(observed, want)) return false;
+      const matches = ["school", "employer"].includes(question?.repeat?.part) ? normLabel(observed) === normLabel(want) : matchesWanted(observed, want);
+      if (reason || !matches) return false;
       if ((await input.getAttribute("aria-expanded").catch(() => null)) === "true") return false;
       return true;
     },

@@ -156,6 +156,8 @@ export function inferBlocked(d, q, { context = {}, mem = null } = {}) {
   const klass = text(d.class ?? q?.class);
   if (klass === "sensitive") return PRONOUN_ROW_RE.test(label) ? "a pronoun is stated, never inferred" : "a protected characteristic is never inferred";
   if (!INFER_CLASSES.has(klass)) return `class ${klass || "(none)"} is not inferable`;
+  if (q?.repeat) return "a history entry's part is read from that entry or asked, never inferred";
+  if (d.parts || d.autofill_conflicts || d.topic === "work_location") return "missing stated details cannot be supplied by inference";
   if (q?.type === "file" || q?.control === "file" || d.source === "document") return "a file row is attached, never inferred";
   if (THIRD_PARTY_RE.test(label)) return "this asks about somebody other than you";
   if (EMPLOYMENT_HISTORY_RE.test(label) && !asksAboutThisEmployer(label, context.company) && !employersNamed(label, context.company)) {
@@ -322,7 +324,14 @@ export function evidencePool({ mem, pipeline = null, formPlan = null, context = 
   };
   for (const row of mem?.facts ?? []) if (!sensitiveMemoryRow(row)) push(memoryItem(row, "fact"));
   for (const row of mem?.preferences ?? []) if (!sensitiveMemoryRow(row)) push(memoryItem(row, "preference"));
-  for (const row of mem?.answers ?? []) if (!sensitiveMemoryRow(row) && row?.kind !== "never") push(memoryItem(row, "answer"));
+  for (const row of mem?.answers ?? []) {
+    if (sensitiveMemoryRow(row) || row?.kind === "never") continue;
+    const kind = /^q\.core\.(first_name|last_name|full_name|preferred_name)$/.exec(row.qid ?? "")?.[1];
+    const stated = kind && getFact(mem, `f.identity.${kind}`);
+    // Stated identity outranks an old derived answer, regardless of its source-id spelling.
+    if (stated && row.source !== "user" && String(row.value) !== String(stated.value)) continue;
+    push(memoryItem(row, "answer"));
+  }
   for (const row of usableStories(mem)) if (!sensitiveMemoryRow(row)) push(memoryItem(row, String(row?.kind ?? "story")));
   if (formPlan) {
     push(provenanceItem(formPlan, pipeline, context));
@@ -424,6 +433,11 @@ function textCandidates({ topic, mem, context, formPlan, now }) {
     if (v && !out.includes(v)) out.push(v);
   };
   if (topic === "preferred_name") {
+    const stated = getFact(mem, "f.identity.preferred_name") ?? getFact(mem, "f.identity.first_name");
+    if (stated) {
+      add(factText(stated)?.text);
+      return out;
+    }
     const full = getFact(mem, "f.identity.full_name");
     const parts = text(factText(full)?.text).split(/\s+/).filter(Boolean);
     if (parts.length >= 2) add(nameSplit(parts).first);

@@ -203,7 +203,8 @@ function blockRow({ section, additional, html }, cards) {
       control: "native_select",
       selector: 'select[data-qa="candidate-location-select"]',
       options: selectOptions(html),
-      class: classify(label, "", "single_select", false),
+      class: "identity",
+      country_gate: true,
     };
   }
   const primary = controls.find((c) => c.name && !PLUMBING_RE.test(c.name));
@@ -256,7 +257,8 @@ function blockRow({ section, additional, html }, cards) {
   const required = card ? Boolean(card.required) : sameName.some((c) => c.required !== undefined) || /class="required"/.test(html);
   const limits = parseLimits(label, help, Number(primary.maxlength) || undefined);
   const selector = ["radio", "checkbox_group", "checkbox"].includes(control) ? `input[name="${quoted(name)}"]` : `[name="${quoted(name)}"]`;
-  const sensitive = EEO_NAME_RE.test(name);
+  const companion = name === "eeo[disabilitySignature]" ? "name" : name === "eeo[disabilitySignatureDate]" ? "date" : null;
+  const sensitive = EEO_NAME_RE.test(name) && !companion;
 
   return {
     qid: name,
@@ -269,7 +271,8 @@ function blockRow({ section, additional, html }, cards) {
     selector,
     ...(options.length && { options }),
     ...(limits && { limits }),
-    class: sensitive ? "sensitive" : classify(label, help, type, required),
+    class: companion ? "identity" : sensitive ? "sensitive" : classify(label, help, type, required),
+    ...(companion ? { eeo_companion: companion } : {}),
   };
 }
 

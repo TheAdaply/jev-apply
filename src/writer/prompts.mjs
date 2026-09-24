@@ -190,8 +190,40 @@ export function whyUsInput({ sentence, stories, facts = [], job, avoid = [], not
 export const EXTRACT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["facts", "stories"],
+  required: ["facts", "stories", "history"],
   properties: {
+    history: {
+      type: "array",
+      description: "one entry per degree and one per role the document lists — every one of them, not only the latest",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind", "organization", "role", "field", "start", "end", "employment_type", "page"],
+        properties: {
+          kind: { type: "string", enum: ["education", "employment"] },
+          organization: { type: "string", description: "the school or the employer, exactly as written" },
+          role: {
+            type: ["string", "null"],
+            description: "the degree (\"Bachelor of Technology\", \"MSc\") or the job title, exactly as written",
+          },
+          field: {
+            type: ["string", "null"],
+            description: "education only: the subject studied (\"Computer Science\"), exactly as written; else null",
+          },
+          start: { type: ["string", "null"], description: "\"YYYY-MM\", or \"YYYY\" when only the year is printed; null when not stated" },
+          end: {
+            type: ["string", "null"],
+            description: "\"YYYY-MM\" or \"YYYY\"; \"present\" when the document says it is ongoing; null when not stated",
+          },
+          employment_type: {
+            type: ["string", "null"],
+            enum: ["full_time", "part_time", "internship", "contract", null],
+            description: "employment only, and only when the document says so (\"Intern\", \"Contract\"); else null",
+          },
+          page: { type: "integer", description: "1-based [[page N]] marker the entry came from" },
+        },
+      },
+    },
     facts: {
       type: "array",
       description: "atomic, checkable facts copied from the document",
@@ -284,6 +316,13 @@ first person with every number copied verbatim from the document. Each story's T
 interview question that story answers, phrased as a question and ending in "?" — for example
 "Which project shows you cutting tail latency?" or "When did you lead a migration under a deadline?".
 A title that is a heading rather than a question is wrong.
+
+HISTORY is the document's education and work sections as a list: one entry per degree and one per
+role, every one the document prints — a Bachelor's and a Master's are two entries, and so are two
+roles at one employer. Copy names, degrees and titles exactly as written. Dates are only what the
+document prints: "YYYY-MM", or "YYYY" when it gives the year alone, "present" for an ongoing one,
+null when it gives none. School-leaving certificates (high school, A-levels, 12th grade) are not
+entries.
 
 The document is split by [[page N]] markers; report the page each item came from.
 ${JSON_NOTE}`;

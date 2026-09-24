@@ -29,7 +29,8 @@ import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
 import { NONE } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
-import { CANON_RULES, applyRephrasing, countryOption, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { CANON_RULES, applyRephrasing, applyResumePick, countryOption, resumeCriterion, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { distinctiveLines, profileLines, resumeDigest } from "../src/memory/resume-text.mjs";
 import { ID_CATALOGUE } from "../src/memory/schema.mjs";
 import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
 import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
@@ -2134,6 +2135,69 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   check(
     "location country: the one option stating the country is picked by its ISO value, else by its label; none when no option states it",
     countryOption(byCode, "US") === "United States" && countryOption(byName, "US") === "United States" && countryOption(byName, "DE") === null,
+  );
+}
+
+{
+  const file = fileURLToPath(import.meta.url);
+  const doc = (name, extra = {}) => ({ id: `doc.resume.${name}`, path: file, source: `resume:${name}.pdf`, ...extra });
+  const ml = doc("ml");
+  const backend = doc("backend");
+  const base = {
+    facts: [],
+    preferences: [],
+    answers: [],
+    stories: [
+      { id: "b.1", title: "Trained a ranking model", source: "resume:ml.pdf#p1" },
+      { id: "b.2", title: "Built a payments API", source: "resume:backend.pdf#p1" },
+    ],
+    documents: [ml, backend],
+  };
+  const resumeRow = { qid: "resume", label: "Resume/CV", class: "identity", type: "file", control: "file", required: true };
+  const form = { job: { title: "Backend Engineer", company: "Acme", role_family: "backend" }, questions: [resumeRow] };
+  const resolved = (mem) => resolveForm(form, { mem }).decisions[0];
+  const oneOnly = { ...base, documents: [ml] };
+  const mapped = { ...base, preferences: [{ id: "p.resume_by_role_family", value: { backend: "doc.resume.ml" }, source: "user" }] };
+  check(
+    "résumé pick: Jev is consulted only with several résumés and none tied to this role family",
+    resolved(base)._pickResume === true && !resolved(oneOnly)._pickResume && !resolved(mapped)._pickResume && resolved(mapped).path === file,
+  );
+  check(
+    "résumé pick: a résumé whose PDF cannot be read is described by its file name and the stories read out of it",
+    resumeCriterion(ml, base).includes("Trained a ranking model") && !resumeCriterion(ml, base).includes("payments"),
+  );
+  const rows = () => [{ qid: "resume", action: "ask", source: "none", remember_as: { kind: "document" } }];
+  const confident = rows();
+  const picked = applyResumePick(confident, [ml, backend], { choice: "r1", confidence: 0.9, probabilities: { r0: 0.05, r1: 0.9, none_of_these: 0.05 } });
+  const thin = rows();
+  applyResumePick(thin, [ml, backend], { choice: "r1", confidence: 0.5, probabilities: { r0: 0.45, r1: 0.5, none_of_these: 0.05 } });
+  const none = rows();
+  applyResumePick(none, [ml, backend], { choice: "none_of_these", confidence: 0.8, probabilities: { r0: 0.1, r1: 0.1, none_of_these: 0.8 } });
+  check(
+    "résumé pick: a confident pick attaches that file, a thin one attaches it as a check, none_of_these leaves the stated rule's row",
+    picked === backend && confident[0].action === "fill" && confident[0].path === file && !confident[0].remember_as &&
+      thin[0].action === "check" &&
+      none[0].action === "ask" && none[0].remember_as?.kind === "document",
+  );
+  check("résumé pick: the reason names the pick and the runner-up with their probabilities", /backend.*90%.*vs doc\.resume\.ml 5%/.test(confident[0].why));
+}
+
+{
+  const shared = "T Example\nt@example.com · +1 415 555 0100 · github.com/texample\nEDUCATION\nBSc Computer Science, 2019";
+  const android = profileLines(`${shared}\nSUMMARY\nAndroid engineer shipping Kotlin apps\n• Built offline playback in Jetpack Compose\nSKILLS\nKotlin, Jetpack Compose, Android SDK\n-- 1 of 1 --`);
+  const backend = profileLines(`${shared}\nSUMMARY\nBackend engineer for payment systems\n• Designed Go microservices on Postgres\nSKILLS\nGo, Postgres, Kafka`);
+  check(
+    "résumé text: contact lines and page markers never leave the file, bullets are unwrapped, content stays in order",
+    !android.some((l) => /@|555|github|1 of 1/.test(l)) && android.includes("Built offline playback in Jetpack Compose") && android.indexOf("SKILLS") < android.indexOf("Kotlin, Jetpack Compose, Android SDK"),
+  );
+  const unique = distinctiveLines(android, [backend]);
+  check(
+    "résumé text: what only one résumé says is its summary, bullets and skills, not the shared name and education",
+    unique.includes("Kotlin, Jetpack Compose, Android SDK") && unique.includes("Android engineer shipping Kotlin apps") && !unique.includes("BSc Computer Science, 2019") && !unique.includes("SKILLS"),
+  );
+  check(
+    "résumé text: a résumé with nothing of its own says so instead of repeating the shared text",
+    /same content as the other résumés/.test(resumeDigest("copy.pdf", android, [android])) && resumeDigest("a.pdf", android, [backend], 60).length === 60,
   );
 }
 

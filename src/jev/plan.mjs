@@ -30,9 +30,10 @@ import { parse as parseYaml } from "yaml";
 
 import { paths } from "../config.mjs";
 import { classifyTitle } from "../canon/families.mjs";
-import { answersFor, getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
+import { answersFor, getFact, resolvePreference, resumeDocuments, usableStories } from "../memory/resolve.mjs";
+import { resumeDigest, resumeLines } from "../memory/resume-text.mjs";
 import { fullTimeYears, latestEducation, latestEmployment, locationFact, noticeRule, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
-import { acceptsMostRecent, appliedBeforeFor, factText, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
+import { acceptsMostRecent, appliedBeforeFor, factText, fileRow, inOfficeFor, relocationFor } from "../plan/resolve.mjs";
 import { optionStating, topicsIn, unmetTopics, vocabFor } from "../canon/normalize.mjs";
 // The field's stated limit decides the length variant, and the same rule has to hold in the
 // deterministic pass, here, and in the writer — one definition, in the leaf module both import.
@@ -250,6 +251,9 @@ export async function planWithJev({ formPlan, decisions, mem, context, slug, can
     }
     d._open = false;
   }
+
+  const resumeRows = out.filter((d) => d._pickResume);
+  if (resumeRows.length) await resumeStage(resumeRows, { formPlan, mem, slug, signal, totals });
 
   const optionRows = out.filter((d) => {
     const q = byQid.get(d.qid);
@@ -761,6 +765,68 @@ function applySavedItems(rows, answers, pools) {
  * equality, and the canonical vocabulary the question belongs to (`src/canon/normalize.mjs`),
  * which maps a saved answer onto a list that spells it differently or does not spell it at all.
  */
+/** A résumé as Jev sees it when its PDF cannot be read: its file name and its stories' titles. */
+export function resumeCriterion(doc, mem) {
+  const titles = usableStories(mem)
+    .filter((s) => doc?.source && String(s?.source ?? "").startsWith(`${doc.source}#`))
+    .map((s) => s.title)
+    .filter(Boolean)
+    .slice(0, 8);
+  const name = path.basename(String(doc?.path ?? doc?.id ?? ""));
+  return clip(titles.length ? `${name}: ${titles.join("; ")}` : name, 400);
+}
+
+/**
+ * Jev's pick → the résumé rows. A confident pick attaches that file, a thin one attaches it as a
+ * `check`; `none_of_these`, a pick below the gate, or a file no longer on disk leaves every row
+ * exactly as the stated rule resolved it. Pure, so the rule is testable without a request.
+ */
+export function applyResumePick(rows, resumes, answer) {
+  if (!answer || answer.choice === NONE) return null;
+  const action = gate(answer);
+  if (action === "ask") return null;
+  const doc = resumes[Number(String(answer.choice).slice(1))];
+  const pct = (p) => `${Math.round((p ?? 0) * 100)}%`;
+  const next = Object.entries(answer.probabilities ?? {})
+    .filter(([key]) => key !== answer.choice && key !== NONE)
+    .sort((a, b) => b[1] - a[1])[0];
+  const runnerUp = next ? resumes[Number(next[0].slice(1))] : null;
+  const vs = runnerUp ? ` vs ${runnerUp.id} ${pct(next[1])}` : "";
+  const row = doc ? fileRow(doc, `Jev picked ${doc.id} for this posting — ${pct(answer.probabilities?.[answer.choice] ?? answer.confidence)}${vs}`) : null;
+  if (!row || row.action !== "fill") return null;
+  for (const d of rows) {
+    delete d.remember_as;
+    Object.assign(d, row, { action: action === "check" ? "check" : "fill", confidence: round(answer.confidence) });
+  }
+  return doc;
+}
+
+/**
+ * Request 4 — which saved résumé fits this posting, asked only when the user keeps several and tied
+ * none of them to this role family. Jev selects among the user's own files; it never writes one.
+ */
+async function resumeStage(rows, { formPlan, mem, slug, signal, totals }) {
+  const resumes = resumeDocuments(mem);
+  // Each résumé is described by what only it says, read from the PDF; one that cannot be read is
+  // described by the stories onboarding kept from it instead.
+  const lines = await Promise.all(resumes.map((doc) => resumeLines(doc.path).catch(() => null)));
+  const criteria = {};
+  resumes.forEach((doc, i) => {
+    const others = lines.filter((l, j) => j !== i && l);
+    criteria[`r${i}`] = lines[i]?.length ? resumeDigest(path.basename(doc.path), lines[i], others) : resumeCriterion(doc, mem);
+  });
+  const state = { job: { ...jobState(formPlan), description: clip(formPlan?.job?.description, 3000) } };
+  const questions = {
+    resume: choice(
+      "Which of the candidate's own résumés fits `job` best — the one whose roles and work are closest to what the posting asks for?",
+      withNone(criteria, "No résumé fits this posting clearly better than the others"),
+    ),
+  };
+  const answers = await ask({ stage: "resume", state, questions, slug, signal, totals });
+  applyResumePick(rows, resumes, answers.resume);
+  for (const d of rows) delete d._pickResume;
+}
+
 /**
  * The one option naming `country`: by its ISO value (Lever posts alpha-2 codes), else by its
  * label. More than one candidate ("United States" and "United States Minor Outlying Islands") is

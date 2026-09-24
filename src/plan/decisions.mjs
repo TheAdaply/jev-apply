@@ -239,7 +239,7 @@ export function formFingerprint(formPlan) {
  *
  * @returns {{ok:boolean, checked:boolean, reason:string|null, detail:string|null}}
  */
-export function refillGuard({ frozen = null, formPlan = null, refill = false } = {}) {
+export function refillGuard({ frozen = null, formPlan = null, form = null, refill = false } = {}) {
   const clear = (detail = null) => ({ ok: true, checked: true, reason: null, detail });
   if (!frozen) return clear();
   const reviewed = (frozen.decisions ?? []).filter((d) => d?.readback?.ok === true);
@@ -247,7 +247,7 @@ export function refillGuard({ frozen = null, formPlan = null, refill = false } =
   if (!frozen.form) {
     return { ok: true, checked: false, reason: null, detail: "the frozen record predates the page fingerprint — its identity cannot be checked" };
   }
-  const now = formFingerprint(formPlan);
+  const now = form ?? formFingerprint(formPlan);
   if (now === frozen.form) return clear();
   if (refill) return clear(`the form changed since the fill (${frozen.form} → ${now}) and --refill was given`);
   return {

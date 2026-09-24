@@ -150,6 +150,9 @@ function applyUrl(source) {
 async function planPosting({ source, stores, budget, phases = newPhases(), reattach = false, quiet = false, infer = true }) {
   const { mem, baselines, pipeline, canon } = stores;
   const formPlan = await timed(phases, "schema", () => loadFormPlan(source));
+  // The form as the board publishes it (B1), taken before stored conditional rows are merged in
+  // and before the fill loop corrects any row's control to what the page renders.
+  const form = formFingerprint(formPlan);
   const slug = applicationSlug(formPlan);
   const frozen = await loadFrozen(slug);
 
@@ -189,7 +192,7 @@ async function planPosting({ source, stores, budget, phases = newPhases(), reatt
   // `finalize` is handed memory and the posting's context: that is what turns a `why_us`/essay
   // row into `action:"draft"` when `p.auto_draft` is on, instead of handing it back to the user.
   const settled = finalize(decisions, { mem, context });
-  return { formPlan, slug, context, decisions: withFormFacts(settled, formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
+  return { formPlan, form, slug, context, decisions: withFormFacts(settled, formPlan), jev, extra, stored: [], applied: [], phases, openaiBase: writerSpend() };
 }
 
 /** Step 9's second half: the host's answers → memory + the `ask` rows, re-planning only those. */
@@ -469,7 +472,7 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
       requests: jev.requests,
       // The identity of the form these rows were filled against (B1). `refillGuard` reads it on
       // the next run and refuses to throw away a reviewed fill for a page that has changed.
-      form: formFingerprint(formPlan),
+      form: plan.form ?? formFingerprint(formPlan),
       // `submit_attempted` is the double-submit guard's memory: true once the button was
       // actually clicked, whatever the board then said (PLAN §2.2 step 12).
       ...(submit
@@ -684,7 +687,7 @@ async function singleRun(args, stores) {
       // re-fill silently discards it. `--answers` re-attaches to the tab that already holds the
       // reviewed state instead, so it is the re-fill — and only the re-fill — that is gated.
       // `--refill` is the user saying to do it anyway.
-      const guard = answers ? { ok: true, detail: null } : refillGuard({ frozen: await loadFrozen(plan.slug), formPlan: plan.formPlan, refill: args.refill });
+      const guard = answers ? { ok: true, detail: null } : refillGuard({ frozen: await loadFrozen(plan.slug), formPlan: plan.formPlan, form: plan.form, refill: args.refill });
       if (!guard.ok) {
         log(`refill: refused — ${guard.detail}`);
         await appendTrace(plan.slug, { op: "blocked", reason: guard.reason, detail: guard.detail });
@@ -780,7 +783,7 @@ async function queueRun(args, stores) {
         // that was reviewed is not re-filled from scratch without being asked (B1).
         const guard = answers
           ? { ok: true, detail: null }
-          : refillGuard({ frozen: await loadFrozen(job.plan.slug), formPlan: job.plan.formPlan, refill: args.refill });
+          : refillGuard({ frozen: await loadFrozen(job.plan.slug), formPlan: job.plan.formPlan, form: job.plan.form, refill: args.refill });
         if (!guard.ok) {
           job.error = new Blocked(guard.reason, guard.detail);
           log(`${job.entry.id} blocked: ${guard.detail}`);

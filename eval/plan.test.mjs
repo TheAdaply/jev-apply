@@ -2031,6 +2031,21 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
 }
 
+{
+  const published = { ats: "greenhouse", questions: [{ qid: "first_name", control: "text", required: true }, { qid: "location", control: "react_select", required: true }] };
+  const grown = { qid: "hispanic_ethnicity", control: "react_select", required: false };
+  const afterFill = { ...published, questions: [published.questions[0], { ...published.questions[1], control: "location" }, grown] };
+  const frozen = { slug: "acme-2", form: formFingerprint(published), decisions: [{ qid: "first_name", readback: { ok: true } }] };
+  const replanned = { ...published, questions: [...published.questions, grown] };
+  const changed = { ...published, questions: [...published.questions, { qid: "export_control", control: "radio", required: true }] };
+  check(
+    "B1 refill identity: a control the page corrected and a row it grew do not make an unchanged posting a different form; a changed schema still does",
+    formFingerprint(afterFill) !== frozen.form &&
+      refillGuard({ frozen, formPlan: replanned, form: formFingerprint(published) }).ok === true &&
+      refillGuard({ frozen, formPlan: changed, form: formFingerprint(changed) }).ok === false,
+  );
+}
+
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

@@ -175,31 +175,32 @@ export function expandRepeaters(formPlan, mem, { now = new Date() } = {}) {
     const { kind, parts = {} } = q.repeat ?? {};
     const shown = ORDER[kind]?.filter((part) => parts[part] && parts[part] !== "hidden") ?? [];
     const max = Number.isInteger(q.repeat?.max) && q.repeat.max > 0 ? q.repeat.max : Infinity;
+    const min = Math.max(q.required ? 1 : 0, Number.isInteger(q.repeat?.min) ? q.repeat.min : 0);
     const entries = historyOf(kind, mem, now).slice(0, max);
 
-    if (!entries.length && !q.required) {
+    if (!entries.length && min === 0) {
       // Nothing on file for an optional section: the row stays, so the summary says so.
       out.push({ ...q, repeat: { ...q.repeat, of: q.qid, empty: true } });
       continue;
     }
-    const list = entries.length ? entries : [null];
+    const list = [...entries, ...Array(Math.max(0, min - entries.length)).fill(null)];
     let index = 0;
     list.forEach((entry, n) => {
-      const missing = shown.filter((part) => parts[part] === "required" && partValue(part, entry) == null);
-      if (entry && missing.length && !q.required) {
+      const applicable = shown.filter((part) => !(entry?.current && shown.includes("current") && /^end_/.test(part)));
+      const missing = applicable.filter((part) => parts[part] === "required" && partValue(part, entry) == null);
+      if (entry && missing.length && n >= min) {
         out.push({
           ...q,
           qid: `${q.qid}[${n}]`,
-          label: `${q.label} — ${entryName(kind, entry)}`,
+          label: `${kind} ${n + 1} — ${q.label}: ${entryName(kind, entry)}`,
           required: false,
           repeat: { ...q.repeat, of: q.qid, entry: entry.id, dropped: missing.map((p) => PART_LABEL[p].toLowerCase()) },
         });
         return;
       }
-      for (const part of shown) {
-        if (entry?.current && /^end_/.test(part)) continue; // an ongoing entry has no end date
+      for (const part of applicable) {
         if (part === "current" && !entry?.current) continue; // the box stays unticked
-        out.push(partRow(q, { ats, kind, part, index, entry, required: parts[part] === "required" }));
+        out.push(partRow(q, { ats, kind, part, index, entry, required: parts[part] === "required" || (!entry && n < min), optional: n >= min }));
       }
       index += 1;
     });
@@ -208,13 +209,13 @@ export function expandRepeaters(formPlan, mem, { now = new Date() } = {}) {
   return formPlan;
 }
 
-function partRow(q, { ats, kind, part, index, entry, required }) {
+function partRow(q, { ats, kind, part, index, entry, required, optional }) {
   const ids = q.repeat?.ids ?? null;
   const domId = ids?.[part] ? `${ids[part]}--${index}` : null;
   const options = ats === "greenhouse" && kind === "education" && part === "degree" ? GREENHOUSE_DEGREES : null;
   return {
     qid: `${q.qid}[${index}].${part}`,
-    label: `${PART_LABEL[part]} — ${entryName(kind, entry)} (${kind} ${index + 1})`,
+    label: `${kind} ${index + 1} — ${PART_LABEL[part]}: ${entryName(kind, entry)}`,
     required,
     section: q.section ?? null,
     ...shapeOf(ats, part),
@@ -229,6 +230,8 @@ function partRow(q, { ats, kind, part, index, entry, required }) {
       index,
       part,
       entry: entry?.id ?? null,
+      optional,
+      required_parts: Object.keys(q.repeat.parts ?? {}).filter((part) => q.repeat.parts[part] === "required"),
       container: q.repeat?.container ?? q.selector ?? null,
       ...(domId ? { dom_id: domId } : {}),
       // Greenhouse's School list is a fixed catalogue with its own "Other" entry: a school the
@@ -299,8 +302,8 @@ function missing(q, r, entry, what, name) {
     // both rows carry the same key and the answer ("2016-08") reaches both (`askKey`).
     ...(dated || id ? { canon: `history:${r.entry ?? r.of}:${dated ? edge : r.part}:${r.index}` } : {}),
     ...(dated
-      ? { label: `When did ${name} ${edge === "start" ? "start" : "end"}? (YYYY-MM, or YYYY)` }
-      : { label: `${PART_LABEL[r.part]} for ${name}` }),
+      ? { label: `${r.kind} ${r.index + 1} — When did ${name} ${edge === "start" ? "start" : "end"}? (YYYY-MM, or YYYY)` }
+      : { label: `${r.kind} ${r.index + 1} — ${PART_LABEL[r.part]} for ${name}` }),
     why: what,
     ...(id ? { remember_as: { kind: "fact", id } } : {}),
   };

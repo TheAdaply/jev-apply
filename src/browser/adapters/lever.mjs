@@ -21,6 +21,7 @@
 import { norm, normLabel, waitUntil } from "../readback.mjs";
 import { captureFailure, tracer } from "../trace.mjs";
 import * as generic from "./generic.mjs";
+import { samePlace } from "../../plan/execute.mjs";
 
 export const id = "lever";
 
@@ -84,11 +85,10 @@ export function pickSuggestion(suggestions, want) {
   const wanted = parts(want);
   if (!wanted.length) return { pick: null, index: -1, reason: "no location value to type" };
   const unique = [...new Set(suggestions.map((s) => norm(s)).filter(Boolean))];
-  const hits = unique.filter((s) => {
-    const p = parts(s);
-    return p[0] === wanted[0] && wanted.slice(1).every((q) => p.includes(q));
-  });
-  if (hits.length === 1) return { pick: hits[0], index: suggestions.findIndex((s) => norm(s) === hits[0]) };
+  const exact = unique.filter((s) => normLabel(s) === normLabel(want));
+  const match = exact.length === 1 ? { label: exact[0] } : samePlace(unique, want);
+  if (match) return { pick: match.label, index: suggestions.findIndex((s) => norm(s) === match.label) };
+  const hits = unique.filter((s) => parts(s)[0] === wanted[0]);
   return {
     pick: null,
     index: -1,

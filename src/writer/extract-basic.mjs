@@ -3,13 +3,13 @@
 // `scripts/learn.mjs` normally hands the document to `extractResume()` (src/writer/openai.mjs),
 // which is a model call. When there is no writer model — the `host` backend, i.e. jev-apply
 // running inside Claude Code or Codex with only a Jev key — onboarding must still work, so this
-// module does the part a regex can do honestly: the contact block at the top of every CV, and the
-// bullet lines under its section headings.
+// module handles explicit contact details, dated education/employment entries, and bullet lines
+// under section headings.
 //
 // The rules it keeps are the product's rules, not a parser's:
-//   * Every value is copied out of the document verbatim. Nothing is inferred, normalised into a
-//     shape the document did not use, or defaulted — a fact this file is unsure of is simply not
-//     emitted, and the user is asked for it later like any other missing fact.
+//   * Names and prose come directly from the document. Explicit dates and employment types may be
+//     converted to memory's canonical shape; unstated values are never defaulted. A fact this file
+//     is unsure of is omitted, and the user is asked for it later like any other missing fact.
 //   * A story is one bullet line, with the heading it sat under as its context. The title is the
 //     question that bullet answers, built from the bullet's own words so it stays grounded.
 //   * Row shapes, ids and `source` provenance are exactly `extractResume`'s, so a store topped up
@@ -195,6 +195,7 @@ const EDUCATION_HEADING = /^(education|academic (background|qualifications?|hist
 /** A line that names a degree — the anchor of one education entry. */
 const DEGREE_RE =
   /\b(bachelor|master|doctor(?:ate)?|ph\.?\s?d|mba|associate(?:'s)? degree|diploma|b\.?\s?tech|m\.?\s?tech|b\.?\s?sc|m\.?\s?sc|b\.?\s?eng|m\.?\s?eng|b\.?\s?e\.?|m\.?\s?e\.?|b\.?\s?s\.?|m\.?\s?s\.?|b\.?\s?a\.?|m\.?\s?a\.?|b\.?\s?com|m\.?\s?com|bca|mca|llb|llm|md)(?=[\s,.(–—-]|$)/i;
+const SCHOOL_LEAVING = /\b(high school|secondary|matriculation|hsc|ssc|cbse|icse|a[- ]levels?|gcse|o[- ]levels?|abitur|baccalaur[ée]at|class (?:x|xii|10|12)|(?:10|12)th (?:grade|standard|class))\b/i;
 
 /** "2016 – 2020", "Aug 2016 - May 2020", "2022 – Present": the opening month and year are the start. */
 const YEAR_RANGE = /(?:\b([A-Za-z]{3,9})\.?\s+)?\b((?:19|20)\d{2})\s*[–—-]\s*(?:[A-Za-z]{3,9}\.?\s+)?(?:(?:19|20)\d{2}|present|current|now)\b/i;
@@ -232,6 +233,10 @@ function educationRows(lines, source, seen) {
       continue;
     }
     if (!inside) continue;
+    if (SCHOOL_LEAVING.test(value)) {
+      pending = null;
+      continue;
+    }
     if (!DEGREE_RE.test(value)) {
       pending = value.length <= 90 ? { value, page } : null;
       continue;
@@ -241,11 +246,60 @@ function educationRows(lines, source, seen) {
     const own = value.match(YEAR_RANGE);
     const other = pending?.value.match(YEAR_RANGE) ?? null;
     const range = own ?? other;
-    const strip = (line) => clean(range ? line.replace(range[0], "").replace(/[,\s|·]+$/, "") : line);
+    const strip = (line) => clean(range ? line.replace(range[0], "").replace(/\(\s*\)/g, "").replace(/[,\s|·]+$/, "") : line);
     const joined = /\s[—–-]\s/.test(strip(value)) || !pending ? strip(value) : `${strip(value)} — ${strip(pending.value)}`;
     const dated = range ? `${joined} (${clean(range[0])})` : joined;
     const id = uniqueId(`f.education.${slugOf(value) || "degree"}`, seen);
     rows.push({ id, value: dated, ...(range ? { since: rangeStart(range) } : {}), source: source(page) });
+    pending = null;
+  }
+  return rows;
+}
+
+/** Explicit title — company + date ranges under work headings; unplaced lines remain unknown. */
+function employmentRows(lines, source, seen) {
+  const rows = [];
+  let inside = false;
+  let last = null;
+  let pending = null;
+  for (const { text, page } of lines) {
+    const value = clean(text);
+    if (!value) continue;
+    if (/^(?:(?:work|professional)\s+)?(?:experience|employment|work history|career)\s*:?\s*$/i.test(value) || /^work\s*:?\s*$/i.test(value)) {
+      inside = true;
+      last = pending = null;
+      continue;
+    }
+    if (EDUCATION_HEADING.test(value) || SKIP_HEADING.test(value) || /^(?:projects?|publications?|volunteering)\s*:?\s*$/i.test(value)) {
+      inside = false;
+      last = pending = null;
+    }
+    if (!inside) continue;
+    if (/^full[- ]time\b/i.test(value) && last) {
+      if (!last.value.employment_type) last.value.employment_type = "full_time";
+      continue;
+    }
+    const range = value.match(YEAR_RANGE);
+    if (!range) {
+      pending = !BULLET.test(value) && value.length <= 90 && !/[.!?]$/.test(value) ? { value, page } : null;
+      continue;
+    }
+    const headline = clean(value.replace(range[0], "").replace(/\(\s*\)/g, "").replace(/[,\s|·]+$/, ""));
+    const halves = headline.split(/\s+[—–-]\s+/);
+    const role = halves.length === 2 ? halves[0] : pending && halves.length === 1 ? headline : null;
+    const company = halves.length === 2 ? halves[1] : pending?.value;
+    if (!role || !company || BULLET.test(value)) { pending = null; continue; }
+    const end = range[0].split(/\s*[–—-]\s*/).at(-1);
+    const current = /^(present|current|now)$/i.test(end);
+    const closing = current ? null : end.match(/^(?:([A-Za-z]{3,9})\.?\s+)?((?:19|20)\d{2})$/);
+    if (!current && !closing) { pending = null; continue; }
+    last = {
+      id: uniqueId(`f.employment.${slugOf(`${company}_${role}`)}`, seen),
+      value: { company, role, ...(current ? { current: true } : { until: rangeStart(closing) }), ...(/\bintern(?:ship)?\b/i.test(role) ? { employment_type: "internship" } : {}) },
+      since: rangeStart(range),
+      source: source(page),
+    };
+    rows.push(last);
     pending = null;
   }
   return rows;
@@ -309,7 +363,7 @@ export function extractBasic(text, { doc = "resume", pages = null } = {}) {
     facts.push({ id: row.id, value: row.value, source: source(row.page) });
   }
 
-  facts.push(...educationRows(lines, source, seenFacts));
+  facts.push(...educationRows(lines, source, seenFacts), ...employmentRows(lines, source, seenFacts));
 
   const stories = storyRows(lines, source, new Set());
   if (!facts.length && !stories.length) throw new Error("extractBasic: nothing extracted from the document");

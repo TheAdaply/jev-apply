@@ -168,7 +168,7 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   const answered = resolveForm(form, { mem: stated, now }).decisions.find((d) => d.qid === "privacy");
   check("policy gate: an explicit p.legal.<slug> answers it, and only that", answered.action === "fill" && answered.why.startsWith("p.legal.privacy_policy_ack"));
 
-  check("location: a work-mode fact is not a place — the row asks for the city", row("where").action === "ask" && row("where").remember_as?.id === "f.identity.city");
+  check("location: a work-mode fact is not a place — the row asks, and for the intended work location, not residence", row("where").action === "ask" && row("where").remember_as?.id === "p.looking_for.work_location");
   check("location: 'From where do you intend to work?' reads as a location question", classify(questions[3].label, "", "text", true) === "identity");
   check("name: 'Full Legal Name' fills from the stated full name", row("legal").action === "fill");
   check("name: an initial is the family name, whichever side it is written on", row("first").value === "Example" && row("last").value === "T");
@@ -1880,9 +1880,10 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
       /pronouns/.test(stated.why),
   );
 
-  // ── (f) preferred name, read off the stated full name ───────────────────────────────────────
+  // ── (f) preferred name: a stated preferred name wins; with none, the given name of the stated
+  //        full name is the last-tier inference, surfaced as a check ─────────────────────────────
   check(
-    "infer: an optional preferred-name box skipped for want of a fact is answered with the given name of the stated full name, as a check",
+    "infer: an optional preferred-name box with no stated preferred name is answered with the given name of the stated full name, as a check",
     row("preferred").action === "check" && row("preferred").source === "inferred" && row("preferred").value === "Priya" && row("preferred").inference.evidence.includes("f.identity.full_name"),
   );
 
@@ -2425,8 +2426,6 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     byQid.get("education[1].school")?.action === "check" && byQid.get("education[0].school")?.action === "fill",
   );
   check("history: no third entry, and no box the form hides (start/end month)", !byQid.has("education[2].school") && !byQid.has("education[0].start_month"));
-  check("history: Greenhouse's School box carries its catalogue's own catch-all", gh.questions.find((q) => q.qid === "education[1].school")?.repeat?.fallback === "Other");
-  check("history: the evidence tier never infers a history box", /never inferred/.test(String(inferBlocked({ ...byQid.get("education[0].school"), action: "ask" }, gh.questions.find((q) => q.qid === "education[0].school")))));
 
   const ashby = normalizeAshby(JSON.parse(readFileSync(path.join(ROOT, "eval", "fixtures", "ashby-plaid-5d8abedc.json"), "utf8")), "https://jobs.ashbyhq.com/plaid/5d8abedc-018a-4b42-ae1f-0e70b34f2007/application");
   const edu = ashby.questions.find((q) => q.type === "repeater");
@@ -2439,6 +2438,46 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     a.get(`${p}[0].degree`)?.value === "MS" && a.get(`${p}[1].degree`)?.value === "B.Tech" && a.get(`${p}[1].start_month`)?.value === "August" && a.get(`${p}[1].end_month`)?.value === "May" && a.get(`${p}[0].field`)?.value === "Computer Science",
   );
   check("history: the \"Still Student?\" box is only ticked for an ongoing degree", !a.has(`${p}[0].current`) && !a.has(`${p}[1].current`));
+
+  const rolledBack = withFormFacts(structuredClone(ashbyRows), ashby);
+  for (const d of rolledBack.filter((d) => d.repeat?.part)) {
+    const removed = d.repeat.index === 0;
+    Object.assign(d.repeat, { physical: removed ? null : 0, state: removed ? "rolled_back" : "filled" });
+    if (!removed) continue;
+    if (d.repeat.part === "school") d.action = "ask";
+    else {
+      d.repeat.restore = { action: d.action, why: d.why };
+      d.action = "skip";
+    }
+  }
+  const frozenHistory = JSON.parse(JSON.stringify(rolledBack.map(publicDecision)));
+  const restored = await applyAnswers(frozenHistory, { [`${p}[0].school`]: { value: "University of Oxford" } }, { formPlan: ashby, persist: false });
+  const restoredParts = restored.decisions.filter((d) => d.repeat?.index === 0);
+  check("history: answering a rolled-back school restores all six memory-backed siblings",
+    restoredParts.length === 7 && restoredParts.every((d) => d.action === "fill" && restored.applied.includes(d.qid)) &&
+    restoredParts.find((d) => d.repeat.part === "degree")?.value === "MS" &&
+    restoredParts.find((d) => d.repeat.part === "start_year")?.value === "2022");
+  const { attachHistoryEntries, resolveHistorySelector } = await import("../src/browser/repeat.mjs");
+  const cards = [{ school: "Surviving school" }];
+  let target = null;
+  const add = { count: async () => 1, innerText: async () => "+ Add Education", click: async () => { cards.push({ school: "" }); } };
+  const freshPage = {
+    locator: () => ({ count: async () => 1, nth: () => add }),
+    evaluate: async (_fn, args) => {
+      if (!args.part) return cards.length;
+      target = args.index;
+      return cards[target] ? { empty: !cards[target].school, history: `${args.of}[${args.planIndex}]` } : false;
+    },
+  };
+  const freshQuestions = structuredClone(ashby.questions);
+  await attachHistoryEntries(freshPage, freshQuestions, restored.decisions, null);
+  const restoredSchool = freshQuestions.find((q) => q.qid === `${p}[0].school`);
+  await resolveHistorySelector(freshPage, restoredSchool);
+  cards[target].school = restored.decisions.find((d) => d.qid === restoredSchool.qid).value;
+  check("history: frozen rollback in a fresh resolver appends a card without overwriting the survivor",
+    cards.length === 2 && target === 1 && cards[0].school === "Surviving school" && cards[1].school === "University of Oxford" &&
+    restored.decisions.filter((d) => d.repeat?.index === 1).every((d) => d.repeat.physical === 0) &&
+    restoredParts.every((d) => d.repeat.physical === 1 && d.repeat.state === "filled"));
 
   // An optional section never grows a card it cannot finish: no school → that entry is not added.
   const noSchool = { ...mem, facts: [...mem.facts, { id: "f.education.phd", value: { degree: "PhD", field: "Physics" }, since: "2024-09" }] };
@@ -2470,6 +2509,86 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     got.get("education[0].start_month")?.value === "August" && got.get("education[0].start_year")?.value === "2016" && answered.stored.length === 1 && answered.stored[0].row.value === "2016-08",
   );
   check("history: an answer shaped for a year box is refused by a month box", shapeRepeatAnswer({ repeat: { part: "start_month" } }, "2016") === null);
+  const { chooseLabel } = await import("../src/browser/controls.mjs");
+  const schoolQuestion = { repeat: { part: "school" } };
+  check("history: similar schools are refused, normalised equality alone selects",
+    await chooseLabel({ labels: ["University of York"], want: "University of Yorkville", question: schoolQuestion }) === null &&
+    (await chooseLabel({ labels: [" University  of York "], want: "university of york", question: schoolQuestion }))?.index === 0);
+  check("history: employer names cannot select a prefix or call the model",
+    await chooseLabel({ labels: ["Acme"], want: "Acme Labs", question: { repeat: { part: "employer" } }, chooseOption: () => { throw new Error("must not call"); } }) === null);
+  const repeated = { facts: [
+    { id: "f.employment.old", since: "2018", value: { company: "Acme", role: "Engineer", until: "2019" } },
+    { id: "f.employment.new", since: "2024", value: { company: "Acme", role: "Engineer", current: true } },
+    { id: "f.education.first", since: "2016", value: { school: "Example University", degree: "BSc", field: "Physics", until: "2020" } },
+    { id: "f.education.second", since: "2021", value: { school: "Example University", degree: "BSc", field: "Computer Science", until: "2024" } },
+  ] };
+  check("history: returning to the same employer/title retains both periods", employmentHistory(repeated, now).map((r) => r.id).join() === "f.employment.new,f.employment.old");
+  check("history: same-level degrees in different fields retain both records", educationHistory(repeated, now).map((r) => r.field).join() === "Computer Science,Physics");
+  const ongoingMem = { ...mem, facts: [{ id: "f.education.ongoing", since: "2024", value: { school: "Example University", degree: "MSc", current: true } }] };
+  const ongoingForm = { ats: "ashby", questions: [{ qid: "education", label: "Education", type: "repeater", required: false, repeat: { kind: "education", min: 0, parts: { school: "required", start_year: "required", end_year: "required", current: "optional" } } }] };
+  const ongoing = resolveForm(structuredClone(ongoingForm), { mem: ongoingMem, now }).decisions;
+  check("history: optional current entry fills without an end date", ongoing.find((d) => d.qid === "education[0].school")?.action === "fill" && ongoing.find((d) => d.qid === "education[0].current")?.value === "Yes" && !ongoing.some((d) => d.qid.endsWith(".end_year")));
+  const minimumForm = structuredClone(ongoingForm);
+  minimumForm.questions[0].repeat.min = 2;
+  const minimum = resolveForm(minimumForm, { mem: ongoingMem, now }).decisions;
+  check("history: minimum cardinality asks for another entry without inventing it", minimum.some((d) => d.qid === "education[1].school" && d.action === "ask" && d.value == null));
+  check("history: entry numbers survive label truncation", ongoing[0].label.slice(0, 24).includes("education 1"));
+  const syntheticWork = normalizeGreenhouse({ id: 1, title: "Synthetic employment fixture", questions: [], _hosted: { employment: { company_name: "required", title: "required", start_year: "required", end_year: "optional", current: "optional" } } });
+  const workRows = resolveForm(syntheticWork, { mem, now }).decisions;
+  check("history: synthetic hosted employment schema expands both roles, including internship dates", workRows.find((d) => d.qid === "employment[0].employer")?.value === "Acme" && workRows.find((d) => d.qid === "employment[1].title")?.value === "Intern" && workRows.find((d) => d.qid === "employment[1].end_year")?.value === "2019");
+  const { extractBasic } = await import("../src/writer/extract-basic.mjs");
+  const extracted = extractBasic("Test Person\nEducation\nMSc, Physics — Example University (2020 – 2022)\nHigh School Diploma — Example Secondary School (2012 – 2016)\nExperience\nEngineer — Acme (July 2024 – Present)\nFull-time role.\nSoftware Intern — Lumenbyte (June 2019 – August 2019)");
+  const extractedRoles = employmentHistory(extracted, now);
+  check("history: basic extractor emits two roles with dates, current and internship tags", extractedRoles.length === 2 && extractedRoles[0].current && extractedRoles[0].start === "2024-07" && extractedRoles[0].type === "full_time" && extractedRoles[1].type === "internship" && extractedRoles[1].end === "2019-08");
+  check("history: basic extractor excludes school-leaving facts and empty date parentheses", extracted.facts.filter((f) => f.id.startsWith("f.education.")).length === 1 && !extracted.facts.some((f) => /\(\s*\)|High School/.test(String(f.value))));
+}
+
+// Gap taxonomy regressions: synthetic facts only, never the live profile.
+{
+  const { promptClauses } = await import("../src/schema/classes.mjs");
+  const { evidencePool } = await import("../src/plan/infer.mjs");
+  const { diagnoseMissingForm } = await import("../src/browser/adapters/greenhouse.mjs");
+  const memory = {
+    facts: [
+      { id: "f.identity.full_name", value: "Robin Sanchez", source: "user" },
+      { id: "f.identity.city", value: "Lisbon, Portugal", source: "user" },
+      { id: "f.work_auth.US", value: { authorized_now: false, needs_sponsorship_future: true }, source: "user" },
+      { id: "f.employment.old", since: "2020", value: { employer: "Example Co", title: "Engineer", until: "2024" }, source: "user" },
+    ],
+    preferences: [{ id: "p.relocation", value: { willing: true } }, { id: "p.eeo", value: { disability_status: "no" } }],
+    answers: [], stories: [], documents: [],
+  };
+  const resolve = (label, extra = {}, mem = memory) => resolveForm({ ats: "lever", job: { company: "Example", title: "Engineer", country: "US" }, questions: [{ qid: "gap", label, required: true, type: "text", control: "text", class: classify(label, "", "text", true), ...extra }] }, { mem, now: new Date("2026-09-25T12:00:00Z") }).decisions[0];
+  const type = resolve("If yes, what type of sponsorship?");
+  check("gaps item 2: sponsorship type cannot reuse the boolean", type.action === "ask" && !type.value && type.parts?.some((p) => p.part === "visa type"));
+  const compound = resolve("Will you require sponsorship? What visa type and expiry?");
+  check("gaps item 3: compound visa retains known need and asks missing details", compound.action === "ask" && compound.parts?.length === 3 && compound.parts[0].value === "Yes");
+  const typed = structuredClone(memory);
+  typed.facts.find((r) => r.id === "f.work_auth.US").value = { authorized_now: false, needs_sponsorship_future: true, visa_type: "H-1B", expiry: "2028-06-01" };
+  check("gaps item 3: complete typed facts cover every visa component", resolve("Will you require sponsorship? What visa type and expiry?", {}, typed).action === "fill");
+  const parent = { qid: "parent", type: "single_select", options: [{ label: "Fellowship" }, { label: "Other" }] };
+  check("gaps item 2: optional named-option child retains its parent", dependencyOn({ label: 'Optional: If you selected "Fellowship", give details' }, parent)?.condition === "fellowship");
+  check("gaps item 2: named-option alternatives retain OR activation", dependencyOn({ label: 'If "Fellowship" or "Other", give details' }, parent)?.anyOf?.length === 2);
+  check("gaps item 4: EEO companion name comes from identity", resolve("Name", { eeo_companion: "name", class: "identity" }).value === "Robin Sanchez");
+  check("gaps item 4: EEO companion date is derived today", resolve("Date", { eeo_companion: "date", class: "identity" }).value === "2026-09-25");
+  check("gaps item 5: survey country is projected from the stated city", resolve("What is your location?", { country_gate: true, options: [{ label: "Portugal", value: "PT" }, { label: "United States", value: "US" }] }).option === "Portugal");
+  check("gaps item 6: Lever commits an expanded location hierarchy", pickSuggestion(["Lisbon, Lisbon District, Portugal", "Porto, Portugal"], "Lisbon, Portugal").pick === "Lisbon, Lisbon District, Portugal");
+  check("gaps item 6: ambiguous same-city suggestions remain unpicked", pickSuggestion(["London, Ontario, Canada", "London, England, United Kingdom"], "London").pick === null);
+  check("gaps item 7: future payroll location never defaults to residence", resolve("Where will you work from?").action === "ask");
+  const intended = structuredClone(memory);
+  intended.preferences.push({ id: "p.looking_for", value: { acceptable_locations: ["Berlin, Germany"] } });
+  check("gaps item 7: unique intended work location uses preference", resolve("Where will you work from?", {}, intended).value === "Berlin, Germany");
+  check("gaps item 8: relocation branch is not a current-residence claim", resolve("Based in San Francisco or open to relocating?", { type: "single_select", control: "radio", options: [{ label: "I live in San Francisco" }, { label: "I would relocate" }] }).option === "I would relocate");
+  check("gaps item 9: prompt coverage retains consumer and learning clauses", promptClauses("Describe a consumer-facing product; what did you learn?").length === 2);
+  const diagnosis = await diagnoseMissingForm({ url: () => "https://example.com/careers", locator: () => ({ innerText: async () => "Available Positions" }) }, "https://job-boards.greenhouse.io/example/jobs/123");
+  check("gaps item 10: listing redirects report destination rather than render failure", diagnosis?.reason === "not_an_application_page" && diagnosis.landed_url === "https://example.com/careers");
+  const { candidatesFor } = await import("../src/plan/infer.mjs");
+  const statedName = { ...memory, facts: [...memory.facts, { id: "f.identity.preferred_name", value: "Rob", source: "user" }] };
+  const names = candidatesFor({ q: { type: "text", control: "text" }, d: {}, topic: "preferred_name", mem: statedName });
+  check("gaps item 12: stated preferred name outranks a derived given name", names.length === 1 && names[0].value === "Rob");
+  const stale = { ...memory, answers: [{ qid: "q.core.full_name", kind: "constant", value: "Wrong Name", source: "fact:f.identity.full_name" }] };
+  check("gaps item 12: stale derived name cannot contradict its stated source", !evidencePool({ mem: stale }).some((r) => r.kind === "answer"));
+  check("gaps item 1: ended employer is identified for autofill reconciliation", resolve("Current company").autofill_conflicts?.includes("Example Co"));
 }
 
 if (failures > 0) {

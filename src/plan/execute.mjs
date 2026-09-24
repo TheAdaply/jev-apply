@@ -32,6 +32,7 @@ import { detectControl, isPlaceholderLabel, waitForOptions } from "../browser/co
 import { findTab, openTab, pagesOf } from "../browser/chrome.mjs";
 import { norm, normLabel, pace, pickOption, sleep, waitUntil } from "../browser/readback.mjs";
 import { appendTrace, captureFailure, maskSelectors, traceDir, tracePath } from "../browser/trace.mjs";
+import { attachHistoryEntries, historyEntryRejected, discardOptionalHistoryEntry } from "../browser/repeat.mjs";
 import { classify } from "../schema/classes.mjs";
 import { choice, systemOne, withNone, NONE } from "../jev/client.mjs";
 import { gate, runnerUpGap } from "../jev/gates.mjs";
@@ -208,6 +209,7 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
   const questions = formPlan?.questions ?? [];
   const byQid = new Map(questions.map((q) => [q.qid, q]));
   const order = rowOrder(questions);
+  await attachHistoryEntries(page, questions, decisions, slug);
   const todo = (rows ?? decisions.filter(runnable))
     .slice()
     .sort((a, b) => (order.get(a.qid) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.qid) ?? Number.MAX_SAFE_INTEGER));
@@ -216,6 +218,8 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
   // way `gate` treats a thin margin in the offline plan (PLAN §2.2 step 7).
   const thin = new Set();
   const chooseOption = optionChooser({ slug, budget, onCheck: (q) => thin.add(q?.qid) });
+  const beforeUpload = ["lever", "greenhouse"].includes(ats) && todo.some((d) => byQid.get(d.qid)?.type === "file")
+    ? await readAllControls(page, questions) : null;
   let filled = 0;
   let failed = 0;
   let deferred = 0;
@@ -236,6 +240,7 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
       // The redacted half of the record, replaced by a verdict rather than left blank (B3).
       ...(question.class === "sensitive" ? { observed_matches: observedMatches(result.observed, d.option ?? d.value) } : {}),
     };
+    if (result.ok && question.type === "file" && beforeUpload) await reconcileAutofill({ page, questions, decisions, before: beforeUpload, slug });
     if (result.ok) {
       filled += 1;
       delete d.shot;
@@ -257,7 +262,44 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
     }
     budget.progress(result.ok === true);
   }
+  if (beforeUpload) await reconcileAutofill({ page, questions, decisions, before: beforeUpload, slug });
   return { filled, failed, executed: todo.length, deferred };
+}
+
+async function readAllControls(page, questions) {
+  return page.evaluate((rows) => Object.fromEntries(rows.map(({ qid, selector }) => {
+    let el;
+    try { el = selector ? document.querySelector(selector) : null; } catch {}
+    return [qid, el && "value" in el ? String(el.value) : null];
+  })), questions.map(({ qid, selector }) => ({ qid, selector })));
+}
+
+export async function reconcileAutofill({ page, questions, decisions, before, slug = null }) {
+  const observed = await readAllControls(page, questions);
+  for (const d of decisions) {
+    const q = questions.find((q) => q.qid === d.qid);
+    const actual = observed[d.qid];
+    if (!q?.selector || actual == null || !["text", "textarea"].includes(q.control)) continue;
+    const conflict = (d.autofill_conflicts ?? []).some((value) => normLabel(value) === normLabel(actual));
+    const overwritten = d.readback?.ok && ["fact", "derived", "preference"].includes(d.source) && d.value != null && !observedMatches(actual, d.value);
+    if (!conflict && !overwritten) continue;
+    // A value already present before uploading may be an intentional user edit. Ask, never erase.
+    const preserve = actual === before[d.qid] && !overwritten;
+    const wanted = overwritten ? String(d.value) : "";
+    let readback = actual;
+    if (!preserve) {
+      const input = page.locator(q.selector).first();
+      await input.fill(wanted);
+      readback = await input.inputValue();
+    }
+    const ok = !preserve && readback === wanted;
+    await appendTrace(slug, { op: "autofill_reconciled", qid: d.qid, preserved_user_value: preserve, ok, observed: readback });
+    if (!overwritten || !ok) {
+      d.action = "ask";
+      d.why = preserve ? "existing value conflicts with memory — confirm Current company today" : "résumé autofill contradicted current employment — state Current company today";
+      d.readback = { ok: false, observed: readback, attempts: preserve ? 0 : 1 };
+    } else d.readback = { ok: true, observed: readback, attempts: 1 };
+  }
 }
 
 /**
@@ -329,6 +371,12 @@ async function setRow({ page, ats, formPlan, question, decision, slug, chooseOpt
   // `mask` paints the EEO controls out of any failure screenshot; a sensitive row is never
   // photographed at all (src/browser/trace.mjs).
   const opts = { trace: { slug, mask: formPlan }, ats, chooseOption };
+  if (historyEntryRejected(page, question)) {
+    decision.repeat.restore = { action: decision.action, why: decision.why };
+    decision.action = "skip";
+    decision.why = "optional entry not added — its required school could not be committed";
+    return null;
+  }
 
   // File first: Greenhouse removes the input once a file is attached, so there is nothing left
   // for detection to look at on a re-attach — `uploadFile` reads the chip instead.
@@ -353,7 +401,7 @@ async function setRow({ page, ats, formPlan, question, decision, slug, chooseOpt
   // `question.type` is *not* corrected: it is the ATS's own field type, and for a date control
   // rendered as a bare text input it is the only thing that still says "date" after this line —
   // which is what `adapters/index.setField` routes on.
-  const selector = await resolveSelector(page, ats, question);
+  const selector = await resolveSelector(page, ats, question, { slug });
   const detected = await detectControl(page, selector, { question });
   if (!detected.agreed) {
     await appendTrace(slug, {
@@ -394,7 +442,12 @@ async function setRow({ page, ats, formPlan, question, decision, slug, chooseOpt
 async function setHistoryPart({ page, question, decision, slug, opts }) {
   const school = question.repeat.part === "school";
   const want = decision.option ?? decision.value;
-  const result = await setField(page, question, want, { ...opts, ...(school ? { chooseOption: null } : {}) });
+  const result = await setField(page, question, want, { ...opts, ...(["school", "employer"].includes(question.repeat.part) ? { chooseOption: null } : {}) });
+  if (!result.ok && school && opts.ats === "ashby" && question.required) {
+    if (await discardOptionalHistoryEntry(page, question, slug)) {
+      return { ...result, reason: "required school could not be committed — optional entry not added", query: String(want) };
+    }
+  }
   const unmatched = /no_matching_option|no_options_rendered|read-back mismatch/.test(String(result.reason ?? ""));
   const fallback = question.repeat.fallback;
   if (result.ok || !unmatched) return result;
@@ -731,6 +784,8 @@ export async function runBrowser({ context, formPlan, decisions, slug, budget, r
     try {
       await waitForForm(page, { ats, timeout: 30000 });
     } catch {
+      const diagnosis = await adapters[ats]?.diagnoseMissingForm?.(page, url);
+      if (diagnosis) throw new Blocked(diagnosis.reason, "the browser landed on a listing or non-application page", diagnosis);
       throw new Blocked("no_form", `the application form did not render at ${url}`);
     }
 

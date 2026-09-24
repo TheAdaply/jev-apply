@@ -27,7 +27,7 @@ import { documentFor, getFact, resolvePreference, resumeDocuments, statedResumeF
 import { EEO_VALUES } from "../memory/schema.mjs";
 import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { PRONOUN_ROW_RE, isAccommodationRequest } from "../schema/classes.mjs";
-import { countryFromText, countryInQuestion, countryOfNationality, statesNamed } from "../schema/normalize.mjs";
+import { countryFromText, countryInQuestion, countryOfLocation, countryOfNationality, statesNamed } from "../schema/normalize.mjs";
 import { expandRepeaters, repeatRow } from "./repeat.mjs";
 
 // ─── posting country ──────────────────────────────────────────────────────────────────────────
@@ -92,6 +92,7 @@ const COVER_RE = /cover letter/i;
 // Exported: `src/plan/preflight.mjs` refuses a work mode typed into whatever this claims is a
 // place, and "which rows are location rows" must mean one thing in both modules.
 export const LOCATION_RE = /^(?:your |current |candidate )*(?:location|city|country)\b|where are you (?:currently )?(?:located|based)|current location|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)/i;
+const FUTURE_LOCATION_RE = /where (?:would|will) you (?:like to )?(?:work|be based)|where do you (?:intend|plan|expect|want|wish) to (?:work|be based|live)|from where do you intend to work|payroll location|desired (?:work )?location/i;
 const ADDRESS_RE = /\b(?:legal|home|mailing|street|postal)?\s*address\b/i;
 const CURRENT_COMPANY_RE = /^current (?:company|employer)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:employer|company)/i;
 const CURRENT_TITLE_RE = /^current (?:job ?title|title|role|position)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:job ?title|title|role|position)/i;
@@ -524,7 +525,10 @@ export function resolveForm(formPlan, { mem, pipeline = null, baselines = null, 
       // and every question about the user's circumstances, are still handed back as an `ask`.
       _onNone: !q.required && (q.class === "optional_text" || q.class === "company_specific") ? "skip" : "ask",
     };
-    const resolved = resolveQuestion(q, { mem, pipeline, baselines, now, context, ats: formPlan?.ats ?? null });
+    const parent = q.dependency && formPlan.questions.find((row) => row.qid === q.dependency.parent);
+    const typedChild = parent && /\b(?:what|which)\s+type\b/i.test(q.label) && SPONSOR_RE.test(parent.label);
+    const question = typedChild ? { ...q, class: "circumstance", label: `${q.label} (visa sponsorship)` } : q;
+    const resolved = resolveQuestion(question, { mem, pipeline, baselines, now, context, ats: formPlan?.ats ?? null });
     const decision = { ...base, ...resolved };
     if (decision.action === "ask" && !decision.remember_as) decision.remember_as = rememberAs(q, decision, context);
     return decision;
@@ -575,6 +579,10 @@ function dependencyClosed(child, parent, q, dep) {
     return `only asked once ${name} is answered — that row is still open`;
   }
   const stated = parent.option ?? parent.value;
+  if (dep.anyOf?.length) {
+    const selected = String(stated ?? "").toLowerCase().split(/\s*\|\s*/);
+    return dep.anyOf.some((option) => selected.includes(option.toLowerCase())) ? null : `only asked for one of the named parent options`;
+  }
   const wanted = conditionPolarity(q.label, dep.condition);
   if (wanted) {
     const answered = yesNoOf(stated);
@@ -634,6 +642,21 @@ function resolveQuestion(q, ctx) {
   // One box of a repeating Education / Employment section: read off its own history entry, and
   // nothing else — no other rule may answer "School (education 2)" from the newest degree.
   if (q.repeat) return repeatRow(q, ctx);
+  if (q.class !== "policy_gate" && q.class !== "sensitive" && FUTURE_LOCATION_RE.test(q.label ?? "")) return futureLocationRow(q, ctx);
+  if (q.country_gate) {
+    const place = locationFact(ctx.mem);
+    const country = place && countryOfLocation(factText(place)?.text);
+    const matches = (q.options ?? []).filter((o) => String(o.value).toUpperCase() === country || countryOfLocation(o.label) === country);
+    return country && matches.length === 1
+      ? { source: "derived", action: "fill", value: matches[0].label, option: matches[0].label, why: `${place.id} → survey country` }
+      : { source: "none", action: "ask", why: "no unambiguous survey country on file" };
+  }
+  if (q.eeo_companion) {
+    const block = eeoBlock(ctx.mem, ctx.context);
+    if (!block?.block?.disability_status) return { source: "none", action: "ask", why: "complete the disability response before its companion fields" };
+    if (q.eeo_companion === "date") return { source: "derived", action: "fill", value: ctx.now.toISOString().slice(0, 10), why: "today's date for the disability response" };
+    return identityRow({ ...q, label: "Full name" }, ctx);
+  }
   // Shape before content (docs/research/17-eval-judge-ten2.md §3 F4). "Have you added your full
   // legal name and surname?" is a Yes/No confirmation *about* a field the form already carries,
   // whatever class its wording landed in, and its answer is Yes exactly when the fact behind that
@@ -1362,7 +1385,8 @@ function identityRow(q, { mem, context, now = new Date() }) {
   // the profile states (docs/research/16-eval-judge-ten.md E1).
   if (CURRENT_COMPANY_RE.test(label)) {
     const row = getFact(mem, "f.employment.current") ?? (mem?.facts ?? []).find((r) => r?.value?.current === true);
-    return row ? fromFact(row) : employmentRow(label, "employer", { mem, now, optional });
+    if (row && typeof row.value === "string") return fromFact(row);
+    return employmentRow(label, "employer", { mem, now, optional });
   }
   if (CURRENT_TITLE_RE.test(label)) {
     const row = getFact(mem, "f.employment.current_title");
@@ -1416,6 +1440,7 @@ function employmentRow(label, part, { mem, now, optional }) {
   }
   if (!MOST_RECENT_RE.test(label)) {
     const ended = latest.until ? `ended ${latest.until}` : "states no end date";
+    if (latest.until) return { ...gap(`${latest.id} ended ${latest.until} — this field asks for a current ${part}`), autofill_conflicts: [value] };
     return gap(`${latest.id} ${ended} — this field asks for a current ${part}`);
   }
   return { source: "fact", value, action: "check", why: `${latest.id} (most recent role, since ${latest.since})` };
@@ -1533,6 +1558,8 @@ function circumstanceRow(q, ctx) {
     const fromCitizenship = !asked && !ownLocation && !context.country && context.remote ? citizenshipCountry(mem) : null;
     const country = asked ?? ownLocation?.country ?? context.country ?? fromCitizenship?.country ?? null;
     const auth = country ? workAuth(mem, country) : blanketWorkAuth(mem);
+    const details = visaDetails(q, auth, mem);
+    if (details) return details;
     if (!auth) {
       return {
         source: "none",
@@ -2172,6 +2199,10 @@ const NO_RELOCATION_RE = /\b(?:not willing|unwilling|would not|won'?t|no,? i|not
 function relocationOption(q, answer, country) {
   const labels = optionLabelsOf(q);
   if (!labels.length) return null;
+  const branches = labels.filter((label) => /\b(?:relocat|move)\w*/i.test(label) && (answer === NO ? NO_RELOCATION_RE.test(label) : !NO_RELOCATION_RE.test(label)));
+  if (labels.some((label) => /\bi (?:live|am (?:already |currently )?(?:based|living|located))\b/i.test(label))) {
+    return branches.length === 1 ? branches[0] : null;
+  }
   // A list that offers an affirmative ("Yes", "I am willing to relocate") takes the answer as it
   // stands. A refusal-only list ("United Kingdom" / "I am not willing to relocate.") does not.
   if (labels.some((label) => yesNoOf(label) === YES)) return null;
@@ -2198,6 +2229,44 @@ export function relocationFor(mem, { company, role_family, country = null } = {}
     why: `p.relocation (${pref.scope})${country ? ` for ${country}` : ""}`,
     text: `${value} — ${value === YES ? "willing to relocate for this role" : "not relocating to this location"}`,
   };
+}
+
+function futureLocationRow(q, { mem, context }) {
+  const pref = resolvePreference(mem, "p.looking_for", scopeCtx(context));
+  const direct = resolvePreference(mem, "p.looking_for.acceptable_locations", scopeCtx(context));
+  const selected = resolvePreference(mem, "p.looking_for.work_location", scopeCtx(context));
+  const location = selected?.value ?? pref?.value?.work_location;
+  const locations = typeof location === "string" && location.trim() ? [location] : direct?.value ?? pref?.value?.acceptable_locations;
+  const candidates = Array.isArray(locations) ? locations.filter((v) => typeof v === "string" && v.trim()) : [];
+  const labels = optionLabelsOf(q);
+  const allowed = candidates.filter((v) => {
+    const cc = countryOfLocation(v);
+    const relocation = resolvePreference(mem, "p.relocation", scopeCtx(context));
+    return !cc || !relocation || relocationAnswer(relocation.value, cc) !== NO;
+  });
+  const hits = labels.length ? labels.filter((label) => allowed.some((v) => optionKey(v) === optionKey(label))) : [...new Set(allowed)];
+  if (hits.length !== 1) return { source: "none", action: "ask", topic: "work_location", why: "state one intended work/payroll location for this role", remember_as: { kind: "preference", id: "p.looking_for.work_location", scope: `company:${context.company_slug}` } };
+  return { source: "preference", action: "fill", value: hits[0], ...(labels.length ? { option: hits[0] } : {}), topic: "work_location", why: selected ? "p.looking_for.work_location" : "p.looking_for.acceptable_locations" };
+}
+
+function visaDetails(q, auth, mem) {
+  const label = q.label ?? "";
+  const type = /\b(?:what|which)\s+(?:visa\s+)?type\b|\b(?:visa|sponsorship|immigration)\s+(?:type|status)\b|\btype of (?:visa|sponsorship)\b/i.test(label);
+  const expiry = /\bexpir\w*|\bexpiration\b/i.test(label);
+  if (!type && !expiry) return null;
+  const raw = auth && getFact(mem, auth.fact)?.value;
+  const parts = [];
+  if (ASKS_SPONSORSHIP_RE.test(label) && !q.dependency && /\b(?:do|will|would)\s+you\b/i.test(label)) {
+    parts.push({ part: "sponsorship", value: auth ? (auth.needs_sponsorship_future ? YES : NO) : null });
+  }
+  if (type) parts.push({ part: "visa type", value: raw?.visa_type ?? raw?.sponsorship_type ?? raw?.status ?? null });
+  if (expiry) parts.push({ part: "expiry", value: raw?.expiry ?? null });
+  for (const part of parts) if (typeof part.value === "boolean" || /^(?:yes|no|true|false)$/i.test(String(part.value))) {
+    if (part.part !== "sponsorship") part.value = null;
+  }
+  const missing = parts.filter((p) => !p.value).map((p) => p.part);
+  const value = parts.filter((p) => p.value).map((p) => `${p.part}: ${p.value}`).join("; ");
+  return { source: missing.length ? "none" : "fact", action: missing.length ? "ask" : "fill", topic: "work_auth", ...(value ? { value } : {}), parts, why: missing.length ? `missing ${missing.join(" and ")}; complete the remaining visa details` : `${auth.fact} covers all visa details` };
 }
 
 /** `p.in_office` → the days/answer the user stated, verbatim. An empty statement is an ask. */

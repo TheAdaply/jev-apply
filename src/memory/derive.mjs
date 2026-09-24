@@ -398,8 +398,8 @@ function historyRows(mem, kind, now, parts) {
     const primary = kind === "education" ? entry.school : entry.employer;
     const secondary = kind === "education" ? entry.degree : entry.title;
     if (!primary && !secondary) return;
-    const key = `${normKey(primary)}|${normKey(secondary)}`;
-    if (seen.has(key)) return; // the same degree or role written twice is one entry
+    const key = JSON.stringify([primary, secondary, entry.field, entry.start, entry.end, entry.current, entry.type].map(normKey));
+    if (seen.has(key)) return; // only the same fully identified degree or role is a duplicate
     seen.add(key);
     entries.push(entry);
   });

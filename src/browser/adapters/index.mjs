@@ -41,9 +41,9 @@ function resolve(page, question, opts) {
  * an element id is not always the element (Ashby keys radio groups off the field entry, not an
  * id). An adapter with nothing to resolve just answers with its own `selectorFor`.
  */
-export async function resolveSelector(page, ats, question) {
+export async function resolveSelector(page, ats, question, opts = {}) {
   // A box of a repeating Education / Employment section exists only once its entry does.
-  if (question?.repeat?.part) return resolveHistorySelector(page, question);
+  if (question?.repeat?.part) return resolveHistorySelector(page, question, opts);
   const adapter = adapters[String(ats ?? "").toLowerCase()] ?? generic;
   if (adapter.resolveSelector) return adapter.resolveSelector(page, question);
   return (adapter.selectorFor ?? generic.selectorFor)(question);

@@ -20,7 +20,7 @@
 // ► DRAFTED with its word count so the user sees what was written on their behalf before Submit.
 
 import { resolvePreference, usableStories } from "../memory/resolve.mjs";
-import { fitsLimits, pickVariant } from "../schema/classes.mjs";
+import { fitsLimits, pickVariant, promptClauses } from "../schema/classes.mjs";
 import { HostWriterRequired } from "../writer/backend.mjs";
 import { expand, groundingCheck, narrative, substitutionCheck, whyUs, wordCount } from "../writer/openai.mjs";
 import { jobBlock } from "../writer/prompts.mjs";
@@ -308,7 +308,7 @@ async function relevance({ stage, id, instructions, state, slug, signal, totals 
  */
 export const GATE_GROUNDING =
   "Does the saved material listed in `grounding_titles` directly answer what `prompt` asks for? Answer yes only if that material states what the prompt asks about.";
-export const GATE_ANSWERS = "Does the text in `draft` answer what `prompt` asks for?";
+export const GATE_ANSWERS = "Does the text in `draft` directly answer EVERY requested clause in `prompt` and `clauses`? Require the named company and role, the requested audience (including consumer-facing products), and every requested collaborator, impact and learning detail. Related technical experience or topic overlap alone is not an answer.";
 
 const pct = (p) => p.toFixed(2);
 
@@ -440,7 +440,7 @@ export async function draftRows({ formPlan, decisions, mem, context = {}, pipeli
         stage: "draft_answers",
         id: `answers_${d.qid}`,
         instructions: GATE_ANSWERS,
-        state: { prompt: asked, draft: text },
+        state: { prompt: asked, clauses: promptClauses(asked), draft: text },
         slug: traceSlug,
         signal,
         totals: jev,
@@ -649,7 +649,7 @@ export async function acceptHostDrafts({
         stage: "draft_answers",
         id: `answers_${d.qid}`,
         instructions: GATE_ANSWERS,
-        state: { prompt, draft: text },
+        state: { prompt, clauses: promptClauses(prompt), draft: text },
         slug,
         signal,
         totals: jev,

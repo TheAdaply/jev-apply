@@ -317,7 +317,7 @@ export function answeredFile(value, documents = []) {
 
 export async function applyAnswers(decisions, answers, { formPlan, context, persist = true, documents = [] } = {}) {
   const byQid = new Map((formPlan?.questions ?? []).map((q) => [q.qid, q]));
-  const out = decisions.map((d) => ({ ...d }));
+  const out = decisions.map((d) => ({ ...d, ...(d.repeat ? { repeat: { ...d.repeat } } : {}) }));
   const applied = [];
   const ignored = [];
   const rows = [];
@@ -387,6 +387,19 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
     }
   }
 
+  // A removed card lost every box, not just the required school. Restore the saved plan for
+  // its skipped siblings; their values remain the original memory-backed values.
+  const restoredEntries = new Set(out.filter((d) => applied.includes(d.qid) && d.repeat?.state === "rolled_back")
+    .map((d) => `${d.repeat.of}[${d.repeat.index}]`));
+  for (const d of out) {
+    if (!d.repeat || !restoredEntries.has(`${d.repeat.of}[${d.repeat.index}]`)) continue;
+    if (d.action === "skip" && d.repeat.restore) {
+      Object.assign(d, d.repeat.restore);
+      applied.push(d.qid);
+    }
+    delete d.repeat.restore;
+    delete d.readback;
+  }
   // The parent of a conditional follow-up may be one of the rows just answered, so the dependency
   // pass runs again: a child blanked because nobody had answered its parent yet comes back exactly
   // as it was planned, and one whose parent now says the other thing stays blank
@@ -618,7 +631,7 @@ export function withFormFacts(decisions, formPlan) {
     const q = byQid.get(d.qid);
     if (!q) return d;
     const options = (q.options ?? []).map((o) => (typeof o === "string" ? o : o?.label)).filter(Boolean);
-    return { ...d, required: Boolean(q.required), ...(options.length ? { options } : {}) };
+    return { ...d, required: Boolean(q.required), ...(q.repeat?.part ? { repeat: { ...q.repeat, ...d.repeat } } : {}), ...(options.length ? { options } : {}) };
   });
 }
 

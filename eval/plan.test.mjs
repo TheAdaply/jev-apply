@@ -40,6 +40,7 @@ import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
 import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, employersNamed, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
 import { catalogueValue, idCriteria, idDecision } from "../scripts/remember.mjs";
 import { expectedRows } from "../src/bench/shots.mjs";
+import { windowsChromeCandidates } from "../src/browser/chrome.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -1997,6 +1998,15 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     Array.isArray(off.inferred) && off.inferred.length === 0 && off.requests <= 2 && !off.checks.some((c) => /^inferred/.test(String(c.why ?? ""))),
   );
 }
+
+{
+  const found = windowsChromeCandidates({ PROGRAMFILES: "C:\\Program Files", "PROGRAMFILES(X86)": "C:\\Program Files (x86)", LOCALAPPDATA: "C:\\Users\\u\\AppData\\Local" });
+  check(
+    "chrome: Windows installs are looked up under every install root, built from the environment",
+    found.length === 9 && found[0] === "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" && found.some((p) => p.startsWith("C:\\Users\\u\\AppData\\Local\\")) && windowsChromeCandidates({}).length === 0,
+  );
+}
+
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

@@ -22,6 +22,20 @@ import { paths } from "../config.mjs";
  */
 export const DEFAULT_PORT = Number(process.env.JEV_CHROME_PORT) || 9223;
 
+/**
+ * Windows installs land under one of three roots depending on installer and scope (system-wide
+ * 64-bit, system-wide 32-bit, per-user). Built from the environment, not a drive letter.
+ */
+export function windowsChromeCandidates(env = process.env) {
+  const roots = [env.PROGRAMFILES, env["PROGRAMFILES(X86)"], env.LOCALAPPDATA].filter(Boolean);
+  const suffixes = [
+    ["Google", "Chrome", "Application", "chrome.exe"],
+    ["Google", "Chrome SxS", "Application", "chrome.exe"],
+    ["Chromium", "Application", "chrome.exe"],
+  ];
+  return roots.flatMap((root) => suffixes.map((parts) => path.win32.join(root, ...parts)));
+}
+
 /** The user's real browser first; Chromium / Chrome for Testing only as a fallback. */
 export const CHROME_CANDIDATES = [
   process.env.JEV_CHROME_PATH,
@@ -33,6 +47,7 @@ export const CHROME_CANDIDATES = [
   "/usr/bin/google-chrome",
   "/usr/bin/chromium",
   "/usr/bin/chromium-browser",
+  ...(process.platform === "win32" ? windowsChromeCandidates() : []),
 ].filter(Boolean);
 
 export function chromeBinary() {

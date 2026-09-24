@@ -27,7 +27,7 @@ import { documentFor, getFact, resolvePreference } from "../memory/resolve.mjs";
 import { EEO_VALUES } from "../memory/schema.mjs";
 import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { isAccommodationRequest } from "../schema/classes.mjs";
-import { countryFromText, countryInQuestion, countryOfNationality } from "../schema/normalize.mjs";
+import { countryFromText, countryInQuestion, countryOfNationality, statesNamed } from "../schema/normalize.mjs";
 
 // ─── posting country ──────────────────────────────────────────────────────────────────────────
 // The table itself lives in `src/schema/normalize.mjs`, which stamps every FormPlan with
@@ -101,7 +101,18 @@ const MOST_RECENT_RE = /most recent|more recent|recent(?:ly)? work|previous(?:ly
 export const acceptsMostRecent = (label) => MOST_RECENT_RE.test(String(label ?? ""));
 
 // circumstance topics
-const AUTHORIZED_RE = /legally authoriz|authoriz(?:ed|ation) to work|right to work|work authoriz|authorized to work/i;
+// "legally eligible to work" is the same question as "legally authorized to work" — Remote asks
+// it that way and the row went to the canonical bank and asked, with the fact on file
+// (docs/research/20-eval-judge-fresh.md §1, baseline `couldnt`).
+const AUTHORIZED_RE = /legally (?:authoriz|eligib|permitt|entitl)\w*|authoriz(?:ed|ation) to work|eligible to work|right to work|work authoriz|authorized to work/i;
+// A work-authorization question that scopes itself to the candidate's **own** whereabouts rather
+// than to the posting's country. Their answer for where they live is a different two-valued fact
+// from their answer for where the job is, and reading one as the other inverts it.
+const OWN_LOCATION_RE =
+  /\bcountry\b[^?]{0,30}\b(?:you (?:live|reside)|where you(?:'re| are)?\s*(?:currently\s+)?(?:live|living|located|based|residing|planning to work)|in which you (?:live|reside|are located|are based))|\byour current (?:location|country|country of residence)\b|\bcountry of residence\b|\bwhere you(?:'re| are) (?:currently )?(?:located|based)\b/i;
+
+/** Curly quotes folded to ASCII, so a regex written with `'` reads a label that carries `’`. */
+const folded = (text) => String(text ?? "").replace(/[\u2018\u2019\u02bc]/g, "'");
 const SPONSOR_RE = /sponsor|visa|h-?1b|immigration/i;
 // An export-control status row asks which of a fixed set of person categories the candidate is in;
 // an attestation asks them to sign that they read a statement. `ATTESTS_RE` is what tells the two
@@ -112,6 +123,10 @@ const RELOCATE_RE = /relocat|willing to move/i;
 const IN_OFFICE_RE = /in[- ]?office|in[- ]?person|on[- ]?site|onsite|hybrid|days? (?:a|per) week|commut/i;
 const START_RE = /start date|available to start|when (?:can|could) you start|notice period|earliest (?:start|availability)/i;
 const SALARY_RE = /salary|compensation|expected pay|pay expectation|desired (?:pay|compensation)|rate expectation/i;
+// A residence question that enumerates the places it asks about ("Do you live in one of the
+// following states? Alabama, Alaska, …") rather than naming a country. `listedResidenceRow()`
+// answers it from the user's own stated location.
+const RESIDES_IN_LIST_RE = /\b(?:do|are|have) you\b[^?]{0,40}\b(?:live|living|lived|reside|residing|resided|based|located)\b/i;
 const APPLIED_BEFORE_RE = /previously (?:applied|interviewed|worked|been employed)|ever (?:applied|interviewed|worked|been employed)|applied (?:to|for)[^?]{0,40}before|interviewed (?:at|with)|worked (?:at|for)[^?]{0,40}before/i;
 const HOW_HEARD_RE = /(?:how|where) did you (?:hear|find|learn)|how were you referred|referral source/i;
 
@@ -131,14 +146,42 @@ const NONE_OF_ABOVE_RE = /^(?:none\b|not applicable\b|n\/?a\b)/i;
 // canonical self-identification wording as their value (judge §3 N1).
 const SELF_ID_RE = /self[- ]identif|what is your (?:gender|race|ethnicity|gender identity|disability status)|please (?:state|specify|describe) your/i;
 
+// A consent or acknowledgement sitting *inside* a demographic block. It carries the block's
+// vocabulary, so `classify()` lands it in `sensitive`, but it states nothing about the candidate:
+// it asks them to sign that their self-identification data may be processed. A standing "I
+// decline to state my demographics" is not a signature, and answering one out of it is what put a
+// consent on a real form from `p.eeo.other_demographics` (docs/research/20-eval-judge-fresh.md
+// §2). These rows go to `policyGateRow()` like every other attestation: one explicit
+// `p.legal.<slug>` the user signed, or an `ask`.
+const SENSITIVE_ATTESTATION_RE =
+  /\bconsent(?:s|ed|ing)?\b|\bi (?:agree|certify|acknowledge|confirm)\b|\bplease confirm\b|\bby (?:checking|clicking|submitting)\b/i;
+
 // Standing legal stances the user states once and every form afterwards is answered from
 // (PLAN §2.4). Not `policy_gate`s: an attestation is about *this* company's terms and is always
 // the user's to answer, while "are you under a non-compete?" is a fact about the user that does
 // not change between forms. `PREVIOUSLY_EMPLOYED_RE` is tested before `APPLIED_BEFORE_RE`, which
 // also matches "previously been employed", and only answers when the preference exists — with
 // none on file the row falls through to the pipeline derivation exactly as it did before.
-const RESTRICTIVE_RE = /bound by any agreement|bound by an? (?:agreement|contract)|non-?compete|non-?solicit|restrictive (?:covenant|agreement)|confidentiality agreement[^?]{0,40}restrict/i;
+// `employment agreement` and `post-employment restriction` are the plain-English half of the same
+// question ("Are you subject to any employment agreements and/or post-employment restrictions
+// with your current employer or a past employer?" — GitLab), and without them the row was claimed
+// by the current-employer rule and asked while the standing preference sat on file
+// (docs/research/20-eval-judge-fresh.md §1, baseline `missed`).
+const RESTRICTIVE_RE =
+  /bound by any agreement|bound by an? (?:agreement|contract)|non-?compete|non-?solicit|restrictive (?:covenant|agreement)|confidentiality agreement[^?]{0,40}restrict|(?:subject to|signed|party to)[^?]{0,40}\bemployment agreements?\b|post-?employment restrictions?/i;
 const PREVIOUSLY_EMPLOYED_RE = /previously (?:been )?employed|ever (?:been )?employed|former(?:ly)? (?:an )?employee|worked (?:at|for)[^?]{0,40}(?:before|previously)/i;
+
+// "If you were previously employed by Remote, please share the email you used…" — the label opens
+// with a condition about the candidate and only then asks for something. `dependencyOn()`
+// (src/schema/classes.mjs) links the children that name their parent's *answer* ("If yes, …");
+// this catches the ones that restate the condition in their own words, which no parent row can be
+// matched to safely.
+// Narrow on purpose: the condition has to be about the candidate's *history or standing* with
+// somebody ("if you were previously employed by …"), not the "if you have one" lead-in an optional
+// field wears ("If you have a LinkedIn profile, share the URL") — that row asks for a link the
+// identity rules answer from the saved fact, and refusing it would trade one wrong row for another.
+const CONDITIONAL_SELF_RE =
+  /^\s*if\s+you\s+(?:were|was|had|have been|used to|previously|ever|are currently|are a former)\b[^?]{0,140}?,\s*(?:please\s+)?[a-z]|^\s*if\s+you\s+have\s+(?:previously|ever|already)\b[^?]{0,140}?,\s*(?:please\s+)?[a-z]/i;
 
 // Which employer an employment-history row is *about*. Two readings count as "this one": the
 // label spells the company's own name, or it puts the company in the first person as the object
@@ -159,6 +202,114 @@ export function asksAboutThisEmployer(label, company) {
   return FIRST_PERSON_EMPLOYER_RE.test(text);
 }
 
+// A label may name several organisations at once — "working at Gusto or Symmetry", "previously
+// employed by Plaid, Quovo or Cognito". `asksAboutThisEmployer()` answers only "is this one of
+// them", so a row naming two or three fell past every employment rule and asked, while the *same
+// run* answered GitLab's single-named row from the same store
+// (docs/research/21-eval-judge-final.md §4 M5). The list is read off the label itself: the
+// capitalised run after the employment preposition, split on commas and the closing "or"/"and".
+// The preposition has to be there, and each entity has to start with a capital, so "worked for a
+// competitor" matches nothing and the row keeps the path it already had.
+const ENTITY = "[A-Z][\\w&.'\u2019-]*(?:\\s+[A-Z][\\w&.'\u2019-]*)*";
+const ENTITY_LIST_RE = new RegExp(`\\b(?:at|for|by|with)\\s+(${ENTITY}(?:\\s*,\\s*${ENTITY})*(?:\\s*,?\\s+(?:or|and)\\s+${ENTITY})?)`);
+
+/** A company name without its legal suffix: "Gusto, Inc." and "Gusto" are one employer. */
+const employerKey = (name) =>
+  slugify(
+    String(name ?? "")
+      .replace(/\b(?:inc|llc|l\.l\.c|ltd|limited|corp|corporation|co|gmbh|plc|s\.a|ag|b\.v|bv|pty|holdings?|group|technologies|labs)\b\.?/gi, " ")
+      .replace(/[,.]+/g, " "),
+  );
+
+/**
+ * Every organisation an employment-history label names, when **this** employer is one of them.
+ * A label that names somebody else's employer only is still nobody's business to answer (the
+ * Snowflake/PwC guard, docs/research/17-eval-judge-ten2.md §3 F1).
+ * @returns {string[]|null} null when the label names no entity list this company is part of
+ */
+export function employersNamed(label, company) {
+  const match = ENTITY_LIST_RE.exec(String(label ?? ""));
+  if (!match) return null;
+  const names = match[1]
+    .split(/\s*,\s*|\s+(?:or|and)\s+/)
+    .map((name) => name.trim())
+    .filter((name) => employerKey(name));
+  const want = employerKey(company);
+  return want && names.some((name) => employerKey(name) === want) ? names : null;
+}
+
+/** Every employer the user's own `f.employment.*` facts name, keyed for comparison. */
+function employmentEmployers(mem) {
+  const out = new Map();
+  for (const row of mem?.facts ?? []) {
+    if (!/^f\.employment\./.test(String(row?.id ?? ""))) continue;
+    const value = row.value;
+    const name = typeof value === "string" ? value : (value?.company ?? value?.employer ?? null);
+    const key = employerKey(name);
+    if (key) out.set(key, String(name));
+  }
+  return out;
+}
+
+/**
+ * "Have you ever worked at X, Y or Z?" as one answer, and only where the derivation holds for
+ * **every** name the label prints.
+ *
+ * Yes comes from the user's own employment facts and from nothing else — the pipeline records
+ * where they *applied*, which is not where they were employed, so a pipeline hit is left to the
+ * user rather than turned into an employment claim. No needs both backings to agree: an
+ * employment history that enumerates their roles and names none of these, and a pipeline that has
+ * no record of any of them. An empty store or an unresolvable name is null → the row asks.
+ */
+function priorEmployerAnswer(names, { mem, pipeline }) {
+  const history = employmentEmployers(mem);
+  if (!history.size) return null;
+  const worked = names.find((name) => history.has(employerKey(name)));
+  if (worked) return { value: YES, why: `your employment history names ${worked}` };
+  const outcomes = names.map((name) => appliedBeforeFor(pipeline, name));
+  if (outcomes.some((o) => o.value !== NO)) return null;
+  const why =
+    names.length === 1
+      ? `${names[0]} is not in your employment history, and your pipeline has no record of it`
+      : `none of the ${names.length} organisations this row names is in your employment history, and your pipeline has no record of any of them`;
+  return { value: NO, why };
+}
+
+// The employment-history shapes a label wears once it names more than one organisation. Rows that
+// name a single employer keep the paths they already had in `circumstanceRow()`; this regex only
+// ever reaches a row `employersNamed()` found a list in.
+const PRIOR_EMPLOYMENT_RE =
+  /\b(?:previously|ever|currently|formerly|in the past)\b[^?]{0,60}\b(?:employ|work|contract|intern)\w*|\b(?:employ|work|contract|intern)\w*[^?]{0,40}\b(?:before|previously|in the past)\b/i;
+
+/**
+ * A prior-employment Yes/No that names this employer **and** its sister brands. One answer for
+ * the whole list, committed as a `check` because it is derived by elimination across names the
+ * store was never asked about individually.
+ * @returns {object|null} null when this is not that row, or nothing settles every name — the row
+ *   then falls through to the path it had before, which asks.
+ */
+function priorEmploymentRow(q, { mem, pipeline, context }) {
+  if (q?.class === "sensitive" || q?.class === "policy_gate") return null;
+  const label = String(q?.label ?? "");
+  if (!PRIOR_EMPLOYMENT_RE.test(label)) return null;
+  const names = employersNamed(label, context.company);
+  if (!names || names.length < 2) return null;
+  const labels = optionLabelsOf(q);
+  if (labels.length && !labels.every((option) => yesNoOf(option))) return null;
+  const answer = priorEmployerAnswer(names, { mem, pipeline });
+  if (!answer) return null;
+  const option = labels.find((o) => yesNoOf(o) === answer.value);
+  return {
+    source: "derived",
+    value: option ?? answer.value,
+    ...(option ? { option } : {}),
+    action: "check",
+    topic: "previously_employed",
+    why: answer.why,
+    _answerText: answer.value,
+  };
+}
+
 // ─── policy gates ─────────────────────────────────────────────────────────────────────────────
 // An acknowledgement ("I understand that offers are conditional on a background check") is a
 // statement the *user* signs, so it is answered from one explicit standing preference and from
@@ -173,6 +324,11 @@ const POLICY_SLUGS = [
   // user acknowledges, not a data-protection consent, and it is its own standing answer
   // (docs/research/17-eval-judge-ten2.md §3 F6).
   [/redact[^?]{0,60}(?:age-identifying|age,|date of birth)|age-identifying information/i, "age_redaction_ack"],
+  // Consent to process the *self-identification* answers is its own signature. It is not the
+  // candidate-privacy-policy acknowledgement sitting next to it in the same block, and answering
+  // it from that neighbouring preference is the substitution the invariant forbids — so it is
+  // tested before the privacy rule and keeps its own id.
+  [/self[- ]identification|demographic (?:data|information|answers)|diversity data/i, "self_identification_consent"],
   [/privacy (?:policy|notice|statement)|candidate privacy|data (?:privacy|protection)|gdpr|personal data/i, "privacy_policy_ack"],
   [/background (?:check|screening)|criminal record check|reference check/i, "background_check_consent"],
   [/record(?:ing|ed)?\b[^?]{0,40}\b(?:interview|call|session|conversation)|interview[^?]{0,20}record/i, "interview_recording_consent"],
@@ -241,6 +397,51 @@ function citizenshipCountry(mem) {
   const row = firstFact(mem, CITIZENSHIP_FACTS);
   const country = row ? countryOfNationality(factText(row)?.text ?? row.value) : null;
   return country ? { country, fact: row.id } : null;
+}
+
+/**
+ * The country the user's own stated location is in, as an ISO-2 code, or null.
+ *
+ * `locationFact()` already refuses a work mode ("Remote" is not a place), so this is the place the
+ * user said they are and nothing else. Two rules read it: a work-authorization question that
+ * scopes itself to the candidate's *own* location rather than to the posting's, and a residence
+ * question whose label enumerates the places it asks about. Both are the user's stated fact, not
+ * an inference about where they may work.
+ */
+function residenceCountry(mem) {
+  const row = locationFact(mem);
+  const country = row ? countryFromText(factText(row)?.text ?? row.value) : null;
+  return country ? { country, fact: row.id } : null;
+}
+
+/** The country the user has stated for themselves: citizenship first, else where they live. */
+function statedCountry(mem) {
+  return citizenshipCountry(mem) ?? residenceCountry(mem);
+}
+
+/**
+ * The user's blanket work-authorization rule, for a posting that names no country at all.
+ *
+ * `workAuth()` needs a country to key on and only falls back to `f.work_auth.default` once it has
+ * one. A fully-remote listing that names none left required Yes/No rows asking while that default
+ * sat on file (docs/research/20-eval-judge-fresh.md §1) — and the default *is* the user's stated
+ * answer for exactly the countries they have not been asked about. It is never `exact`, so the row
+ * it answers is a `check` the user sees before Submit.
+ */
+function blanketWorkAuth(mem) {
+  const row = getFact(mem, "f.work_auth.default");
+  const value = row?.value;
+  if (!value || typeof value !== "object") return null;
+  if (typeof value.authorized_now !== "boolean" || typeof value.needs_sponsorship_future !== "boolean") return null;
+  return {
+    authorized_now: value.authorized_now,
+    needs_sponsorship_future: value.needs_sponsorship_future,
+    status: value.status ?? null,
+    country: "the country this role is in",
+    exact: false,
+    fact: row.id,
+    source: row.source ?? null,
+  };
 }
 
 /** Fill from a fact row: `check` instead of `fill` when the fact's own text hedges the value. */
@@ -425,6 +626,50 @@ function resolveQuestion(q, ctx) {
   // and one lucky option match away from typing a personal name into a confirmation dropdown.
   const confirmed = confirmationRow(q, ctx);
   if (confirmed) return confirmed;
+  // A standing legal stance about the *user* answers from one preference whatever class its
+  // wording landed in (AGENTS.md). GitLab's "Are you subject to any employment agreements and/or
+  // post-employment restrictions with your current employer or a past employer?" says "current
+  // employer", so `classify()` reads it as an identity row and the employment rule answered it
+  // with the name of a company — the baseline `missed` in docs/research/20-eval-judge-fresh.md §1.
+  // Gates and demographic rows keep their own paths: neither is ever answered from this.
+  if (q.class !== "policy_gate" && q.class !== "sensitive" && RESTRICTIVE_RE.test(q.label ?? "")) {
+    return statedStance(ctx.mem, ctx.context, { id: "p.legal.restrictive_agreements", topic: "restrictive_agreements" });
+  }
+  // A prior-employment row that names this employer alongside its sister brands. Whatever class
+  // its wording landed in — Gusto's is `company_specific`, Plaid's is `circumstance` — the
+  // question is the same one GitLab's single-named row asks, and answering one and asking the
+  // other inside a single run is the inconsistency §4 M5 names.
+  const prior = priorEmploymentRow(q, ctx);
+  if (prior) return prior;
+  // A label that prints its own value for a class of candidate the user demonstrably belongs to
+  // ("…Non-U.S. based candidates, please enter \"00000\"") states the answer; only *which branch
+  // applies* is a fact, and `residenceCountry()` is the fact that settles it (§4 M2).
+  const printed = printedFallbackRow(q, ctx);
+  if (printed) return printed;
+  // A location row whose options are a closed enumeration of places the stated location is
+  // provably in none of, beside the list's own catch-all (§4 M4).
+  if (q.class !== "policy_gate" && q.class !== "sensitive" && LOCATION_RE.test(q.label ?? "")) {
+    const elsewhere = enumeratedPlaceRow(q, ctx.mem);
+    if (elsewhere) return elsewhere;
+  }
+  // A row whose own label makes the answer conditional on something about the user that nothing on
+  // file establishes ("If you were previously employed by Remote, please share the email you used
+  // for signing in. If not, please put N/A") is not a request for that datum. The identity rules
+  // read past the condition, saw "the email you used", and wrote the address into a row the user's
+  // history never opened (§1, baseline `wrong`). Only identity rows are diverted: every other
+  // class reaches a rule that already reasons about the condition, and `applyDependencies()` still
+  // closes the children a parent's own answer settles.
+  if (q.class === "identity" && CONDITIONAL_SELF_RE.test(q.label ?? "")) {
+    // …unless the label spells the answer for the other branch and memory refutes the condition,
+    // in which case leaving the required control empty is not caution, it is a `missed` (§4 M6).
+    const spelled = elseValueRow(q, ctx);
+    if (spelled) return spelled;
+    return {
+      source: "none",
+      action: "ask",
+      why: "the answer depends on a condition about you that nothing on file settles",
+    };
+  }
   switch (q.class) {
     case "sensitive":
       return sensitiveRow(q, ctx);
@@ -448,6 +693,75 @@ function resolveQuestion(q, ctx) {
       // essay · optional_text — nothing deterministic to say; Jev step 5 looks for saved material.
       return { _open: true, source: "none", action: "ask", why: "open prompt — no saved answer yet" };
   }
+}
+
+// Controls a printed literal can actually be typed into. A select is not one of them: a list that
+// offers the fallback already offers it as an option, and the option stage matches it there.
+const TEXTUAL_CONTROLS = new Set(["text", "textarea", "number", "email", "tel"]);
+
+// "Zip Code / Postal Code (Non-U.S. based candidates, please enter \"00000\")" — the label states
+// the value it wants from a class of candidate, and names the class by residence. Nothing here is
+// inferred about the person: the form wrote the value, and `residenceCountry()` — the user's own
+// stated location, with a work mode already rejected by `locationFact()` — decides whether they
+// are in the class. `check`, because the user should see the form's own literal before Submit.
+// Keep it to the residence classes a *stated fact* can settle: a fallback printed for "candidates
+// without a driving licence" is not one of them and stays an `ask`.
+const PRINTED_FALLBACK_RE =
+  /\b(?:non[-\s]?u\.?\s?s\.?(?:[-\s]?based)?|non[-\s]?us|outside (?:of )?(?:the )?(?:u\.?\s?s\.?a?\.?|united states)|international)\b[^)?]{0,60}?\b(?:please\s+)?(?:enter|put|write|type|use|input|leave(?: it)?(?: as)?)\s+["'\u201c\u2018]?([\p{L}\p{N}][\p{L}\p{N}/.\- ]{0,18}?)["'\u201d\u2019]?\s*(?:[)\].,;]|$)/iu;
+
+/** @returns {object|null} null when the label prints no fallback, or the user is not in its class */
+function printedFallbackRow(q, { mem }) {
+  if (q?.class === "sensitive" || q?.class === "policy_gate") return null;
+  if (!TEXTUAL_CONTROLS.has(q?.control ?? "") && !TEXTUAL_CONTROLS.has(q?.type ?? "")) return null;
+  const match = PRINTED_FALLBACK_RE.exec(String(q?.label ?? ""));
+  if (!match) return null;
+  const value = match[1].trim();
+  if (!value) return null;
+  const where = residenceCountry(mem);
+  if (!where || where.country === "US") return null;
+  return {
+    source: "fact",
+    value,
+    action: "check",
+    topic: "location",
+    why: `${where.fact} is outside the US, and this label prints the value for non-U.S. candidates`,
+  };
+}
+
+// "If you were previously employed by Remote, please share the email you used for signing in. If
+// not, please put N/A" — the other branch's answer, spelled by the form. Read only as a literal:
+// the value is the form's own words, never a fact of the user's read past the condition.
+const ELSE_VALUE_RE =
+  /\bif\s+not,?\s*(?:please\s+)?(?:put|enter|write|type|use|state|indicate|leave(?: it)?(?: as)?)\s+["'\u201c\u2018]?([\p{L}\p{N}][\p{L}\p{N}/.\- ]{0,18}?)["'\u201d\u2019]?\s*(?:[(\[.,;]|$)/iu;
+
+/**
+ * The literal a conditional row prints for the branch the candidate is on, when memory **refutes**
+ * the condition. The condition is the clause before the first comma ("If you were previously
+ * employed by Remote,"), and it is refuted by the same derivation the multi-entity prior-employment
+ * rows use — employment facts for a Yes, employment facts plus the pipeline for a No. A condition
+ * memory cannot refute, or one that turns out to be true, keeps the `ask`: the row then wants the
+ * datum, not the literal.
+ * @returns {object|null}
+ */
+function elseValueRow(q, { mem, pipeline, context }) {
+  const label = String(q?.label ?? "");
+  const match = ELSE_VALUE_RE.exec(label);
+  if (!match) return null;
+  const value = match[1].trim();
+  if (!value) return null;
+  const comma = label.indexOf(",");
+  if (comma < 0) return null;
+  const names = employersNamed(label.slice(0, comma), context.company);
+  if (!names) return null;
+  const answer = priorEmployerAnswer(names, { mem, pipeline });
+  if (answer?.value !== NO) return null;
+  return {
+    source: "derived",
+    value,
+    action: "check",
+    topic: "previously_employed",
+    why: `${answer.why} — this label prints the value for that branch`,
+  };
 }
 
 /**
@@ -493,6 +807,12 @@ function confirmationRow(q, ctx) {
  * one: an explicit `p.legal.<slug>` they stated themselves. There is no derivation, no canonical
  * answer and no neighbouring preference — with nothing on file the row is an `ask` carrying the id
  * that would close it on every board afterwards (AGENTS.md; judge §3.1).
+ *
+ * One option escapes that rule without breaking it, because it is not an attestation at all: a
+ * jurisdiction notice offers "I am not a California resident" beside its Acknowledge, and that is
+ * a claim about where the candidate lives, which `f.identity.location` settles
+ * (docs/research/21-eval-judge-final.md §4 M3). Signing is still the user's to do — the escape is
+ * only ever picked when the notice does *not* apply to them.
  */
 function policyGateRow(q, { mem, context }) {
   const slug = policySlug(q.label);
@@ -500,6 +820,10 @@ function policyGateRow(q, { mem, context }) {
   const pref = resolvePreference(mem, id, scopeCtx(context));
   const stance = pref ? yesNoOf(pref.value) : null;
   if (!stance) {
+    const escape = jurisdictionEscape(optionLabelsOf(q), mem);
+    if (escape) {
+      return { source: "fact", value: escape.option, option: escape.option, action: "check", topic: "policy", why: escape.why };
+    }
     return {
       source: "none",
       action: "ask",
@@ -520,6 +844,45 @@ function policyGateRow(q, { mem, context }) {
     why: `${id} (${pref.scope})`,
     _answerText: stance,
   };
+}
+
+// A gate option that disclaims the notice rather than signing it: "I am not a California
+// resident", "Not applicable — I do not reside in Colorado". It states a fact about where the
+// candidate lives, which is the one thing about a gate memory *can* answer.
+const NOT_A_RESIDENT_RE =
+  /\b(?:i am|i'm|we are)\s+not\s+(?:an?\s+)?[\w\s]{0,24}?\b(?:resident|residing|based|located)\b|\bnot\s+(?:an?\s+)?resident\s+of\b|\b(?:i\s+)?do(?:es)?\s+not\s+(?:reside|live)\b|\bnot applicable\b[^.]{0,40}\b(?:resident|reside|live|located)\b/i;
+
+/**
+ * The notice's non-attesting escape, when the user's own stated location proves the notice does
+ * not reach them. Never on a near-miss: a stated location inside the notice's own country that
+ * names no state settles nothing, a location the place table does not recognise settles nothing,
+ * and two escape options settle nothing either. The list must also still carry the
+ * acknowledgement — a single-option gate is a signature with no alternative.
+ * @returns {{option:string, why:string}|null}
+ */
+function jurisdictionEscape(labels, mem) {
+  if (labels.length < 2) return null;
+  const escapes = labels.filter((label) => NOT_A_RESIDENT_RE.test(folded(label)));
+  if (escapes.length !== 1) return null;
+  const option = escapes[0];
+  const row = locationFact(mem);
+  const stated = row ? (factText(row)?.text ?? String(row.value ?? "")) : "";
+  if (!stated) return null;
+  const country = countryFromText(stated);
+  if (!country) return null;
+  // A US state is tested first: "California" is also how the place table recognises the US, so
+  // reading the option as a country would compare the wrong two things.
+  const state = statesNamed(option)[0] ?? null;
+  if (state) {
+    const titled = state.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    if (country !== "US") return { option, why: `${row.id} is not in the United States, so this ${titled} notice does not cover you` };
+    const mine = statesNamed(stated);
+    if (!mine.length || mine.includes(state)) return null;
+    return { option, why: `${row.id} names a different state from the ${titled} this notice covers` };
+  }
+  const named = countryFromText(option);
+  if (!named || named === country) return null;
+  return { option, why: `${row.id} is not in the country this notice covers` };
 }
 
 // ─── EEO / demographics ───────────────────────────────────────────────────────────────────────
@@ -568,7 +931,16 @@ function eeoVocabularies() {
     if (stray.length) {
       throw new Error(`canon/vocab/${file}: ${[...new Set(stray)].join(", ")} not in p.eeo.${doc.field} (${allowed.join(" | ")})`);
     }
-    loaded.push({ field: String(doc.field), asks: (doc.asks ?? []).map((src) => new RegExp(src, "i")), values, aliases, match });
+    const subregions = (doc.subregions ?? []).map((entry) => ({
+      value: String(entry?.value ?? ""),
+      names: (entry?.names ?? []).map((n) => new RegExp(`\\b${String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")),
+      countries: (entry?.countries ?? []).map((c) => String(c).toUpperCase()),
+    }));
+    const strayRegions = subregions.map((s) => s.value).filter((token) => !allowed.includes(token));
+    if (strayRegions.length) {
+      throw new Error(`canon/vocab/${file}: subregions of ${[...new Set(strayRegions)].join(", ")} not in p.eeo.${doc.field}`);
+    }
+    loaded.push({ field: String(doc.field), asks: (doc.asks ?? []).map((src) => new RegExp(src, "i")), values, aliases, match, subregions });
   }
   const rank = (m) => (EEO_FIELD_ORDER.indexOf(m.field) + 1 || EEO_FIELD_ORDER.length + 1);
   eeoMaps = loaded.sort((a, b) => rank(a) - rank(b) || a.field.localeCompare(b.field));
@@ -684,6 +1056,9 @@ function sensitiveRow(q, { mem, context }) {
     why,
     remember_as: { kind: "preference", id, scope: "global" },
   });
+  // A consent or acknowledgement inside the demographic block is a signature, not a characteristic:
+  // it goes to the gate, where only an explicit `p.legal.<slug>` answers it.
+  if (SENSITIVE_ATTESTATION_RE.test(q.label ?? "")) return policyGateRow(q, { mem, context });
   // Pronouns are not a protected class: they are the phrase the user volunteered, and
   // `f.identity.pronouns` states it whether or not a demographic block was ever filled in. Tested
   // before `p.eeo` for exactly that reason — three postings left a pronouns field empty in round 1
@@ -746,12 +1121,15 @@ function sensitiveRow(q, { mem, context }) {
   // assert something the user never said. Those are dropped, which resolves that pair to the
   // plain label deterministically. What survives are genuinely different categories ("East
   // Asian" / "South Asian" / "Southeast Asian" against a saved `asian`), i.e. the form asking
-  // finer than the user stated, and that splits two ways:
-  //   * a *single*-select goes to Jev over the form's options plus `none_of_these`, and the gate
-  //     decides — the same ladder every other select climbs, never a pick by position;
+  // finer than the user stated, and that resolves in three steps:
+  //   * `subregionOption()` — the user has *also* stated which country they are a citizen of or
+  //     live in, and exactly one of the split options covers it by its own definition. That is
+  //     equality against two saved facts, not a guess between siblings;
+  //   * otherwise a *single*-select goes to Jev over the form's options plus `none_of_these`, and
+  //     the gate decides — the same ladder every other select climbs, never a pick by position;
   //   * a *multi*-select must not: request 3 asks one Noul per option with no `none_of_these`
   //     (src/jev/plan.mjs optionStage), so "Asian" can select East *and* South *and* Southeast —
-  //     three claims about the user's ancestry they never made. That row is an `ask`.
+  //     three claims about the user's ancestry they never made. That row declines, or it asks.
   for (const candidate of wanted) {
     const canonical = String(map.values[candidate]);
     const matching = labels.filter((label) => eeoValueOf(map, label) === candidate);
@@ -765,6 +1143,19 @@ function sensitiveRow(q, { mem, context }) {
     const pick = plain.length === 1 ? plain[0] : hits.length === 1 ? hits[0] : null;
     if (pick) {
       return { source: "preference", value: pick, option: pick, action: "fill", topic: "eeo", why: `p.eeo.${map.field} (${scope})` };
+    }
+    if (hits.length > 1) {
+      const narrowed = subregionOption(map, candidate, hits, mem);
+      if (narrowed) {
+        return {
+          source: "preference",
+          value: narrowed.option,
+          option: narrowed.option,
+          action: "fill",
+          topic: "eeo",
+          why: `p.eeo.${map.field} (${scope}) — one option covers the country ${narrowed.fact} states`,
+        };
+      }
     }
     if (hits.length > 1) {
       if (q.type === "multi_select") {
@@ -832,6 +1223,33 @@ function declineOption(block, labels) {
   const stance = String(block?.other_demographics ?? "").trim().toLowerCase();
   if (stance !== "decline") return null;
   return labels.find((label) => DECLINE_RE.test(optionKey(label))) ?? null;
+}
+
+/**
+ * The one split option the user's *other* stated facts settle, or null.
+ *
+ * A demographic list may ask finer than `p.eeo` records — "East Asian" / "South Asian" /
+ * "Southeast Asian" against a saved `asian` — and the saved value alone cannot choose between
+ * them. Picking the nearest sibling is a fabricated claim about a protected characteristic, which
+ * is how a graded round put a neighbouring sub-region on a real form
+ * (docs/research/20-eval-judge-fresh.md §3 row 10), and handing the split to a model is the same
+ * fabrication with a probability attached. What *can* answer it is another fact the user stated
+ * themselves: the country they are a citizen of, else the country they live in. An option is
+ * picked only when it states the saved value **and** its own definition (`subregions:` in
+ * `canon/vocab/eeo-race.yaml`) covers that country — and only when exactly one does. Two
+ * qualifying options, or no stated country, is the same as no answer: the caller declines or asks.
+ *
+ * @returns {{option:string, fact:string}|null}
+ */
+function subregionOption(map, candidate, hits, mem) {
+  const regions = (map.subregions ?? []).filter((region) => region.value === candidate);
+  if (!regions.length) return null;
+  const stated = statedCountry(mem);
+  if (!stated) return null;
+  const covering = regions.filter((region) => region.countries.includes(stated.country));
+  if (!covering.length) return null;
+  const qualified = hits.filter((label) => covering.some((region) => region.names.some((re) => re.test(optionKey(label)))));
+  return qualified.length === 1 ? { option: qualified[0], fact: stated.fact } : null;
 }
 
 /** Do `words` contain `needle` as a contiguous run of whole words? */
@@ -1075,45 +1493,71 @@ function circumstanceRow(q, ctx) {
   //      turns "…the country you are currently in, or your target relocation country?" into
   //      ", OR" → Oregon → US, which is how a London posting reached for `f.work_auth.US` while
   //      the rest of the same plan derived `uk_london` (judge §2 item 9);
-  //   2. the posting — `context.country`, derived **once** per plan by `jobContext()` and shared
+  //   2. the question scoping itself to the candidate's **own** location rather than to the
+  //      posting's — "…a visa to remain in your current location?" (GitLab), "Your authorization
+  //      to work in the country where you live" (Vercel). Both were answered for the employer's
+  //      country and both came out the exact opposite of the truth
+  //      (docs/research/20-eval-judge-fresh.md §1, two of the six baseline `wrong` rows). The
+  //      jurisdiction is the one the user states for themselves: citizenship, else where they live;
+  //   3. the posting — `context.country`, derived **once** per plan by `jobContext()` and shared
   //      unchanged by every rule below;
-  //   3. for a remote listing that names no country at all, the country the user is a citizen of —
-  //      their own stated fact, and the only jurisdiction such a posting can mean for them.
+  //   4. for a remote listing that names no country at all, the country the user is a citizen of —
+  //      their own stated fact, and the only jurisdiction such a posting can mean for them;
+  //   5. a posting that still names no country at all: the user's own blanket default rule
+  //      (`f.work_auth.default`), which is exactly the statement "whatever country you have not
+  //      asked me about, this is my answer". Remote's required "Will you require sponsorship if
+  //      you join Remote?" asked with that rule on file (§1, baseline `couldnt`).
   // Still nothing → ask. Never answer for the wrong jurisdiction.
   if (SPONSOR_RE.test(label) || AUTHORIZED_RE.test(label)) {
     const asked = countryInQuestion(label);
-    const fromCitizenship = !asked && !context.country && context.remote ? citizenshipCountry(mem) : null;
-    const country = asked ?? context.country ?? fromCitizenship?.country ?? null;
-    if (!country) return { source: "none", action: "ask", topic: "work_auth", why: "the posting names no country" };
-    const auth = workAuth(mem, country);
+    const ownLocation = !asked && OWN_LOCATION_RE.test(folded(label)) ? statedCountry(mem) : null;
+    const fromCitizenship = !asked && !ownLocation && !context.country && context.remote ? citizenshipCountry(mem) : null;
+    const country = asked ?? ownLocation?.country ?? context.country ?? fromCitizenship?.country ?? null;
+    const auth = country ? workAuth(mem, country) : blanketWorkAuth(mem);
     if (!auth) {
       return {
         source: "none",
         action: "ask",
         topic: "work_auth",
-        why: `no work-authorization fact for ${country}`,
-        remember_as: { kind: "fact", id: `f.work_auth.${country}`, scope: "global" },
+        why: country ? `no work-authorization fact for ${country}` : "the posting names no country, and no f.work_auth.default states a blanket answer",
+        remember_as: { kind: "fact", id: `f.work_auth.${country ?? "default"}`, scope: "global" },
       };
     }
     // Reconcile the control's shape before any option matching (F4). A right-to-work *status*
     // select lists immigration statuses, not Yes/No, and the Yes/No this branch derives is not an
     // answer to it: graphcore's required select was handed the sibling row's boolean and ended
     // empty (docs/research/17-eval-judge-ten2.md §3 F4).
+    //
+    // A list with no Yes and no No in it is that case and goes there outright. A list that does
+    // read as Yes/No but states the derived answer more than once needs the same treatment and
+    // only sometimes: Vercel's states it three times as three different immigration *statuses*
+    // ("I am authorized … due to my nationality", "… based on a valid work permit", "… which
+    // needs to be sponsored by the company" — all opening "I am", so `yesNoOf` calls all three
+    // Yes), while Together AI's states it twice as the same status at two *times* ("…sponsorship
+    // now", "…in the future"), which is exactly what `workAuthAnswer`'s `answerText` spells out
+    // for request 2 to tell apart. So the status row is offered the row first and only keeps it
+    // when it can actually name an option; an `ask` from it falls through to the option stage.
     const options = optionLabelsOf(q);
+    const { value, answerText, kind } = workAuthAnswer(workAuthKind(label), auth, auth.country);
     if (options.length && !options.some((option) => yesNoOf(option))) {
-      return workAuthStatusRow(options, { auth, country, mem });
+      return workAuthStatusRow(options, { auth, country: auth.country, mem });
     }
-    const { value, answerText, kind } = workAuthAnswer(workAuthKind(label), auth, country);
+    if (options.length && options.filter((option) => yesNoOf(option) === value).length !== 1) {
+      const status = workAuthStatusRow(options, { auth, country: auth.country, mem });
+      if (status.action !== "ask") return status;
+    }
     // A country the user never named is answered from their blanket default rule, and a country
-    // the *posting* never named is answered from their citizenship. Both values are usable — they
-    // are the user's own stated facts — but the two most legally consequential rows on the form
-    // are never filled silently from either: `check` is still filled and shows up under ► CHECK.
-    // The inferred-jurisdiction phrase leads the `why` because `summary.mjs` clips it at " (".
+    // the *posting* never named is answered from their citizenship or from where they live. All
+    // of those values are usable — they are the user's own stated facts — but the two most legally
+    // consequential rows on the form are never filled silently from any of them: `check` is still
+    // filled and shows up under ► CHECK. The inferred-jurisdiction phrase leads the `why` because
+    // `summary.mjs` clips it at " (".
     //
     // The parenthetical states the *answer*, not the sub-question's name: "…default for US
     // (authorized) → option No" read as a sentence says authorized while the form says No, on
     // exactly the rows printed under ► CHECK for the user to eyeball (§3 F5).
-    const exact = auth.exact && !fromCitizenship;
+    const inferred = fromCitizenship ?? (country ? null : { fact: auth.fact });
+    const exact = auth.exact && !inferred;
     const derived = `${kind}: ${value}`;
     return {
       source: "derived",
@@ -1121,12 +1565,25 @@ function circumstanceRow(q, ctx) {
       action: exact ? "fill" : "check",
       topic: "work_auth",
       why: exact
-        ? `${auth.fact} for ${country} (${derived})`
+        ? ownLocation
+          ? `${auth.fact} — this asks about where you are, not where the role is (${derived})`
+          : `${auth.fact} for ${auth.country} (${derived})`
         : fromCitizenship
           ? `remote posting names no country — answered for ${country} from ${fromCitizenship.fact} (${derived})`
-          : `from your default rule (no ${country}-specific fact) — ${auth.fact} for ${country} (${derived})`,
+          : country
+            ? `from your default rule (no ${country}-specific fact) — ${auth.fact} for ${country} (${derived})`
+            : `${auth.fact} — the posting names no country, so your blanket rule answers it (${derived})`,
       _answerText: answerText,
     };
+  }
+
+  // "Do you live in one of the following states? Alabama, Alaska, Delaware, …" — a residence
+  // question that enumerates the places it asks about instead of naming one, so no country rule
+  // reads it and the canonical bank had nothing whose wording matched the option list
+  // (docs/research/20-eval-judge-fresh.md §1, a baseline `missed` on a required row).
+  if (RESIDES_IN_LIST_RE.test(label)) {
+    const listed = listedResidenceRow(q, label, mem);
+    if (listed) return listed;
   }
 
   if (RELOCATE_RE.test(label)) {
@@ -1341,6 +1798,89 @@ function officeRow(q, mem) {
 }
 
 /**
+ * "Please Indicate your current location:" over three US office cities and `Other`. A location
+ * row whose options are a closed enumeration of places has exactly one truthful answer for
+ * somebody who is in none of them, and the list prints it — but the row asked with "no option
+ * states it" while the fact that settles it sat on file
+ * (docs/research/21-eval-judge-final.md §4 M4).
+ *
+ * "Provably in none" is the whole rule, and it is proved by country, never by distance:
+ *   * the saved value has to be a place (`locationFact()` already rejects "Remote"),
+ *   * the options have to be places — at least one has to be one the place table recognises,
+ *     and none of them may read as a Yes/No, which is a different question wearing a list,
+ *   * and no option may name the country the user stated. Two cities inside their own country
+ *     are exactly the case this rule cannot settle: "not Denver" is a fact about distance, which
+ *     is not something memory states. That row keeps asking.
+ * A `check`, because it is derived by elimination rather than stated.
+ * @returns {object|null} null whenever the elimination is not complete
+ */
+function enumeratedPlaceRow(q, mem) {
+  const labels = optionLabelsOf(q);
+  if (labels.length < 3 || labels.some((label) => yesNoOf(label))) return null;
+  const catchAll = labels.filter((label) => RESIDUAL_OPTION_RE.test(optionKey(label)) || NONE_OF_ABOVE_RE.test(optionKey(label)));
+  if (catchAll.length !== 1) return null;
+  const places = labels.filter((label) => label !== catchAll[0]);
+  const row = locationFact(mem);
+  const stated = row ? (factText(row)?.text ?? String(row.value ?? "")) : "";
+  if (!stated) return null;
+  const parts = stated.split(",").map((part) => part.trim()).filter(Boolean);
+  const named = places.find((label) => parts.some((part) => optionKey(label) === optionKey(part)));
+  if (named) return { source: "fact", value: named, option: named, action: "fill", topic: "location", why: `${row.id} names this option` };
+  const mine = countryFromText(stated);
+  if (!mine) return null;
+  const countries = places.map((label) => countryFromText(label));
+  if (!countries.some(Boolean) || countries.some((country) => country === mine)) return null;
+  const words = stated.toLowerCase();
+  if (places.some((label) => optionKey(label) && words.includes(optionKey(label)))) return null;
+  return {
+    source: "fact",
+    value: catchAll[0],
+    option: catchAll[0],
+    action: "check",
+    topic: "location",
+    why: `${row.id} is in none of the ${places.length} places this row lists`,
+  };
+}
+
+/**
+ * "Do you live in one of the following states? Alabama, Alaska, Delaware, …" — a residence
+ * question whose own label carries the list it is asking about.
+ *
+ * Nothing is inferred: the answer is a comparison between two things the user wrote and the form
+ * wrote. Their stated location names one of the listed states → Yes; their stated location is in
+ * a different country altogether → No. A stated location inside the United States that names no
+ * state at all settles nothing — "San Francisco Bay Area" is not a state — so that row goes back
+ * to the user rather than claim residency either way.
+ *
+ * @returns {object|null} null when this rule cannot answer, and the row falls through
+ */
+function listedResidenceRow(q, label, mem) {
+  const listed = statesNamed(label);
+  if (listed.length < 2) return null;
+  const options = optionLabelsOf(q);
+  if (options.length && !options.every((option) => yesNoOf(option))) return null;
+  const row = locationFact(mem);
+  const stated = row ? factText(row)?.text ?? String(row.value ?? "") : "";
+  if (!stated) return null;
+  const names = listed.some((state) => new RegExp(`\\b${state}\\b`, "i").test(stated));
+  const country = countryFromText(stated);
+  if (!names && (!country || country === "US")) return null;
+  const value = names ? YES : NO;
+  const option = options.find((o) => yesNoOf(o) === value);
+  return {
+    source: "fact",
+    value: option ?? value,
+    ...(option ? { option } : {}),
+    action: "fill",
+    topic: "location",
+    why: names
+      ? `${row.id} names one of the states this row lists`
+      : `${row.id} is in ${country}, not in any of the ${listed.length} states this row lists`,
+    _answerText: value,
+  };
+}
+
+/**
  * A preference that states a plain Yes / No — `true`, `"no"`, `{answer: "No"}` are all how one
  * gets written. Anything else (a sentence, a mapping with no answer) is not a stance.
  *
@@ -1515,21 +2055,31 @@ function exportControlRow(q, { mem }) {
   };
 }
 
+/** An immigration-status option granting the right to work by who the candidate *is*. */
+const NATIONALITY_STATUS_RE = /\b(?:citizen|citizenship|nationality|national)\b/i;
+
 /**
  * A right-to-work **status** select: the options are immigration statuses, so the answer is the
  * category the user's own facts name and never the Yes/No a sibling row derived (F4).
  *
- * Two readings are available without guessing. A citizen of the country the question is about
- * takes that list's citizen entry. A user whose work-authorization fact says they are not
- * authorized there holds none of the statuses the list enumerates — every one of them grants the
- * right to work — so the list's own residual entry is the answer. Anything else asks.
+ * Two readings are available without guessing. A candidate who is a national of the country the
+ * question is about takes that list's entry for the right to work that their nationality itself
+ * grants — spelled "citizen" on most boards and "due to my nationality" on others, and named
+ * with the country or generically as "the country", whichever the form's own wording uses. A user
+ * whose work-authorization fact says they are not authorized there holds none of the statuses the
+ * list enumerates — every one of them grants the right to work — so the list's own residual entry
+ * is the answer. Anything else asks. Exactly one option has to fit either way: two is the same as
+ * none, and the negated entries ("I am **not** authorized…") are never one of them.
  */
 function workAuthStatusRow(labels, { auth, country, mem }) {
   const status = (option, why) => ({ source: "derived", value: option, option, action: "check", topic: "work_auth", why, _answerText: option });
   const citizenship = citizenshipCountry(mem);
-  if (citizenship?.country === country) {
-    const citizen = labels.filter((label) => /\bcitizen\b/i.test(label) && countryFromText(label) === country);
-    if (citizen.length === 1) return status(citizen[0], `${citizenship.fact} — citizen of ${country}`);
+  if (auth.authorized_now && citizenship?.country === country) {
+    const byNationality = labels.filter((label) => NATIONALITY_STATUS_RE.test(label) && !/\bnot\b/i.test(label));
+    const named = byNationality.filter((label) => countryFromText(label) === country);
+    const generic = byNationality.filter((label) => countryFromText(label) === null);
+    const pick = named.length === 1 ? named[0] : named.length === 0 && generic.length === 1 ? generic[0] : null;
+    if (pick) return status(pick, `${citizenship.fact} — a ${country} national needs no permit to work there`);
   }
   if (!auth.authorized_now) {
     const residual = labels.filter((label) => RESIDUAL_OPTION_RE.test(label) || NONE_OF_ABOVE_RE.test(label));

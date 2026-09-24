@@ -106,3 +106,20 @@ unmapped:                               # no canonical value carries these
   - A group not listed
   - Any other ethnic group
   - Other
+subregions:
+  # A demographic list that splits one saved value into sub-regions ("East Asian" / "South Asian" /
+  # "Southeast Asian" against a saved `asian`) is asking finer than `p.eeo.race` records. The saved
+  # value alone cannot break that tie and the nearest sibling is never a legitimate guess — but a
+  # candidate who has also stated where they are a citizen of, or where they live, has already said
+  # which of these sub-regions they are in, and that is their own fact rather than an inference
+  # about the characteristic. `countries` is what each sub-region's own definition lists; the
+  # narrowing only fires when the stated country lands in exactly one option on the form.
+  - value: asian
+    names: ["east asian"]
+    countries: [CN, JP, KR, KP, MN, TW, HK, MO]
+  - value: asian
+    names: ["south asian"]
+    countries: [IN, PK, BD, LK, NP, BT, AF, MV]
+  - value: asian
+    names: ["southeast asian", "south-east asian"]
+    countries: [ID, MY, SG, TH, VN, PH, MM, KH, LA, BN, TL]

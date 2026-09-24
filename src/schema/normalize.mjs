@@ -305,6 +305,20 @@ export function countryInQuestion(label) {
   return firstPlace(PROSE_RULES, label);
 }
 
+/**
+ * Every US state a piece of prose names, lowercased and deduplicated, in the table's own spelling.
+ *
+ * A residence question may enumerate the places it is asking about rather than naming a country
+ * ("Do you live in one of the following states? Alabama, Alaska, Delaware, …"), and a candidate
+ * whose own stated location names none of them, in a country that is not the United States, has
+ * already answered it. Two names are the smallest list that reads as an enumeration rather than
+ * as one place mentioned in passing, and that check belongs to the caller.
+ */
+export function statesNamed(text) {
+  const hay = flatten(text);
+  return [...new Set(hay.match(new RegExp(`\\b(?:${US_STATE_NAMES})\\b`, "g")) ?? [])];
+}
+
 /** Every location string the raw payload carries, most specific first. */
 function placeStrings(raw, job, ats) {
   const posting = raw?.data?.jobPosting ?? raw?.jobPosting ?? raw ?? {};

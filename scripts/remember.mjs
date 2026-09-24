@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { NONE, choice, closeJevClient, noul, systemOne, withNone } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
 import { loadMemory, upsertRow } from "../src/memory/store.mjs";
+import { enrichMemoryQuietly } from "../src/memory/enrich.mjs";
 import { promotionHome } from "../src/memory/resolve.mjs";
 import { ID_CATALOGUE, mintId, nextHandle, rowKey, stamp } from "../src/memory/schema.mjs";
 import { yesNoOf } from "../src/plan/resolve.mjs";
@@ -278,6 +279,11 @@ async function main() {
     : kind === "correction" ? await writeCorrection(mem, args.instruction, opts)
     : await promoteDraft(mem, args.instruction, opts);
 
+  // A promoted draft becomes a story, and a story is only ever reached through the candidate pool —
+  // so it is tagged here, the moment it lands, rather than waiting for `scripts/memory-enrich.mjs`.
+  // Best-effort by contract (src/memory/enrich.mjs): untagged only costs ranking.
+  const tagged = args.dryRun ? { ok: true } : await enrichMemoryQuietly();
+
   if (args.dryRun) {
     log("dry run — nothing written");
     log(`  id: ${written.id}`);
@@ -287,6 +293,7 @@ async function main() {
     ...(args.dryRun ? { dry_run: true } : {}),
     confidence: answers.kind.confidence,
     ...(idConfidence == null ? {} : { id_confidence: idConfidence }),
+    ...(tagged.ok ? {} : { tagging: tagged.reason }),
   });
 }
 

@@ -3,7 +3,7 @@
 // Everything else in this repo decides what to *put* on a form. This module decides whether what
 // is on the form may be *sent* — once, irreversibly, to a real employer. It is deliberately not a
 // second planner: it never edits a Decision, never asks a model anything and never reads the
-// network. It re-states the invariants of AGENTS.md as twelve refusals over the frozen record
+// network. It re-states the invariants of AGENTS.md as fourteen refusals over the frozen record
 // plus (when the runner has one) the live required-control snapshot and the submit button's own
 // geometry, and every failure it reports names a row and one thing the user can do about it.
 //
@@ -11,6 +11,8 @@
 // within one preference of doing so (docs/research/12…16, private/eval-shots/*):
 //
 //   sensitive_source        a demographic answer that did not come from `p.eeo` or from the user
+//   sensitive_decline_conflict  a demographic row holding both a decline and a substantive claim
+//   sensitive_claim_contradicts a demographic claim the user's own saved `p.eeo` contradicts
 //   policy_gate_source      an attestation ticked from anything but the `p.legal.*` row signed for it
 //   draft_gates             a draft nobody checked answers the question it is sitting under
 //   fact_from_writer        a fact about the user composed by the writer or lifted from a story
@@ -32,7 +34,7 @@
 // memory ids by name. A judgement about a value never transcribes it.
 
 import { isWorkMode } from "../memory/derive.mjs";
-import { getFact } from "../memory/resolve.mjs";
+import { getFact, resolvePreference } from "../memory/resolve.mjs";
 import { LOCATION_RE, conditionPolarity, yesNoOf } from "./resolve.mjs";
 
 /** A date control takes a date: `YYYY-MM-DD`, the only thing every board's picker reads back. */
@@ -78,6 +80,19 @@ const fromPreference = (d, idRe) => d?.source === USER || (d?.source === "prefer
 /** The name rows, by the qid every adapter uses and by the label every board prints. */
 const NAME_ROW_RE = /^(first|last|given|family|sur)[_ -]?name$/i;
 
+/** The option labels a row actually ticked: `optionStage` joins a multi-select's picks with " | ". */
+const pickedOptions = (d) =>
+  String(d?.option ?? "")
+    .split(" | ")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/** A list's own "decline to answer" entry, in the wordings boards write it in. */
+const DECLINE_OPTION_RE = /^(?:decline|prefer not|i prefer not|choose not|i (?:do not|don't) (?:wish|want)|not disclos|no answer)/i;
+
+/** An option that claims the candidate has a disability, wherever in a list it sits. */
+const DISABILITY_CLAIM_RE = /\b(?:persons?|people|individuals?) with (?:a )?disabilit|\bi have (?:\(or previously had\) )?a disability\b|\bdisabled\b|^yes\b[^|]{0,60}\bdisabilit/i;
+
 const fail = (rule, d, message) => ({ rule, qid: d?.qid ?? null, label: clip(d?.label ?? ""), message });
 
 // ─── the rules ────────────────────────────────────────────────────────────────────────────────
@@ -92,7 +107,11 @@ export const RULES = [
     run: ({ decisions }) =>
       decisions
         .filter((d) => d.class === "sensitive" && writes(d))
-        .filter((d) => !fromPreference(d, EEO_SOURCE_RE) && !(d.source === "fact" && PRONOUN_FACT_RE.test(text(d.why))))
+        // A consent sitting inside the demographic block keeps its `sensitive` class while
+        // `sensitiveRow()` forwards it to the gate (src/plan/resolve.mjs), so a signed one arrives
+        // here sourced from its own `p.legal.<slug>`. That is the one source it is allowed to
+        // have, and refusing it as a mis-sourced demographic would block a healthy row.
+        .filter((d) => !fromPreference(d, EEO_SOURCE_RE) && !fromPreference(d, LEGAL_SOURCE_RE) && !(d.source === "fact" && PRONOUN_FACT_RE.test(text(d.why))))
         .map((d) =>
           fail(
             "sensitive_source",
@@ -100,6 +119,51 @@ export const RULES = [
             `${named(d)} is a demographic row filled from "${text(d.source) || "nothing"}" — a protected characteristic is answered from your saved p.eeo or by you, so re-answer it with --answers or state p.eeo.`,
           ),
         ),
+  },
+  {
+    // A demographic multi-select is answered one option at a time (`optionStage`, src/jev/plan.mjs
+    // joins the picks with " | "), so a row can come back holding both the list's decline entry
+    // and a substantive claim — "I prefer not to answer" *and* two orientations, on a real form
+    // (docs/research/20-eval-judge-fresh.md §3 rows 11-12). The two say opposite things and only
+    // one of them can be the user's answer, so the row never reaches Submit as it stands.
+    name: "sensitive_decline_conflict",
+    needs: [],
+    run: ({ decisions }) =>
+      decisions
+        .filter((d) => d.class === "sensitive" && writes(d))
+        .map((d) => {
+          const picked = pickedOptions(d);
+          const declines = picked.filter((option) => DECLINE_OPTION_RE.test(option));
+          if (!declines.length || declines.length === picked.length) return null;
+          return fail(
+            "sensitive_decline_conflict",
+            d,
+            `${named(d)} holds the list's "decline to answer" entry alongside ${picked.length - declines.length} substantive answer(s) — a decline and a claim cannot both be what you said, so answer this row yourself with --answers.`,
+          );
+        })
+        .filter(Boolean),
+  },
+  {
+    // The same row class, and the worst thing it can do: tick a protected characteristic the user
+    // explicitly stated they do not have. A "Person with disability" entry inside a list of
+    // communities is a disability claim wherever it sits, and `p.eeo.disability_status` already
+    // holds the user's answer to it (§3 row 12, the single most damaging row of that round).
+    name: "sensitive_claim_contradicts",
+    needs: ["mem"],
+    run: ({ decisions, mem }) => {
+      const stated = String(resolvePreference(mem, "p.eeo", {})?.value?.disability_status ?? "").trim().toLowerCase();
+      if (stated !== "no") return [];
+      return decisions
+        .filter((d) => d.class === "sensitive" && writes(d))
+        .filter((d) => pickedOptions(d).some((option) => DISABILITY_CLAIM_RE.test(option)))
+        .map((d) =>
+          fail(
+            "sensitive_claim_contradicts",
+            d,
+            `${named(d)} claims a disability, and your saved p.eeo.disability_status says you do not have one — clear the row and answer it yourself with --answers.`,
+          ),
+        );
+    },
   },
   {
     name: "policy_gate_source",

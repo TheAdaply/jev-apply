@@ -156,10 +156,23 @@ export function storyPool(mem, q) {
   return { rows, mode };
 }
 
-/** The items that speak to every topic the label names — by title/tags first, by text second. */
+/**
+ * The items that speak to every topic the label names, most specific index first.
+ *
+ * Three tiers, each a narrower claim about the same rows. A row `scripts/memory-enrich.mjs` has
+ * tagged carries `answers_questions[]` — the questions that exact row answers, written from the
+ * row's own text — and a row whose tagged question covers the prompt's topics is the closest thing
+ * memory has to an index of itself. Below that sit the user's own title and tags, and below that
+ * the row's full text, which matches most loosely. The tiers only ever *rank and narrow the pool*:
+ * a survivor is still selected by Jev and still gated, and an untagged store behaves exactly as it
+ * did before the field existed. An empty pool leaves the row an ask, which is the right answer when
+ * nothing on file is about what was asked (docs/research/16-eval-judge-ten.md E3).
+ */
 function onTopic(rows, label) {
   if (!topicsIn(label).length) return rows;
-  const index = (row) => `${row?.title ?? ""} ${(row?.tags ?? []).join(" ")} ${row?.id ?? ""}`;
+  const index = (row) => `${row?.title ?? ""} ${(row?.tags ?? []).join(" ")} ${(row?.topics ?? []).join(" ")} ${row?.id ?? ""}`;
+  const asked = rows.filter((row) => (row?.answers_questions ?? []).some((question) => !unmetTopics(label, question).length));
+  if (asked.length) return asked;
   const titled = rows.filter((row) => !unmetTopics(label, index(row)).length);
   if (titled.length) return titled;
   return rows.filter((row) => !unmetTopics(label, `${index(row)} ${row?.text ?? ""}`).length);

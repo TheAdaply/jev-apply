@@ -14,6 +14,7 @@ import YAML from "yaml";
 
 import { CONFIG_DIR, paths, slugify } from "../src/config.mjs";
 import { BASELINES, installDocument, loadMemory, mergeSection, saveAuxText, upsertRow } from "../src/memory/store.mjs";
+import { enrichMemoryQuietly } from "../src/memory/enrich.mjs";
 import { listFacts, resolvePreference } from "../src/memory/resolve.mjs";
 import { noticeRule, workAuthCountries } from "../src/memory/derive.mjs";
 import { eeoCanonical, nameSplit } from "../src/plan/resolve.mjs";
@@ -512,6 +513,12 @@ async function main() {
       ? await importResumes(args.resumes, args.links)
       : { rejected: [], missingDocuments: [] };
 
+  // Tag whatever was just written with the questions it answers (src/memory/enrich.mjs), so a new
+  // story is ranked against a prompt the first time a form asks one instead of after a separate
+  // command. Best-effort by contract: the tags only pre-filter the candidate pool, so a missing
+  // writer key costs ranking, never the rows the user just saved.
+  const tagged = await enrichMemoryQuietly();
+
   const mem = await loadMemory();
   const baselines = await readYaml(path.join(paths.memory, BASELINES));
   const gaps = gapsFor(mem);
@@ -526,6 +533,7 @@ async function main() {
     documents: mem.documents.length,
     stories: mem.stories.length,
     answers: mem.answers.length,
+    ...(tagged.ok ? {} : { tagging: tagged.reason }),
     ...(answered?.stored.length ? { stored: answered.stored } : {}),
     ...(report.rejected?.length || answered?.rejected.length
       ? { rejected: [...(report.rejected ?? []), ...(answered?.rejected ?? [])].slice(0, 5) }

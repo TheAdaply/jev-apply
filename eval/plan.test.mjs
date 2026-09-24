@@ -33,9 +33,9 @@ import { ID_CATALOGUE } from "../src/memory/schema.mjs";
 import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
 import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
-import { deferredMount, observedMatches, restoreRetried, rowOrder } from "../src/plan/execute.mjs";
+import { deferredMount, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
 import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
-import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
+import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, employersNamed, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
 import { catalogueValue, idCriteria, idDecision } from "../scripts/remember.mjs";
 import { expectedRows } from "../src/bench/shots.mjs";
 
@@ -1358,6 +1358,374 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
 }
 
+// ─── the fresh-12 baseline findings (docs/research/20-eval-judge-fresh.md) ─────────────────────
+// Twelve never-seen postings, graded from their own screenshots. Every assertion below is one row
+// that round put wrong on a real form, or left unanswered with the memory that answers it on file.
+// All of them are deterministic: one synthetic memory, `resolveForm` called directly, no Jev.
+//
+// The synthetic person here is a citizen of, and lives in, one country (IN) while the postings are
+// in another (US/CA) — which is the shape that produced the two inverted work-authorization rows,
+// and the shape that settles which sub-region of a split race list is theirs.
+{
+  const DECLINE = "I don't wish to answer";
+  const mem = {
+    facts: [
+      { id: "f.identity.full_name", value: "Priya Raman", source: "user" },
+      { id: "f.identity.email", value: "priya@example.com", source: "user" },
+      { id: "f.identity.location", value: "Bengaluru, India", source: "user" },
+      { id: "f.citizenship", value: "Indian", source: "user" },
+      { id: "f.work_auth.IN", value: { authorized_now: true, needs_sponsorship_future: false, status: "citizen" }, source: "user" },
+      { id: "f.work_auth.default", value: { authorized_now: false, needs_sponsorship_future: true, status: "needs sponsorship" }, source: "user" },
+      { id: "f.employment.older_co", value: { employer: "Older Co" }, since: "2021-03", until: "2023-01", source: "user" },
+      { id: "f.employment.newest_co", value: { employer: "Newest Co" }, since: "2024-05", source: "user" },
+      { id: "f.education.older_school", value: { school: "Older School", degree: "Secondary" }, since: "2018-04", source: "user" },
+      { id: "f.education.newest_school", value: { school: "Newest University", degree: "BTech" }, since: "2020-07", source: "user" },
+      { id: "f.identity.github_url", value: "https://github.com/example", source: "user" },
+    ],
+    preferences: [
+      { id: "p.eeo", value: { gender: "female", hispanic_latino: "no", race: "asian", veteran_status: "not_veteran", disability_status: "no", other_demographics: "decline" }, source: "user" },
+      { id: "p.legal.restrictive_agreements", value: "No", source: "user" },
+      { id: "p.legal.privacy_policy_ack", value: "Yes", source: "user" },
+    ],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  const US_JOB = { company: "Vercel", title: "Engineer", location: "San Francisco, CA", country: "US" };
+  const plan = (questions, job = US_JOB) => ({ job, questions });
+  const rowOf = (q, job) => resolveForm(plan([q], job), { mem }).decisions[0];
+  const q = (over) => ({ qid: "q1", required: true, type: "single_select", control: "react_select", ...over, class: over.class ?? classify(over.label, "", over.type ?? "single_select", true) });
+
+  // ── wrong #1/#2: the jurisdiction the question names is the candidate's, not the employer's ──
+  const remainHere = rowOf(
+    q({
+      label: "Will you now or in the future require sponsorship for a visa to remain in your current location?",
+      options: [{ label: "No" }, { label: "Yes, EU Blue Card" }, { label: "Yes, USMCA Professional (TN) Visa (USA)" }],
+    }),
+    { ...US_JOB, company: "GitLab", country: "CA" },
+  );
+  check(
+    "fresh #1 work_auth_scope — 'sponsorship to remain in your current location' is answered for where the candidate is, not for the employer's country",
+    remainHere.action === "fill" && remainHere.value === "No" && /f\.work_auth\.IN/.test(remainHere.why) && /where you are, not where the role is/.test(remainHere.why),
+  );
+
+  const STATUSES = [
+    { label: "I am authorized to work in the country due to my nationality" },
+    { label: "I am authorized to work in the country based on a valid work permit and do not need a company to sponsor my visa" },
+    { label: "I am authorized to work in the country based on a valid work permit which needs to be sponsored by the company I work for" },
+    { label: "I am not authorized to work in the country and need visa support" },
+    { label: "Other" },
+  ];
+  const liveHere = rowOf(q({ label: "Your authorization to work in the country where you live. Please choose the option that describes your work authorization.", options: STATUSES }));
+  check(
+    "fresh #2 status_list_polarity — a status list whose entries all read 'I am …' is not a Yes/No control: the row takes the option the candidate's own nationality states",
+    liveHere.option === STATUSES[0].label && /f\.citizenship/.test(liveHere.why),
+  );
+  // The same guard must not swallow a genuine Yes/No question whose Yes is split by *timing*:
+  // Together AI's three-way now/future/never list is answered by the option stage, not refused.
+  const timing = rowOf(
+    q({
+      label: "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is located?",
+      options: [
+        { label: "Yes, I will require immigration sponsorship now to legally work in the country where the job is located." },
+        { label: "Yes, I will require immigration sponsorship in the future to legally work in the country where the job is located." },
+        { label: "No, I do not and will not require immigration sponsorship to legally work in the country where the job is located." },
+      ],
+    }),
+  );
+  check(
+    "fresh #2b timing_variants_survive — two Yes options that differ only in when sponsorship starts are still a Yes/No question: the row keeps its derived answer and the answer text that dates it, instead of being refused as a status list",
+    timing.action === "check" && timing.value === "Yes" && /sponsorship starting now/.test(String(timing._answerText)),
+  );
+
+  // ── wrong #3/#4: a race list split into sub-regions ────────────────────────────────────────
+  const ENUMERATED = [
+    "East Asian (inclusive of Chinese, Japanese, Korean, Mongolian, Tibetan, and Taiwanese)",
+    "South Asian (inclusive of Afghani, Bangladeshi, Bhutanese, Indian, Nepali, Pakistani, and Sri Lankan)",
+    "Southeast Asian (inclusive of Burmese, Cambodian, Filipino, Hmong, Indonesian, Laotian, Malaysian, Mien, Singaporean, Thai, and Vietnamese)",
+    "White",
+    DECLINE,
+  ].map((label) => ({ label }));
+  const BARE = ["Black or of African descent", "East Asian", "South Asian", "Southeast Asian", "White or European", DECLINE].map((label) => ({ label }));
+  const raceRow = (options) => rowOf(q({ label: "I identify my race/ethnicity as (mark all that apply):", type: "multi_select", control: "react_select", options }));
+  const enumerated = raceRow(ENUMERATED);
+  const bare = raceRow(BARE);
+  check(
+    "fresh #3/#4 race_subregion — a split race list takes the one sub-region the stated country lands in, on a list that enumerates nationalities and on one that does not",
+    enumerated.option === ENUMERATED[1].label && bare.option === BARE[2].label && !/other_demographics/.test(`${enumerated.why}${bare.why}`),
+  );
+  const noCountry = { ...mem, facts: mem.facts.filter((f) => !/citizenship|identity\.location/.test(f.id) && f.id !== "f.citizenship") };
+  const unsettled = resolveForm(plan([q({ label: "I identify my race/ethnicity as (mark all that apply):", type: "multi_select", control: "react_select", options: BARE })]), { mem: noCountry }).decisions[0];
+  check(
+    "fresh #3/#4 race_subregion — with no country stated the split is not guessed at: the standing decline answers it and no sibling sub-region is ticked",
+    unsettled.option === DECLINE && /other_demographics/.test(unsettled.why),
+  );
+
+  // ── wrong #5: a row conditioned on something about the user that nothing settles ────────────
+  const conditional = rowOf(
+    q({
+      label: "If you were previously employed by Remote, please share the email you used for signing in. If not, please put N/A (text box)",
+      type: "textarea",
+      control: "textarea",
+      options: [],
+    }),
+  );
+  check(
+    "fresh #5 conditional_self — an identity fact is never written into a row whose own label conditions it on an unestablished fact about the candidate",
+    conditional.action === "ask" && conditional.value === undefined && /condition about you/.test(conditional.why),
+  );
+
+  // ── wrong #6: a consent inside the demographic block ────────────────────────────────────────
+  const consent = rowOf(q({ label: "Please confirm you consent your self-identification data to be processed for the listed purposes", options: [{ label: "Yes, I consent" }, { label: DECLINE }] }));
+  check(
+    "fresh #6 sensitive_consent — a consent in the demographic block is a signature, answered from its own p.legal.* row and never from the p.eeo decline stance",
+    consent.action === "ask" && consent.topic === "policy" && consent.remember_as?.id === "p.legal.self_identification_consent" && !/other_demographics/.test(consent.why),
+  );
+
+  // ── missed #1: a restrictive-agreements row wearing an identity label ───────────────────────
+  const restrictive = rowOf(q({ label: "Are you subject to any employment agreements and/or post-employment restrictions with your current employer or a past employer?", options: [{ label: "Yes" }, { label: "No" }] }));
+  check(
+    "fresh missed #1 restrictive_agreements — 'employment agreements and/or post-employment restrictions with your current employer' answers from the standing preference, not from an employment fact",
+    restrictive.action === "fill" && restrictive.value === "No" && /p\.legal\.restrictive_agreements/.test(restrictive.why),
+  );
+
+  // ── missed #2: a residence question that enumerates its own places ──────────────────────────
+  // Class as the recorded Vercel schema classes it (`circumstance`): the rule is a circumstance
+  // rule, and the class this label lands in is the normalizer's judgement, not this rule's.
+  const STATES = "Do you live in one of the following states? Alabama, Alaska, Delaware, Kansas, Maine, Mississippi, Montana, Nebraska, New Mexico, North Dakota, South Dakota, West Virginia, or Wyoming.";
+  const statesQ = q({ label: STATES, class: "circumstance", options: [{ label: "Yes" }, { label: "No" }] });
+  const livesIn = (value) =>
+    resolveForm(plan([statesQ]), { mem: { ...mem, facts: mem.facts.map((f) => (f.id === "f.identity.location" ? { ...f, value } : f)) } }).decisions[0];
+  const states = rowOf(statesQ);
+  check(
+    "fresh missed #2 listed_residence — a residence question listing US states is answered from the stated location, and a stated location in another country answers it No",
+    states.action === "fill" && states.option === "No" && /f\.identity\.location/.test(states.why),
+  );
+  const inList = livesIn("Portland, Maine");
+  const ambiguous = livesIn("San Francisco Bay Area");
+  check(
+    "fresh missed #2 listed_residence — a stated location that names one of the listed states answers Yes, and one inside the US that names no state at all is still asked",
+    inList.option === "Yes" && ambiguous.action === "ask" && ambiguous.value === undefined,
+  );
+
+  // ── the answerable `couldnt` rows ───────────────────────────────────────────────────────────
+  const ELIGIBLE = "Work eligibility is extremely important. Are you legally eligible to work in the country where you\u2019re planning to work from?";
+  const REMOTE_JOB = { company: "Remote", title: "PM", location: "Remote", country: null, remote: false };
+  const eligible = rowOf(q({ label: ELIGIBLE, options: [{ label: "Yes" }, { label: "No" }] }), REMOTE_JOB);
+  check(
+    "fresh couldnt work_eligibility — 'legally eligible to work' is the authorization question in other words: it classes as a circumstance and answers for where the candidate is",
+    classify(ELIGIBLE, "", "single_select", true) === "circumstance" && eligible.action === "fill" && eligible.value === "Yes",
+  );
+  const noCountryJob = rowOf(q({ label: "Will you require sponsorship if you join Remote?", options: [{ label: "Yes" }, { label: "No" }] }), REMOTE_JOB);
+  check(
+    "fresh couldnt blanket_work_auth — a posting that names no country at all is answered from the blanket f.work_auth.default rule, as a check the user sees",
+    noCountryJob.action === "check" && noCountryJob.value === "Yes" && /f\.work_auth\.default/.test(noCountryJob.why),
+  );
+  // The employer / school / link rows: what settles them is which saved row is the newest, and
+  // these three stores each hold an older row that a blind read would return instead.
+  const link = rowOf(q({ label: "Portfolio/GitHub/Website", type: "text", control: "text", required: false, options: [] }));
+  check(
+    "fresh couldnt newest_since — the most-recent employer and school are the newest `since:` rows, not the first or the longest-held, and a portfolio row answers from the saved link fact",
+    latestEmployment(mem, new Date("2026-09-24")).id === "f.employment.newest_co" &&
+      latestEducation(mem, new Date("2026-09-24")).id === "f.education.newest_school" &&
+      link.action === "fill" &&
+      /f\.identity\.github_url/.test(link.why),
+  );
+
+  // ── the two invariants the submit gate now refuses ──────────────────────────────────────────
+  const both = { qid: "orientation", label: "How do you identify your sexual orientation? Please select all that apply.", class: "sensitive", action: "fill", source: "preference", why: "p.eeo.other_demographics (global)", option: `Queer | Bisexual | ${DECLINE}` };
+  const disability = { qid: "communities", label: "Which of the following communities do you belong to?", class: "sensitive", action: "fill", source: "preference", why: "p.eeo.other_demographics (global)", option: `Person with disability | ${DECLINE}` };
+  const clean = { qid: "race", label: "Race", class: "sensitive", action: "fill", source: "preference", why: "p.eeo.race (global)", option: "South Asian" };
+  const verdict = preflight({ decisions: [both, disability, clean], mem });
+  const named = (rule) => verdict.failures.filter((f) => f.rule === rule).map((f) => f.qid);
+  check(
+    "fresh invariant decline_conflict — a demographic row holding the decline entry alongside substantive claims refuses the submit, and a row holding one answer passes",
+    named("sensitive_decline_conflict").join() === "orientation,communities" && verdict.ok === false,
+  );
+  check(
+    "fresh invariant claim_contradicts — a ticked disability claim is refused when p.eeo.disability_status says the candidate does not have one",
+    named("sensitive_claim_contradicts").join() === "communities" &&
+      preflight({ decisions: [clean], mem }).failures.length === 0,
+  );
+  check(
+    "fresh invariant claim_contradicts — the rule reads the saved stance: with disability_status 'yes' the same row is the candidate's own answer and is not refused",
+    preflight({
+      decisions: [disability],
+      mem: { ...mem, preferences: mem.preferences.map((p) => (p.id === "p.eeo" ? { ...p, value: { ...p.value, disability_status: "yes" } } : p)) },
+    }).failures.filter((f) => f.rule === "sensitive_claim_contradicts").length === 0,
+  );
+
+  // ── the salvaged enrichment, as a pre-filter and nothing more ───────────────────────────────
+  const tagged = {
+    facts: [],
+    preferences: [],
+    answers: [],
+    documents: [],
+    stories: [
+      { id: "b.story.kernel", kind: "story", title: "Inference kernels", tags: ["gpu"], text: "CUDA kernels.", answers_questions: ["Describe a technical project you are proud of that used LLM serving"], topics: ["llm", "gpu"] },
+      { id: "b.story.ops", kind: "story", title: "On-call rotation", tags: ["ops"], text: "Paging and runbooks.", answers_questions: ["How do you handle production incidents?"], topics: ["ops"] },
+    ],
+  };
+  const LLM_PROMPT = "Tell us about your most complex project with LLM";
+  const pooled = storyPool(tagged, { label: LLM_PROMPT, type: "textarea" }).rows.map((r) => r.id);
+  const untagged = storyPool(
+    { ...tagged, stories: tagged.stories.map(({ answers_questions, topics, ...rest }) => rest) },
+    { label: LLM_PROMPT, type: "textarea" },
+  ).rows.map((r) => r.id);
+  check(
+    "fresh enrichment_prefilter — the tag is what makes a row findable for a prompt its own title and text never mention, it narrows to that one row, and an unqualified prompt still sees the whole pool",
+    pooled.join() === "b.story.kernel" && untagged.length === 0 && storyPool(tagged, { label: "Describe a project you are proud of", type: "textarea" }).rows.length === 2,
+  );
+}
+
+// ─── the seven remaining `missed` rows (docs/research/21-eval-judge-final.md §4 M1–M6) ─────────
+// The `fresh3` run put nothing wrong on a real form; these seven are rows the store could have
+// answered and did not. Every label below is the posting's own, every class is the one the
+// normalizer gave it in that run, and the memory is the same synthetic person as the block above
+// — a citizen of and resident in one country (IN) applying to US employers. Deterministic:
+// `resolveForm` and `samePlace` are called directly, no Jev and no browser.
+{
+  const mem = {
+    facts: [
+      { id: "f.identity.full_name", value: "Priya Raman", source: "user" },
+      { id: "f.identity.location", value: "Bengaluru, India", source: "user" },
+      { id: "f.identity.email", value: "priya@example.com", source: "user" },
+      { id: "f.citizenship", value: "Indian", source: "user" },
+      { id: "f.employment.older_co", value: { employer: "Older Co" }, since: "2021-03", until: "2023-01", source: "user" },
+      { id: "f.employment.newest_co", value: { employer: "Newest Co" }, since: "2024-05", source: "user" },
+    ],
+    preferences: [],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  // A pipeline with history in it, and no record of any employer these rows name: an *empty*
+  // pipeline is not evidence of "never", so the derivation refuses on one (`appliedBeforeFor`).
+  const pipeline = { jobs: [{ id: "j1", company: "Some Other Co", status: "applied", applied_at: "2026-02-01" }] };
+  const rowOf = (question, job) => resolveForm({ job, questions: [question] }, { mem, pipeline }).decisions[0];
+  const withLocation = (value, question, job) =>
+    resolveForm({ job, questions: [question] }, {
+      mem: { ...mem, facts: mem.facts.map((f) => (f.id === "f.identity.location" ? { ...f, value } : f)) },
+      pipeline,
+    }).decisions[0];
+  const GUSTO = { company: "Gusto, Inc.", title: "SWE", location: "Denver, CO", country: "US" };
+  const PLAID = { company: "Plaid", title: "Data Engineer", location: "New York, NY", country: "US" };
+  const REMOTE = { company: "Remote", title: "PM", location: "Remote", country: null };
+
+  // ── M1: a location picker's own list, compared as places rather than as strings ─────────────
+  // The probe types the saved string, so the list it returns is that string's continuations. The
+  // three rungs `samePlace()` adds past equality, and the two shapes that must still refuse.
+  const LOCATION_ROW = "Where are you currently located?";
+  const openai = rowOf(
+    { qid: "loc", label: LOCATION_ROW, required: true, type: "text", control: "react_select", class: "identity", options: [] },
+    { company: "OpenAI", title: "Research Engineer", location: "San Francisco, CA", country: "US" },
+  );
+  check(
+    "final M1 location_option_match — a location row fills from the stated place, and the live list matches it on punctuation, on a typed prefix and on a country suffix, but never when two entries fit",
+    openai.action === "fill" &&
+      /f\.identity\.location/.test(openai.why) &&
+      samePlace(["Bengaluru \u2013 India", "Chennai, India"], "Bengaluru, India")?.label === "Bengaluru \u2013 India" &&
+      samePlace(["Bengaluru, Karnataka, India", "Chennai, Tamil Nadu, India"], "Bengaluru")?.label === "Bengaluru, Karnataka, India" &&
+      samePlace(["Bengaluru, IN", "Chennai, IN"], "Bengaluru, India")?.label === "Bengaluru, IN" &&
+      samePlace(["Bengaluru, Karnataka, India", "Bengaluru Urban, Karnataka, India", "Bengaluru, KA, India"], "Bengaluru") === null &&
+      samePlace(["Modesto Remote Encoding Ctr, California", "Remote, Oregon, United States"], "Remote") === null,
+  );
+
+  // ── M2: a label that prints its own value for a class the candidate is provably in ──────────
+  const ZIP = 'Zip Code / Postal Code (Non-U.S. based candidates, please enter "00000")';
+  const zipQ = { qid: "zip", label: ZIP, required: true, type: "text", control: "text", class: "company_specific", options: [] };
+  const zip = rowOf(zipQ, GUSTO);
+  const zipUS = withLocation("Austin, Texas", zipQ, GUSTO);
+  check(
+    "final M2 printed_fallback — a label printing its own value for non-U.S. candidates fills that literal as a check when the stated location is outside the US, and is left to the user when it is inside",
+    zip.action === "check" && zip.value === "00000" && /f\.identity\.location/.test(zip.why) && zipUS.action === "ask" && zipUS.value === undefined,
+  );
+
+  // ── M3: a jurisdiction notice whose second option is a fact, not a signature ────────────────
+  const NOTICE = "Notice at Collection for California Job Applicants";
+  const noticeQ = (options) => ({ qid: "ccpa", label: NOTICE, required: true, type: "single_select", control: "react_select", class: "policy_gate", options: options.map((label) => ({ label })) });
+  const notice = rowOf(noticeQ(["Acknowledge/Confirm", "I am not a California resident"]), REMOTE);
+  const noticeCA = withLocation("San Jose, California", noticeQ(["Acknowledge/Confirm", "I am not a California resident"]), REMOTE);
+  const ackOnly = rowOf(noticeQ(["Acknowledge/Confirm"]), REMOTE);
+  check(
+    "final M3 jurisdiction_escape — a policy gate offering a residency disclaimer picks it from the stated location as a check, while a candidate in that state and a gate with only the signature both still ask",
+    notice.action === "check" &&
+      notice.option === "I am not a California resident" &&
+      /f\.identity\.location/.test(notice.why) &&
+      noticeCA.action === "ask" &&
+      /no p\.legal\./.test(noticeCA.why) &&
+      ackOnly.action === "ask",
+  );
+
+  // ── M4: a closed enumeration of places beside the list's own catch-all ──────────────────────
+  const CITIES = "Please Indicate your current location:";
+  const citiesQ = { qid: "city", label: CITIES, required: true, type: "single_select", control: "react_select", class: "company_specific", options: ["Denver", "New York City", "San Fransisco", "Other"].map((label) => ({ label })) };
+  const cities = rowOf(citiesQ, GUSTO);
+  const citiesUS = withLocation("Austin, Texas", citiesQ, GUSTO);
+  const onTheList = withLocation("Denver, Colorado", citiesQ, GUSTO);
+  check(
+    "final M4 enumerated_places — a location row listing places the stated location is provably in none of takes the catch-all as a check, takes the named option outright when it is on the list, and asks when the stated location is in the same country as the list",
+    cities.action === "check" &&
+      cities.option === "Other" &&
+      /f\.identity\.location/.test(cities.why) &&
+      onTheList.action === "fill" &&
+      onTheList.option === "Denver" &&
+      citiesUS.action === "ask" &&
+      citiesUS.value === undefined,
+  );
+
+  // ── M5: "…working at Gusto or Symmetry…" — one answer for every entity the label names ──────
+  const GUSTO_ROW = "Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?";
+  const yesNo = [{ label: "Yes" }, { label: "No" }];
+  const gustoQ = { qid: "prior", label: GUSTO_ROW, required: true, type: "single_select", control: "react_select", class: "company_specific", options: yesNo };
+  const gusto = rowOf(gustoQ, GUSTO);
+  const noHistory = resolveForm({ job: GUSTO, questions: [gustoQ] }, { mem: { ...mem, facts: mem.facts.filter((f) => !/^f\.employment\./.test(f.id)) }, pipeline }).decisions[0];
+  const emptyPipeline = resolveForm({ job: GUSTO, questions: [gustoQ] }, { mem, pipeline: { jobs: [] } }).decisions[0];
+  check(
+    "final M5 multi_entity_employer — a prior-employment row naming this employer and a sister brand answers No as a check when the derivation holds for both, and asks when the employment history is empty or the pipeline cannot speak",
+    gusto.action === "check" &&
+      gusto.option === "No" &&
+      gusto.topic === "previously_employed" &&
+      employersNamed(GUSTO_ROW, "Gusto, Inc.").join() === "Gusto,Symmetry" &&
+      noHistory.action === "ask" &&
+      emptyPipeline.action === "ask",
+  );
+
+  // ── M5b: the same shape over three entities, and the third-party guard that must survive ────
+  const PLAID_ROW = "Have you ever been previously employed by Plaid, Quovo or Cognito?";
+  const plaidQ = { qid: "prior3", label: PLAID_ROW, required: true, type: "boolean", control: "radio", class: "circumstance", options: yesNo };
+  const plaid = rowOf(plaidQ, PLAID);
+  const worked = resolveForm({ job: PLAID, questions: [plaidQ] }, {
+    mem: { ...mem, facts: [...mem.facts, { id: "f.employment.quovo", value: { employer: "Quovo" }, since: "2019-01", until: "2020-06", source: "user" }] },
+    pipeline,
+  }).decisions[0];
+  const thirdParty = rowOf({ ...plaidQ, qid: "pwc", label: "Have you ever been previously employed by Acme, Beta or Gamma?" }, PLAID);
+  check(
+    "final M5b multi_entity_employer — the same rule over three names answers Yes from the employment history when one of them is in it, and a list naming no entity of this employer is still nobody's to answer",
+    plaid.action === "check" &&
+      plaid.option === "No" &&
+      employersNamed(PLAID_ROW, "Plaid").join() === "Plaid,Quovo,Cognito" &&
+      worked.action === "check" &&
+      worked.option === "Yes" &&
+      employersNamed("Have you ever been previously employed by Acme, Beta or Gamma?", "Plaid") === null &&
+      thirdParty.action === "ask",
+  );
+
+  // ── M6: a conditional row whose label prints the answer for the other branch ────────────────
+  const CONDITIONAL = "If you were previously employed by Remote, please share the email you used for signing in. If not, please put N/A (text box)";
+  const condQ = { qid: "cond", label: CONDITIONAL, required: true, type: "textarea", control: "textarea", class: "identity", options: [] };
+  const conditional = rowOf(condQ, REMOTE);
+  const noElse = rowOf({ ...condQ, qid: "cond2", label: "If you were previously employed by Remote, please share the email you used for signing in." }, REMOTE);
+  check(
+    "final M6 conditional_else_value — a conditional row whose label prints the else-value fills that literal as a check once memory refutes the condition, never the identity fact the condition asks for, and the same row without a printed else-value still asks",
+    conditional.action === "check" &&
+      conditional.value === "N/A" &&
+      conditional.topic === "previously_employed" &&
+      !/priya/i.test(String(conditional.value)) &&
+      noElse.action === "ask" &&
+      /condition about you/.test(noElse.why),
+  );
+}
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

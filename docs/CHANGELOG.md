@@ -1,5 +1,68 @@
 # Changelog
 
+## Unreleased
+
+The twelve never-seen postings of `docs/research/20-eval-judge-fresh.md`, graded from their own
+screenshots, put six rows wrong and left two answerable ones empty. Each of the eight has a fix at
+the rule that produced it and a deterministic assertion in `eval/plan.test.mjs` (131 → 148).
+
+- `src/plan/resolve.mjs` — work authorization now reads the jurisdiction the *question* scopes
+  itself to before the posting's: "…a visa to remain in your current location?" and "your
+  authorization to work in the country where you live" are about where the candidate is, and both
+  were answered for the employer's country and came out inverted. A posting that names no country
+  at all falls back to the blanket `f.work_auth.default` as a `check` rather than asking, and
+  "legally eligible to work" reads as the authorization question it is (`src/schema/classes.mjs`).
+- `src/plan/resolve.mjs`, `canon/vocab/eeo-race.yaml` — a demographic list that splits one saved
+  value into sub-regions takes the single option the candidate's *other* stated fact settles (the
+  country of citizenship, else of residence, against each sub-region's own definition), and
+  declines when two or none qualify. Never the nearest sibling, and never a model: a protected
+  characteristic is read from `p.eeo` plus a stated country or it is not claimed at all.
+- `src/plan/resolve.mjs` — a consent inside the demographic block ("please confirm you consent
+  your self-identification data to be processed") is a signature, answered from its own
+  `p.legal.self_identification_consent` and never from the `p.eeo` decline stance; a row whose own
+  label conditions the answer on an unestablished fact about the candidate ("If you were
+  previously employed by … share the email you used") is asked, not filled from an identity fact;
+  and a restrictive-agreements question answers from `p.legal.restrictive_agreements` whatever
+  class its wording landed in. A residence question that enumerates its own places ("Do you live in
+  one of the following states? …") answers from `f.identity.location`.
+- `src/plan/preflight.mjs` — two more refusals before the click: `sensitive_decline_conflict` (a
+  demographic row holding the list's decline entry alongside a substantive claim) and
+  `sensitive_claim_contradicts` (a ticked disability claim the saved `p.eeo.disability_status`
+  denies).
+- `src/memory/enrich.mjs`, `scripts/memory-enrich.mjs` (new), `src/jev/plan.mjs` — saved answers and
+  stories carry `answers_questions[]`/`topics[]`, written by a cheap model reading the user's own
+  text back to itself, and `storyPool()` ranks the candidate pool by them. A **pre-filter only**:
+  the tags never answer a field, an untagged store behaves exactly as before, demographic rows are
+  never sent, and `learn.mjs`/`remember.mjs` tag new rows best-effort so a failure costs ranking
+  rather than the row.
+
+The follow-up round (`docs/research/21-eval-judge-final.md`) put **no** row wrong on the same
+twelve postings and left seven the store could have answered. Each has a fix at the rule that
+produced it and a deterministic assertion in `eval/plan.test.mjs` (148 → 155).
+
+- `src/plan/execute.mjs` — a live location picker's own list is compared as *places*, not as
+  strings: past exact equality, an entry whose leading words are the saved value (the probe typed
+  it, so the list holds its continuations) and an entry that writes the same place's country
+  suffix differently both commit, as a `check`, and only while exactly one entry fits. A work mode
+  is refused before either rung — "Remote" filtered through a geocoder returns real addresses that
+  merely contain the word (D13).
+- `src/plan/resolve.mjs` — a label that prints its own value for a class of candidate
+  (`…Non-U.S. based candidates, please enter "00000"`) fills that literal as a `check` when
+  `residenceCountry()` puts the user in the class; a jurisdiction notice offering a residency
+  disclaimer beside its Acknowledge ("I am not a California resident") picks the disclaimer from
+  `f.identity.location`, because that option is a fact rather than a signature; and a location row
+  whose options enumerate places the stated location is provably in none of takes the list's own
+  catch-all. All three refuse on a near-miss: a candidate inside the notice's own jurisdiction, or
+  in the same country as the listed places, still asks.
+- `src/plan/resolve.mjs` — the employment-history matcher reads a *list* of organisations
+  ("working at Gusto or Symmetry", "employed by Plaid, Quovo or Cognito") and answers only when
+  the derivation holds for every one of them: Yes from the user's own employment facts, No only
+  when those facts and the pipeline agree. A pipeline hit is never turned into an employment
+  claim, and a list naming no entity of this employer is still nobody's to answer. The same
+  derivation lets a conditional row whose label prints the other branch's value ("If not, please
+  put N/A") fill that literal once memory refutes the condition, instead of leaving a required
+  control empty.
+
 ## v0.5.0
 
 A correctness pass driven by five cold judgements of filled, screenshotted forms rather than by

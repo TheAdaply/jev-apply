@@ -1,0 +1,85 @@
+{
+  "report": "fresh-pages",
+  "title": "Twelve never-seen job pages, real profile, screenshot-judged",
+  "generated": "2026-09-24",
+  "captured": "2026-09-23",
+  "method": {
+    "postings": 12,
+    "unseen": true,
+    "profile": "real",
+    "submit": false,
+    "submit_flag": "--no-submit",
+    "judged_from": "screenshots",
+    "judge": "independent, read-only, no access to the run that produced the fills",
+    "vocabulary": ["right", "wrong", "missed", "couldnt"],
+    "rounds": {
+      "baseline": "fresh-baseline",
+      "final": "fresh3"
+    }
+  },
+  "postings": [
+    {"n": 1,  "company": "twilio",     "family": "ml_engineer",        "ats": "greenhouse",
+     "baseline": {"rows": 16, "right": 10, "wrong": 0, "missed": 0, "couldnt": 6, "asks": 4, "seconds": 28.7, "usd": 0.000281},
+     "final":    {"rows": 16, "right": 11, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 30.1, "usd": 0.000281}},
+    {"n": 2,  "company": "gitlab",     "family": "backend",            "ats": "greenhouse",
+     "baseline": {"rows": 19, "right": 13, "wrong": 1, "missed": 1, "couldnt": 4, "asks": 4, "seconds": 34.0, "usd": 0.000702},
+     "final":    {"rows": 19, "right": 14, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 3, "seconds": 34.4, "usd": 0.000675}},
+    {"n": 3,  "company": "gusto",      "family": "ml_engineer",        "ats": "greenhouse",
+     "baseline": {"rows": 23, "right": 15, "wrong": 1, "missed": 0, "couldnt": 7, "asks": 5, "seconds": 40.8, "usd": 0.000981},
+     "final":    {"rows": 23, "right": 16, "wrong": 0, "missed": 3, "couldnt": 4, "asks": 5, "seconds": 40.0, "usd": 0.000981}},
+    {"n": 4,  "company": "remote-com", "family": "product_manager",    "ats": "greenhouse",
+     "baseline": {"rows": 24, "right": 13, "wrong": 2, "missed": 0, "couldnt": 9, "asks": 8, "seconds": 43.7, "usd": 0.000765},
+     "final":    {"rows": 24, "right": 15, "wrong": 0, "missed": 2, "couldnt": 7, "asks": 8, "seconds": 42.4, "usd": 0.000527}},
+    {"n": 5,  "company": "vercel",     "family": "infra_sre",          "ats": "greenhouse",
+     "baseline": {"rows": 24, "right": 18, "wrong": 2, "missed": 1, "couldnt": 3, "asks": 3, "seconds": 42.8, "usd": 0.000970},
+     "final":    {"rows": 24, "right": 21, "wrong": 0, "missed": 0, "couldnt": 3, "asks": 2, "seconds": 46.7, "usd": 0.000718}},
+    {"n": 6,  "company": "discord",    "family": "security",           "ats": "greenhouse",
+     "baseline": {"rows": 26, "right": 22, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 2, "seconds": 57.3, "usd": 0.0105},
+     "final":    {"rows": 26, "right": 22, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 2, "seconds": 53.7, "usd": 0.007138}},
+    {"n": 7,  "company": "notion",     "family": "security",           "ats": "ashby",
+     "baseline": {"rows": 10, "right": 7,  "wrong": 0, "missed": 0, "couldnt": 3, "asks": 3, "seconds": 11.5, "usd": 0.0},
+     "final":    {"rows": 10, "right": 7,  "wrong": 0, "missed": 0, "couldnt": 3, "asks": 3, "seconds": 13.1, "usd": 0.0}},
+    {"n": 8,  "company": "harvey",     "family": "backend",            "ats": "ashby",
+     "baseline": {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.8, "usd": 0.000955},
+     "final":    {"rows": 15, "right": 10, "wrong": 0, "missed": 0, "couldnt": 5, "asks": 4, "seconds": 17.3, "usd": 0.000955}},
+    {"n": 9,  "company": "plaid",      "family": "data_engineer",      "ats": "ashby",
+     "baseline": {"rows": 17, "right": 9,  "wrong": 0, "missed": 0, "couldnt": 8, "asks": 6, "seconds": 26.3, "usd": 0.0107},
+     "final":    {"rows": 17, "right": 10, "wrong": 0, "missed": 1, "couldnt": 6, "asks": 6, "seconds": 28.7, "usd": 0.009891}},
+    {"n": 10, "company": "lambda",     "family": "gpu_performance",    "ats": "ashby",
+     "baseline": {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 20.5, "usd": 0.001134},
+     "final":    {"rows": 17, "right": 13, "wrong": 0, "missed": 0, "couldnt": 4, "asks": 4, "seconds": 21.5, "usd": 0.001134}},
+    {"n": 11, "company": "luma-ai",    "family": "research_scientist", "ats": "ashby",
+     "baseline": {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 23.4, "usd": 0.000467},
+     "final":    {"rows": 18, "right": 17, "wrong": 0, "missed": 0, "couldnt": 1, "asks": 0, "seconds": 23.7, "usd": 0.000467}},
+    {"n": 12, "company": "openai",     "family": "research_engineer",  "ats": "ashby",
+     "baseline": {"rows": 20, "right": 12, "wrong": 0, "missed": 0, "couldnt": 8, "asks": 7, "seconds": 21.1, "usd": 0.001151},
+     "final":    {"rows": 20, "right": 12, "wrong": 0, "missed": 1, "couldnt": 7, "asks": 7, "seconds": 22.9, "usd": 0.001151}}
+  ],
+  "totals": {
+    "baseline": {
+      "postings": 12, "rows": 229, "right": 159, "wrong": 6, "missed": 2, "couldnt": 62,
+      "asks": 50, "jev_requests": 27, "seconds": 367.9, "usd": 0.028606,
+      "median_seconds": 27.5, "median_usd": 0.0009625,
+      "correct_of_all_rows": 0.6943, "correct_of_filled_rows": 0.9636,
+      "safe_to_submit": 0
+    },
+    "final": {
+      "postings": 12, "rows": 229, "right": 168, "wrong": 0, "missed": 7, "couldnt": 54,
+      "asks": 48, "jev_requests": 27, "seconds": 374.5, "usd": 0.023918,
+      "median_seconds": 29.4, "median_usd": 0.0008365,
+      "correct_of_all_rows": 0.7336, "correct_of_filled_rows": 1.0,
+      "safe_to_submit": 1
+    },
+    "delta": {
+      "right": 9, "wrong": -6, "missed": 5, "couldnt": -8, "asks": -2,
+      "jev_requests": 0, "seconds": 6.6, "usd": -0.004688,
+      "correct_of_filled_rows_pts": 3.64
+    }
+  },
+  "notes": [
+    "A row is `right` when it is filled and correct for the question and the candidate; `wrong` when filled and incorrect; `missed` when left empty although the saved store answered it; `couldnt` when nothing was on file, a policy gate correctly refused, or the control could not take the answer.",
+    "`missed` is graded on a stricter rule than the baseline report used; six rows unanswered in both rounds move from `couldnt` to `missed` on both sides, so the two columns stay comparable.",
+    "No Submit control was clicked on any posting: the harness passes `--no-submit` to every child run.",
+    "`usd` is the measured Jev + writer spend for that posting; `seconds` is wall clock from URL to last write."
+  ]
+}

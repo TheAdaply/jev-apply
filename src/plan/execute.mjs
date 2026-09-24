@@ -36,6 +36,9 @@ import { classify } from "../schema/classes.mjs";
 import { choice, systemOne, withNone, NONE } from "../jev/client.mjs";
 import { gate, runnerUpGap } from "../jev/gates.mjs";
 import { normalizeOption } from "../jev/plan.mjs";
+import { LOCATION_RE } from "./resolve.mjs";
+import { countryFromText } from "../schema/normalize.mjs";
+import { isWorkMode } from "../memory/derive.mjs";
 
 /** Stop rules and round caps (PLAN §2.2 steps 9 and 11). */
 export const LIMITS = { jevRequests: 40, wallMs: 120000, noChange: 3, deltaRounds: 2 };
@@ -405,8 +408,76 @@ async function resolveVocabulary({ page, question, decision, slug, selector = nu
     decision.option = exact;
     return { ok: true };
   }
+  // A *location* picker writes a place with more of its hierarchy than the user did, and the
+  // probe already typed the saved string into it, so its entries are that string's continuations.
+  // Comparing the two as whole strings is what refused a required row whose list carried the
+  // stated location verbatim (docs/research/21-eval-judge-final.md §4 M1). Only location rows:
+  // everywhere else this widget's list is a closed vocabulary and only equality may commit.
+  const near = LOCATION_RE.test(String(question?.label ?? "")) ? samePlace(labels, decision.value) : null;
+  if (near) {
+    decision.option = near.label;
+    if (decision.action === "fill") decision.action = "check";
+    decision.why = `${decision.why} — ${near.why}`;
+    return { ok: true };
+  }
   markAsk(decision, `${decision.why} — the form's own list has no entry for "${clipValue(decision, question)}"; which one should I pick?`, { options: labels });
   return { ok: false };
+}
+
+// A place string, folded for comparison. Commas are not the only separator a picker writes — an
+// en dash, a slash or a pipe splits one too — so the two readings are taken from one folding:
+// `segments` are the hierarchy levels, `tokens` are every word in order.
+const foldPlace = (text) =>
+  normalizeOption(text)
+    .replace(/[\u2010-\u2015|/]/g, ",")
+    .split(",")
+    .map((part) => part.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+const placeTokens = (segments) => segments.join(" ").split(" ").filter(Boolean);
+
+/**
+ * The one entry that names the place the user stated, or null. Two rungs past equality, each of
+ * which must be unambiguous — two candidates is the same as none — and neither of which is fuzzy:
+ *
+ *   1. **typed prefix.** The probe typed the saved string, so an entry whose leading words are
+ *      exactly the saved words is that same place with more of its hierarchy spelled out
+ *      ("Bengaluru" → "Bengaluru, Karnataka, India"), and separator or case differences fold away
+ *      ("Bengaluru – India" ≡ "Bengaluru, India"). Word-aligned, so "Cork" never matches "Corker".
+ *   2. **country suffix.** The last hierarchy level dropped from both sides, but only when the two
+ *      whole strings name the same country ("Dublin, Ireland" ≡ "Dublin, IE").
+ *
+ * A work mode is refused outright, before either rung. "Remote" is not a place, and a picker
+ * filtered on it returns real addresses that contain the word — "Remote, Oregon, United States"
+ * is the measured case, and committing it is a US address for somebody whose memory states
+ * neither (D13). `locationFact()` keeps a work mode out of a location row upstream; this is the
+ * same refusal at the one point where the form's own list could re-introduce it.
+ *
+ * Never position 0: a picker's first entry is its best guess at what was typed, not a statement
+ * about where the user lives. The caller commits the result as a `check`, never a silent fill.
+ */
+export function samePlace(labels, value) {
+  if (isWorkMode(value)) return null;
+  const wantSegments = foldPlace(value);
+  const want = placeTokens(wantSegments);
+  if (!want.length) return null;
+  const rows = labels
+    .map((label) => ({ label, segments: foldPlace(label) }))
+    .filter((row) => row.segments.length && !isWorkMode(row.label));
+
+  const prefix = rows.filter((row) => {
+    const theirs = placeTokens(row.segments);
+    return theirs.length >= want.length && want.every((word, i) => theirs[i] === word);
+  });
+  if (prefix.length === 1) return { label: prefix[0].label, why: "the list spells the same place with more of its hierarchy" };
+
+  const country = countryFromText(value);
+  if (!country || wantSegments.length < 2) return null;
+  const core = wantSegments.slice(0, -1).join(" ");
+  const folded = rows.filter(
+    (row) => row.segments.length >= 2 && row.segments.slice(0, -1).join(" ") === core && countryFromText(row.label) === country,
+  );
+  return folded.length === 1 ? { label: folded[0].label, why: "the list writes the same place's country suffix differently" } : null;
 }
 
 /**

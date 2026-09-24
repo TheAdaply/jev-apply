@@ -191,6 +191,23 @@ Full per-posting table, method, and the root causes behind every row that moved:
 [`bench/results/accuracy-ten.md`](bench/results/accuracy-ten.md) ·
 [`docs/POSTMORTEM.md`](docs/POSTMORTEM.md).
 
+### Twelve pages it had never seen
+
+The strongest test: 12 postings from 12 companies (Twilio, GitLab, Gusto, Remote, Vercel, Discord,
+Notion, Harvey, Plaid, Lambda, Luma, OpenAI), none used while building, real profile, `--no-submit`,
+every row graded from its screenshot by an independent pass.
+
+![Twelve unseen pages, baseline vs final](bench/results/fresh-pages.png)
+
+| | rows | right | **wrong** | missed | couldn't | median time | median cost |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| before | 229 | 159 | 6 | 2 | 62 | 28 s | $0.00083 |
+| **after** | 229 | **168** | **0** | 7 | 54 | 29 s | $0.00084 |
+
+"couldn't" = nothing on file, a policy gate that correctly refused, or an unsupported widget — those
+come back as questions, never guesses. The 7 misses were closed after this run (each has a regression
+test). Table, method and per-row notes: [`bench/results/fresh-pages.md`](bench/results/fresh-pages.md).
+
 ## Working on it
 
 ```

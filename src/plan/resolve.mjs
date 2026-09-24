@@ -55,6 +55,9 @@ const NAME_RULES = [
   [/^(?:(?:your|full|legal|complete|entire)\s+)*last\s+name|^family\s+name|^surname/i, "last"],
   [/^(?:(?:your|full|legal|complete|entire)\s+)*names?\b/i, "full"],
 ];
+// "Name Pronunciation" starts like a name question but asks how the name is said: it belongs to
+// `q.core.name_pronunciation`, never to the name facts.
+const PRONUNCIATION_RE = /pronunciation|\bpronounce/i;
 
 const LINK_RULES = [
   [/linked-?in/i, ["f.identity.linkedin_url"]],
@@ -1066,7 +1069,7 @@ function sensitiveRow(q, { mem, context }) {
   // `f.identity.pronouns` states it whether or not a demographic block was ever filled in. Tested
   // before `p.eeo` for exactly that reason — three postings left a pronouns field empty in round 1
   // while the fact was on file (docs/research/12-eval-judge-round1.md §3.7).
-  if (/\bpronoun/i.test(q.label ?? "")) return pronounRow(mem, scopeCtx(context), labels, ask);
+  if (/\bpronouns?\b/i.test(q.label ?? "")) return pronounRow(mem, scopeCtx(context), labels, ask);
   // An accommodation request is not a demographic question, whichever protected characteristic
   // its wording happens to mention: it is answered from one standing `p.accommodation` the user
   // stated, or it is asked (judge §3 N1).
@@ -1305,7 +1308,7 @@ function identityRow(q, { mem, context, now = new Date() }) {
     }
   }
 
-  const nameKind = NAME_RULES.find(([re]) => re.test(label))?.[1];
+  const nameKind = PRONUNCIATION_RE.test(label) ? null : NAME_RULES.find(([re]) => re.test(label))?.[1];
   if (nameKind) return nameRow(nameKind, mem, miss);
 
   if (EMAIL_RE.test(label)) {

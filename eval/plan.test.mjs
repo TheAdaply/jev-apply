@@ -2007,6 +2007,30 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
 }
 
+{
+  const mem = {
+    facts: [
+      { id: "f.identity.full_name", value: "T Example", source: "user" },
+      { id: "f.identity.pronouns", value: "they/them", source: "user" },
+    ],
+    preferences: [],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  const labels = { say: "Name Pronunciation | How do you pronounce your name?", ask: "How do you pronounce your name?", name: "Full name", pronouns: "Pronouns" };
+  const questions = Object.entries(labels).map(([qid, label]) => ({ qid, label, class: classify(label, "", "text", false), type: "text", required: false }));
+  const row = (qid) => resolveForm({ job: {}, questions }, { mem }).decisions.find((d) => d.qid === qid);
+  check(
+    "pronunciation: 'how do you pronounce your name' is not a demographic question; 'Pronouns' still is",
+    questions[0].class !== "sensitive" && questions[1].class !== "sensitive" && questions[3].class === "sensitive",
+  );
+  check(
+    "pronunciation: a name-pronunciation row is never filled with the name itself, while a name row still is",
+    row("say").action !== "fill" && row("say").value !== "T Example" && row("ask").value !== "T Example" && row("name").value === "T Example" && row("pronouns").action === "fill",
+  );
+}
+
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

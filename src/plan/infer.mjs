@@ -156,6 +156,7 @@ export function inferBlocked(d, q, { context = {}, mem = null } = {}) {
   const klass = text(d.class ?? q?.class);
   if (klass === "sensitive") return PRONOUN_ROW_RE.test(label) ? "a pronoun is stated, never inferred" : "a protected characteristic is never inferred";
   if (!INFER_CLASSES.has(klass)) return `class ${klass || "(none)"} is not inferable`;
+  if (q?.repeat) return "a history entry's part is read from that entry or asked, never inferred";
   if (q?.type === "file" || q?.control === "file" || d.source === "document") return "a file row is attached, never inferred";
   if (THIRD_PARTY_RE.test(label)) return "this asks about somebody other than you";
   if (EMPLOYMENT_HISTORY_RE.test(label) && !asksAboutThisEmployer(label, context.company) && !employersNamed(label, context.company)) {

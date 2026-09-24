@@ -31,8 +31,9 @@ import { NONE } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
 import { CANON_RULES, applyRephrasing, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
 import { ID_CATALOGUE } from "../src/memory/schema.mjs";
-import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
-import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
+import { educationHistory, employmentHistory, latestEducation, latestEmployment } from "../src/memory/derive.mjs";
+import { degreeBucket, shapeRepeatAnswer } from "../src/plan/repeat.mjs";
+import { applyAnswers, finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
 import { inferBlocked, inferRows, inferredMemoryRows } from "../src/plan/infer.mjs";
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
 import { deferredMount, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
@@ -1997,6 +1998,102 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     Array.isArray(off.inferred) && off.inferred.length === 0 && off.requests <= 2 && !off.checks.some((c) => /^inferred/.test(String(c.why ?? ""))),
   );
 }
+
+// ── Repeating Education / Employment sections ────────────────────────────────────────────────
+// Two degrees on file must reach two entries of the form, each box read off its own degree.
+// Offline: the two recorded forms carry the sections (Greenhouse's hosted `education_config` as
+// `_hosted`, Ashby's `EducationHistoryField`), and the resolver needs no Jev for any of it.
+{
+  const now = new Date("2026-09-25");
+  const mem = {
+    facts: [
+      { id: "f.education.school", value: "Stanford University" },
+      { id: "f.education.btech_iit_patna", value: "B.Tech, Electrical and Electronics Engineering — IIT Patna (Aug 2016 – May 2020)", since: "2016-08" },
+      { id: "f.education.ms_stanford", value: { school: "Stanford University", degree: "MS", field: "Computer Science", until: "2024-06" }, since: "2022-09" },
+      { id: "f.education.cbse", value: "Class XII (CBSE) — Delhi Public School", since: "2014-04" },
+      { id: "f.employment.acme", value: { company: "Acme", role: "Staff Engineer", employment_type: "full_time", current: true }, since: "2024-07" },
+      { id: "f.employment.initech", value: { company: "Initech", role: "Intern", employment_type: "internship", until: "2019-08" }, since: "2019-06" },
+    ],
+    preferences: [],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  const degrees = educationHistory(mem, now);
+  check(
+    `history: both degrees on file, newest first, school-leaving certificate left out (got ${degrees.map((d) => d.degree).join(", ")})`,
+    degrees.length === 2 && degrees[0].degree === "MS" && degrees[1].degree === "B.Tech" && degrees[1].school === "IIT Patna" && degrees[1].end === "2020-05",
+  );
+  const roles = employmentHistory(mem, now);
+  check("history: every role on file, internships included, the ongoing one marked current", roles.length === 2 && roles[0].current === true && roles[1].type === "internship");
+  check("history: a written degree is placed in Greenhouse's bucket by table, and an unknown one is not placed", degreeBucket("B.Tech") === "Bachelor's Degree" && degreeBucket("MSc") === "Master's Degree" && degreeBucket("MBA") === "Master of Business Administration (M.B.A.)" && degreeBucket("Certificate in Pottery") === null);
+
+  const gh = normalizeGreenhouse(JSON.parse(readFileSync(path.join(ROOT, "eval", "fixtures", "greenhouse-togetherai-4188119007.json"), "utf8")));
+  check("history: Greenhouse's hosted education_config becomes one repeater row", gh.questions.filter((q) => q.type === "repeater").length === 1);
+  const { decisions: ghRows } = resolveForm(gh, { mem, now });
+  const byQid = new Map(ghRows.map((d) => [d.qid, d]));
+  check(
+    "history: Greenhouse — the Master's fills entry 1 and the Bachelor's entry 2, on the page's own numbered ids",
+    byQid.get("education[0].school")?.value === "Stanford University" &&
+      byQid.get("education[0].degree")?.value === "Master's Degree" &&
+      byQid.get("education[1].school")?.value === "IIT Patna" &&
+      byQid.get("education[1].degree")?.value === "Bachelor's Degree" &&
+      byQid.get("education[1].start_year")?.value === "2016" &&
+      byQid.get("education[1].end_year")?.value === "2020" &&
+      gh.questions.find((q) => q.qid === "education[1].school")?.selector === "#school--1",
+  );
+  check(
+    "history: a part read off a résumé line's own words is a check; a structured one is a fill",
+    byQid.get("education[1].school")?.action === "check" && byQid.get("education[0].school")?.action === "fill",
+  );
+  check("history: no third entry, and no box the form hides (start/end month)", !byQid.has("education[2].school") && !byQid.has("education[0].start_month"));
+  check("history: Greenhouse's School box carries its catalogue's own catch-all", gh.questions.find((q) => q.qid === "education[1].school")?.repeat?.fallback === "Other");
+  check("history: the evidence tier never infers a history box", /never inferred/.test(String(inferBlocked({ ...byQid.get("education[0].school"), action: "ask" }, gh.questions.find((q) => q.qid === "education[0].school")))));
+
+  const ashby = normalizeAshby(JSON.parse(readFileSync(path.join(ROOT, "eval", "fixtures", "ashby-plaid-5d8abedc.json"), "utf8")), "https://jobs.ashbyhq.com/plaid/5d8abedc-018a-4b42-ae1f-0e70b34f2007/application");
+  const edu = ashby.questions.find((q) => q.type === "repeater");
+  check("history: Ashby's EducationHistoryField is a repeater, not a text box (school required, dates split month/year)", edu?.repeat?.parts?.school === "required" && edu?.repeat?.parts?.start_month === "optional");
+  const { decisions: ashbyRows } = resolveForm(ashby, { mem, now });
+  const a = new Map(ashbyRows.map((d) => [d.qid, d]));
+  const p = "_systemfield_education_history";
+  check(
+    "history: Ashby — Degree and Field of Study take the degree as written, dates take month names",
+    a.get(`${p}[0].degree`)?.value === "MS" && a.get(`${p}[1].degree`)?.value === "B.Tech" && a.get(`${p}[1].start_month`)?.value === "August" && a.get(`${p}[1].end_month`)?.value === "May" && a.get(`${p}[0].field`)?.value === "Computer Science",
+  );
+  check("history: the \"Still Student?\" box is only ticked for an ongoing degree", !a.has(`${p}[0].current`) && !a.has(`${p}[1].current`));
+
+  // An optional section never grows a card it cannot finish: no school → that entry is not added.
+  const noSchool = { ...mem, facts: [...mem.facts, { id: "f.education.phd", value: { degree: "PhD", field: "Physics" }, since: "2024-09" }] };
+  const again = normalizeAshby(JSON.parse(readFileSync(path.join(ROOT, "eval", "fixtures", "ashby-plaid-5d8abedc.json"), "utf8")));
+  const { decisions: dropped } = resolveForm(again, { mem: noSchool, now });
+  check(
+    "history: an optional section skips an entry missing a part the form requires, and says why",
+    dropped.some((d) => d.qid === `${p}[0]` && d.action === "skip" && /requires school/.test(d.why)) && dropped.some((d) => d.qid === `${p}[0].school` && d.value === "Stanford University"),
+  );
+
+  // A required section asks for the missing date once, and the answer reaches both boxes.
+  const required = normalizeGreenhouse(JSON.parse(readFileSync(path.join(ROOT, "eval", "fixtures", "greenhouse-togetherai-4188119007.json"), "utf8")));
+  const section = required.questions.find((q) => q.type === "repeater");
+  section.required = true;
+  section.repeat.parts = { ...section.repeat.parts, start_month: "required", start_year: "required" };
+  section.repeat.ids = { ...section.repeat.ids, start_month: "start-month" };
+  const undated = { ...mem, facts: mem.facts.filter((f) => f.id !== "f.education.ms_stanford").map((f) => (f.id === "f.education.btech_iit_patna" ? { ...f, since: undefined, value: "B.Tech, EEE — IIT Patna" } : f)) };
+  const { decisions: asks } = resolveForm(required, { mem: undated, now });
+  const month = asks.find((d) => d.qid === "education[0].start_month");
+  const year = asks.find((d) => d.qid === "education[0].start_year");
+  check(
+    "history: a missing start date is one question for both boxes, remembered beside the degree",
+    month?.action === "ask" && year?.action === "ask" && month.canon === year.canon && month.remember_as?.id === "f.education.btech_iit_patna.start",
+  );
+  const answered = await applyAnswers(asks, { "education[0].start_month": { value: "2016-08", remember_as: { kind: "fact", id: "f.education.btech_iit_patna.start" } } }, { formPlan: required, persist: false });
+  const got = new Map(answered.decisions.map((d) => [d.qid, d]));
+  check(
+    "history: \"2016-08\" fills August in the month box and 2016 in the year box, stored once",
+    got.get("education[0].start_month")?.value === "August" && got.get("education[0].start_year")?.value === "2016" && answered.stored.length === 1 && answered.stored[0].row.value === "2016-08",
+  );
+  check("history: an answer shaped for a year box is refused by a month box", shapeRepeatAnswer({ repeat: { part: "start_month" } }, "2016") === null);
+}
+
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

@@ -28,7 +28,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import nodePath from "node:path";
 
 import { adapters, atsFromUrl, handles, resolveSelector, setField, snapshotRequired, uploadFile, waitForForm } from "../browser/adapters/index.mjs";
-import { detectControl, waitForOptions } from "../browser/controls.mjs";
+import { detectControl, isPlaceholderLabel, waitForOptions } from "../browser/controls.mjs";
 import { findTab, openTab, pagesOf } from "../browser/chrome.mjs";
 import { norm, normLabel, pace, pickOption, sleep, waitUntil } from "../browser/readback.mjs";
 import { appendTrace, captureFailure, maskSelectors, traceDir, tracePath } from "../browser/trace.mjs";
@@ -253,7 +253,7 @@ export async function executeRows({ page, ats, formPlan, decisions, slug, budget
       continue;
     } else {
       failed += 1;
-      markAsk(d, `the form would not take it (${result.reason ?? "read-back mismatch"}) — intended: ${clipValue(d, question)}`, { shot: result.shot });
+      markAsk(d, `the form would not take it (${result.reason ?? "read-back mismatch"}) — intended: ${clipValue(d, question)}`, { shot: result.shot, options: result.options });
     }
     budget.progress(result.ok === true);
   }
@@ -371,13 +371,50 @@ async function setRow({ page, ats, formPlan, question, decision, slug, chooseOpt
   // A select whose vocabulary the schema did not carry (an autocomplete): the form's own list
   // only exists once you type into it, so it is read off the DOM — and only an exact match may
   // be committed from it. See resolveVocabulary.
-  if (OPTION_CONTROLS.has(detected.control) && decision.option == null && !(question.options ?? []).length) {
+  //
+  // A history entry's box is the exception (`question.repeat`, src/plan/repeat.mjs): its lists are
+  // catalogues — a School list of every university, a Discipline list of 72 subjects — not a
+  // question's answers filtered by what was typed, so they take the adapters' ordinary ladder.
+  if (OPTION_CONTROLS.has(detected.control) && decision.option == null && !(question.options ?? []).length && !question.repeat) {
     const picked = await resolveVocabulary({ page, question, decision, slug, selector });
     if (!picked.ok) return null;
   }
 
   // `setField` routes a control this ATS adapter does not tune to `adapters/generic.mjs`.
-  return setField(page, question, decision.option ?? decision.value, { ...opts, detected, selector });
+  if (!question.repeat) return setField(page, question, decision.option ?? decision.value, { ...opts, detected, selector });
+  return setHistoryPart({ page, question, decision, slug, opts: { ...opts, detected, selector } });
+}
+
+/**
+ * One box of a history entry. A school is matched by the ladder's literal rungs only — a school
+ * list is thousands of similar names, and "a university like yours" is a false statement about
+ * where the user studied — and on a board whose catalogue carries a catch-all ("Other" on
+ * Greenhouse) a school the catalogue does not list is that entry, committed as a `check`.
+ */
+async function setHistoryPart({ page, question, decision, slug, opts }) {
+  const school = question.repeat.part === "school";
+  const want = decision.option ?? decision.value;
+  const result = await setField(page, question, want, { ...opts, ...(school ? { chooseOption: null } : {}) });
+  const unmatched = /no_matching_option|no_options_rendered|read-back mismatch/.test(String(result.reason ?? ""));
+  const fallback = question.repeat.fallback;
+  if (result.ok || !unmatched) return result;
+  // A closed list the saved words did not match (a Discipline list of 72 subjects): the question
+  // that goes back to the user carries that list, so the answer is one of its entries. A School
+  // catalogue is a search over thousands and is not listed.
+  const listed = async () => {
+    if (school || !OPTION_CONTROLS.has(opts.detected?.control)) return result;
+    const options = (await probeVocabulary(page, { ...question, selector: opts.selector, control: opts.detected.control }, "")).filter((l) => !isPlaceholderLabel(l));
+    return options.length && options.length <= MAX_LIVE_OPTIONS ? { ...result, options } : result;
+  };
+  if (!fallback) return listed();
+  const other = await setField(page, question, fallback, { ...opts, chooseOption: null });
+  await appendTrace(slug, { op: "fallback", qid: question.qid, wanted: String(want).slice(0, 80), used: fallback, ok: other.ok === true });
+  if (!other.ok) return listed();
+  decision.option = fallback;
+  if (decision.action === "fill") decision.action = "check";
+  // The reason first: the summary's ► CHECK line keeps only what precedes the first " (".
+  decision.why = `not in this form's ${question.repeat.part} list, so "${fallback}" (wanted "${String(want).slice(0, 60)}" — ${decision.why})`;
+  return other;
 }
 
 const clipValue = (d, q) => (q?.class === "sensitive" ? "••••" : String(d.option ?? d.value ?? "").slice(0, 60));
@@ -573,7 +610,9 @@ function decisionFor(row, formPlan, decisions) {
   const keys = new Set([row.qid, row.selector].filter(Boolean).map(String));
   const label = normLabel(row.label ?? "");
   for (const q of formPlan?.questions ?? []) {
-    if (keys.has(q.qid) || keys.has(q.selector) || (label && normLabel(q.label) === label)) {
+    // A repeating section is one control to the page's snapshot (Ashby reports the whole history
+    // field by its path) and many rows to the plan; its first row speaks for it.
+    if (keys.has(q.qid) || keys.has(q.selector) || (q.repeat?.of && keys.has(q.repeat.of)) || (label && normLabel(q.label) === label)) {
       const owner = decisions.find((d) => d.qid === q.qid);
       if (owner) return owner;
     }

@@ -7,6 +7,7 @@
 // routed to `generic`, which is the shared ladder in `src/browser/controls.mjs`.
 
 import { detectControl } from "../controls.mjs";
+import { resolveHistorySelector } from "../repeat.mjs";
 import * as ashby from "./ashby.mjs";
 import * as generic from "./generic.mjs";
 import * as greenhouse from "./greenhouse.mjs";
@@ -39,6 +40,8 @@ function resolve(page, question, opts) {
  * id). An adapter with nothing to resolve just answers with its own `selectorFor`.
  */
 export async function resolveSelector(page, ats, question) {
+  // A box of a repeating Education / Employment section exists only once its entry does.
+  if (question?.repeat?.part) return resolveHistorySelector(page, question);
   const adapter = adapters[String(ats ?? "").toLowerCase()] ?? generic;
   if (adapter.resolveSelector) return adapter.resolveSelector(page, question);
   return (adapter.selectorFor ?? generic.selectorFor)(question);

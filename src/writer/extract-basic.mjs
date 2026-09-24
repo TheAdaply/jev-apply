@@ -189,6 +189,68 @@ function storyRows(lines, source, seen) {
   return stories;
 }
 
+/** Section headings a CV puts its degrees under. */
+const EDUCATION_HEADING = /^(education|academic (background|qualifications?|history)|qualifications|degrees?)\b/i;
+
+/** A line that names a degree — the anchor of one education entry. */
+const DEGREE_RE =
+  /\b(bachelor|master|doctor(?:ate)?|ph\.?\s?d|mba|associate(?:'s)? degree|diploma|b\.?\s?tech|m\.?\s?tech|b\.?\s?sc|m\.?\s?sc|b\.?\s?eng|m\.?\s?eng|b\.?\s?e\.?|m\.?\s?e\.?|b\.?\s?s\.?|m\.?\s?s\.?|b\.?\s?a\.?|m\.?\s?a\.?|b\.?\s?com|m\.?\s?com|bca|mca|llb|llm|md)(?=[\s,.(–—-]|$)/i;
+
+/** "2016 – 2020", "Aug 2016 - May 2020", "2022 – Present": the opening month and year are the start. */
+const YEAR_RANGE = /(?:\b([A-Za-z]{3,9})\.?\s+)?\b((?:19|20)\d{2})\s*[–—-]\s*(?:[A-Za-z]{3,9}\.?\s+)?(?:(?:19|20)\d{2}|present|current|now)\b/i;
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** A range's start as `since:` — "YYYY-MM" when the month is printed, else the year alone. */
+function rangeStart(range) {
+  const month = range[1] ? MONTHS.indexOf(range[1].slice(0, 3).toLowerCase()) + 1 : 0;
+  return month > 0 ? `${range[2]}-${String(month).padStart(2, "0")}` : range[2];
+}
+
+/**
+ * The degrees under an Education heading, one row each (`f.education.<slug>`), newest-first order
+ * left to `educationHistory()`. A CV prints an entry either on one line ("B.Tech, EEE — IIT Patna,
+ * 2016–2020") or as a school line with the degree under it; the second shape is joined back into
+ * the first with " — ", which is the separator `educationHistory()` reads the school after. Each
+ * half is copied verbatim; a line this cannot place is left out, and the form asks for it.
+ */
+function educationRows(lines, source, seen) {
+  const rows = [];
+  let inside = false;
+  let pending = null; // the school line an entry's degree line may follow
+  for (const { text, page } of lines) {
+    const raw = clean(text);
+    if (!raw) continue;
+    const value = clean(raw.match(BULLET)?.[1] ?? raw);
+    const heading = value.length <= 48 && !/[.;]$/.test(value) && !DEGREE_RE.test(value);
+    if (heading && EDUCATION_HEADING.test(value)) {
+      inside = true;
+      pending = null;
+      continue;
+    }
+    if (heading && (STORY_HEADING.test(value) || SKIP_HEADING.test(value))) {
+      inside = false;
+      continue;
+    }
+    if (!inside) continue;
+    if (!DEGREE_RE.test(value)) {
+      pending = value.length <= 90 ? { value, page } : null;
+      continue;
+    }
+    // The dates go last, in brackets, whichever line printed them: a range left inside the school
+    // line would be read back as part of the school's name.
+    const own = value.match(YEAR_RANGE);
+    const other = pending?.value.match(YEAR_RANGE) ?? null;
+    const range = own ?? other;
+    const strip = (line) => clean(range ? line.replace(range[0], "").replace(/[,\s|·]+$/, "") : line);
+    const joined = /\s[—–-]\s/.test(strip(value)) || !pending ? strip(value) : `${strip(value)} — ${strip(pending.value)}`;
+    const dated = range ? `${joined} (${clean(range[0])})` : joined;
+    const id = uniqueId(`f.education.${slugOf(value) || "degree"}`, seen);
+    rows.push({ id, value: dated, ...(range ? { since: rangeStart(range) } : {}), source: source(page) });
+    pending = null;
+  }
+  return rows;
+}
+
 const slugOf = (s) =>
   String(s ?? "")
     .toLowerCase()
@@ -246,6 +308,8 @@ export function extractBasic(text, { doc = "resume", pages = null } = {}) {
     seenFacts.add(row.id);
     facts.push({ id: row.id, value: row.value, source: source(row.page) });
   }
+
+  facts.push(...educationRows(lines, source, seenFacts));
 
   const stories = storyRows(lines, source, new Set());
   if (!facts.length && !stories.length) throw new Error("extractBasic: nothing extracted from the document");

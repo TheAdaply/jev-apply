@@ -20,6 +20,7 @@
 //                     the API field name.
 
 import { classify, cleanLabel, dependencyOn, htmlToText, parseLimits } from "./classes.mjs";
+import { repeaterRow } from "../plan/repeat.mjs";
 
 const API = "https://boards-api.greenhouse.io/v1/boards";
 const UA = "jev-apply/0.1 (+https://github.com/theadaply/jev-apply)";
@@ -50,7 +51,50 @@ export async function fetchGreenhouse({ token, id }) {
     err.status = res.status;
     throw err;
   }
-  return res.json();
+  const raw = await res.json();
+  const hosted = await hostedSections({ token, id });
+  return hosted ? { ...raw, _hosted: hosted } : raw;
+}
+
+const HOSTED = "https://job-boards.greenhouse.io";
+
+/**
+ * The Education and Employment sections of the hosted form. The board API does not publish them;
+ * the hosted page's own render state does — `education_config` gives each part (`school_name`,
+ * `degree`, `discipline`, `start_month`/`start_year`, `end_month`/`end_year`) as `hidden`,
+ * `optional` or `required`, and `employment` is `"hidden"` or its own config. Read live on
+ * 2026-09-24: 15 of 90 hosted postings across 50 boards show Education (5 require it); none showed
+ * Employment. A page that cannot be read costs the section, never the posting: null.
+ */
+async function hostedSections({ token, id }) {
+  try {
+    const res = await fetch(`${HOSTED}/${encodeURIComponent(token)}/jobs/${encodeURIComponent(id)}`, {
+      headers: { accept: "text/html", "user-agent": UA },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    return hostedConfig(await res.text());
+  } catch {
+    return null;
+  }
+}
+
+/** The two section configs out of a hosted page's HTML (its render state is escaped JSON). */
+export function hostedConfig(html) {
+  const text = String(html ?? "").replace(/\\"/g, '"');
+  const read = (re) => {
+    const m = re.exec(text);
+    if (!m) return undefined;
+    try {
+      return JSON.parse(m[1]);
+    } catch {
+      return undefined;
+    }
+  };
+  const education_config = read(/"education_config":(null|\{[^{}]*\})/);
+  const employment = read(/"employment":("[a-z_]+"|null|\{[^{}]*\})/);
+  if (education_config === undefined && employment === undefined) return null;
+  return { education_config: education_config ?? null, employment: employment ?? null };
 }
 
 /** Raw Greenhouse JSON → FormPlan (PLAN §2.3). `url` defaults to the posting's `absolute_url`. */
@@ -79,6 +123,7 @@ export function normalizeGreenhouse(raw, url) {
       }
     }
   }
+  questions.push(...sectionRows(raw._hosted));
   const demographic = raw.demographic_questions;
   for (const q of demographic?.questions || []) {
     const options = (q.answer_options || []).map((o) => ({ label: cleanLabel(o.label), value: String(o.id) }));
@@ -132,6 +177,80 @@ function formRow(q, section) {
     ...(limits && { limits }),
     class: classify(label, help, type, Boolean(q.required)),
   };
+}
+
+// Greenhouse's part names → ours, and the DOM id stem each renders under (`#school--0`, then
+// `#school--1` once "Add another" is clicked). Employment's ids have not been seen on a live form,
+// so its parts carry none and are found by their labels inside the entry (src/browser/repeat.mjs).
+const EDUCATION_PARTS = {
+  school_name: ["school", "school"],
+  degree: ["degree", "degree"],
+  discipline: ["field", "discipline"],
+  start_month: ["start_month", "start-month"],
+  start_year: ["start_year", "start-year"],
+  end_month: ["end_month", "end-month"],
+  end_year: ["end_year", "end-year"],
+};
+const EMPLOYMENT_PARTS = {
+  company_name: "employer",
+  company: "employer",
+  title: "title",
+  start_month: "start_month",
+  start_year: "start_year",
+  end_month: "end_month",
+  end_year: "end_year",
+  current: "current",
+};
+const SHOWN = /^(optional|required)$/;
+
+/** The hosted page's Education / Employment sections → repeater rows (src/plan/repeat.mjs). */
+function sectionRows(hosted) {
+  const rows = [];
+  const education = hosted?.education_config;
+  if (education && typeof education === "object") {
+    const parts = {};
+    const ids = {};
+    for (const [key, [part, stem]] of Object.entries(EDUCATION_PARTS)) {
+      if (!SHOWN.test(String(education[key] ?? ""))) continue;
+      parts[part] = education[key];
+      ids[part] = stem;
+    }
+    if (Object.keys(parts).length) {
+      rows.push(
+        repeaterRow({
+          qid: "education",
+          label: "Education",
+          required: Object.values(parts).includes("required"),
+          section: "Education",
+          kind: "education",
+          parts,
+          container: ".education--container",
+          ids,
+        }),
+      );
+    }
+  }
+  const employment = hosted?.employment;
+  if (employment && typeof employment === "object") {
+    const parts = {};
+    for (const [key, part] of Object.entries(EMPLOYMENT_PARTS)) {
+      if (SHOWN.test(String(employment[key] ?? ""))) parts[part] = employment[key];
+    }
+    if (Object.keys(parts).length) {
+      rows.push(
+        repeaterRow({
+          qid: "employment",
+          label: "Employment",
+          required: Object.values(parts).includes("required"),
+          section: "Employment",
+          kind: "employment",
+          parts,
+          container: ".employment--container",
+        }),
+      );
+    }
+  }
+  return rows;
 }
 
 /**

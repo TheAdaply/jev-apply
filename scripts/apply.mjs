@@ -61,6 +61,7 @@ import {
   attachPosting,
   activeAtsTab,
   autoSubmitOn,
+  boardAdapter,
   detectSubmit,
   newBudget,
   priorSubmit,
@@ -338,6 +339,13 @@ async function maybeSubmit({ plan, browser, stores, args }) {
   const want = submitWanted(args, plan, stores);
   if (!want.on) {
     log(`submit: not this run (${want.why})`);
+    return null;
+  }
+  // A board whose Submit is gated by a challenge only a person may answer is never clicked,
+  // whatever `p.auto_submit` or `--submit` say: it stops at ready_to_submit.
+  const human = boardAdapter(plan.formPlan.ats).HUMAN_SUBMIT;
+  if (human) {
+    log(`submit: held (${want.why}) — ${human}`);
     return null;
   }
   const readiness = submitReadiness({ decisions: plan.decisions, state: browser.state });

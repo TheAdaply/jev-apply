@@ -23,7 +23,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
-import { countryFromText, countryInQuestion } from "../src/schema/normalize.mjs";
+import { countryFromText, countryInQuestion, detectAts, loadFormPlan } from "../src/schema/normalize.mjs";
 import { normalizeAshby } from "../src/schema/ashby.mjs";
 import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
@@ -35,7 +35,9 @@ import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
 import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
 import { inferBlocked, inferRows, inferredMemoryRows } from "../src/plan/infer.mjs";
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
-import { deferredMount, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
+import { boardAdapter, deferredMount, matchLiveControls, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
+import { atsFromUrl } from "../src/browser/adapters/index.mjs";
+import { pickSuggestion, setField as leverSetField } from "../src/browser/adapters/lever.mjs";
 import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
 import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, employersNamed, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
 import { catalogueValue, idCriteria, idDecision } from "../scripts/remember.mjs";
@@ -2043,6 +2045,78 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     formFingerprint(afterFill) !== frozen.form &&
       refillGuard({ frozen, formPlan: replanned, form: formFingerprint(published) }).ok === true &&
       refillGuard({ frozen, formPlan: changed, form: formFingerprint(changed) }).ok === false,
+  );
+}
+
+// ─── Lever — Spotify, Android Engineer (spotify/2193db3f), recorded 2026-09-24 ──────────────────
+// Offline: the recorded fixture is the posting JSON plus the apply page's <form>; no Jev, no browser.
+{
+  const posting = "https://jobs.lever.co/spotify/2193db3f-77c5-43b8-b030-8f92c9882bf1";
+  const target = detectAts(posting);
+  check(
+    "lever: a posting URL, its /apply form and an EU-hosted board are all detected",
+    target?.ats === "lever" &&
+      target.site === "spotify" &&
+      target.region === null &&
+      detectAts(`${posting}/apply`)?.id === target.id &&
+      detectAts("https://jobs.eu.lever.co/acme/2193db3f-77c5-43b8-b030-8f92c9882bf1")?.region === "eu" &&
+      atsFromUrl(`${posting}/apply`) === "lever",
+  );
+
+  const plan = await loadFormPlan(path.join(ROOT, "eval", "fixtures", "lever-spotify-2193db3f.json"));
+  const byQid = new Map(plan.questions.map((q) => [q.qid, q]));
+  check(`lever: 17 rows (got ${plan.questions.length})`, plan.questions.length === 17);
+  check("lever: the plan opens the /apply form, not the posting page", plan.ats === "lever" && plan.url.endsWith("/apply"));
+  check("lever: the posting's own country field decides job.country", plan.job.country === "GB" && plan.job.company === "Spotify");
+  check(
+    "lever: standard fields are keyed and selected by their input name",
+    byQid.get("name")?.selector === '[name="name"]' && byQid.get("name").required && byQid.get("resume")?.control === "file",
+  );
+  const cards = plan.questions.filter((q) => q.qid.startsWith("cards["));
+  check(
+    "lever: custom cards take their control from the card template (multiple-select → checkbox group, multiple-choice → radio)",
+    cards.length === 3 &&
+      cards[0].control === "checkbox_group" &&
+      cards[1].control === "radio" &&
+      cards[1].options.some((o) => o.value === "Yes") &&
+      cards[0].selector.startsWith('input[name="cards['),
+  );
+  check(
+    "lever: the country-gated demographic survey is not planned from the schema; its location select is",
+    !plan.questions.some((q) => q.qid.startsWith("surveysResponses")) && byQid.get("candidate_location")?.control === "native_select",
+  );
+  check("lever: the captcha response is never a row", !byQid.has("h-captcha-response"));
+}
+
+{
+  const three = ["London, Greater London, England, GBR", "London, ON, CAN", "London, OH, USA"];
+  check("lever location: a bare city with several matches is ambiguous, never picked by position", pickSuggestion(three, "London").pick === null);
+  check("lever location: a saved qualifier makes the match unique", pickSuggestion(three, "London, ON").pick === "London, ON, CAN");
+  check(
+    "lever location: a suggestion for a different city is never taken",
+    pickSuggestion(["South San Francisco, CA, USA"], "San Francisco, CA").pick === null &&
+      pickSuggestion(["San Francisco, CA, USA", "South San Francisco, CA, USA"], "San Francisco, CA").pick === "San Francisco, CA, USA",
+  );
+}
+
+{
+  check(
+    "lever submit: the board declares a human-only submit step; Greenhouse and Ashby do not",
+    typeof boardAdapter("lever").HUMAN_SUBMIT === "string" && !boardAdapter("greenhouse").HUMAN_SUBMIT && !boardAdapter("ashby").HUMAN_SUBMIT,
+  );
+  const live = [{ qid: "surveysResponses[s][responses][field0]", label: "What best describes your gender?", selector: 'input[name="x"]', control: "radio", multiple: false, options: [{ label: "Woman", value: "Woman" }] }];
+  const { novel } = matchLiveControls(live, { questions: [], decisions: [] });
+  const bare = matchLiveControls([{ ...live[0], options: undefined }], { questions: [], decisions: [] }).novel[0];
+  check(
+    "live survey: options rendered in the DOM reach the new sensitive row; a closed menu still sends none",
+    novel[0]?.class === "sensitive" && novel[0].options?.[0]?.label === "Woman" && !("options" in bare),
+  );
+  const hiddenPage = { locator: () => ({ first: () => ({ isVisible: async () => false }) }) };
+  const stored = { qid: "surveysResponses[s][responses][field0]", selector: 'input[name="x"]', control: "radio", class: "sensitive" };
+  const result = await leverSetField(hiddenPage, stored, "Prefer not to disclose", {});
+  check(
+    "lever survey: a stored survey the page is not showing yet is deferred behind its location select, never counted as a refused write",
+    result.ok === false && result.reason === "control_not_found" && stored.mounts_after === "candidate_location" && deferredMount(stored, result),
   );
 }
 

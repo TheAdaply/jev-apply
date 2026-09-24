@@ -1,7 +1,7 @@
 ---
 name: jev-apply
 description: >-
-  Fills Greenhouse and Ashby job applications from the user's own saved facts, preferences, and
+  Fills Greenhouse, Ashby and Lever job applications from the user's own saved facts, preferences, and
   stories: Jev selects the saved answer for each field (never guessing a personal detail, including
   EEO/demographic fields, which fill from the user's own onboarding answers), a writer model drafts
   only genuinely new text — OpenAI, a local OpenAI-compatible server, or, when neither is
@@ -73,20 +73,22 @@ true, the runner clicks Submit itself, waits for the ATS's own confirmation, and
 `--resume <slug>` re-attaches later and lists every field still not on the form, with its intended
 value. `--submit`/`--no-submit` override `p.auto_submit` for one run; `--detect-submit` locates the
 Submit control and its confirmation strategy and prints them without clicking, for a dry check
-against a real form.
+against a real form. **Lever is never auto-submitted:** its Submit runs an hCaptcha challenge the
+runner never solves, so a Lever run always ends at `ready_to_submit` (or `needs_user`) whatever
+`p.auto_submit` or `--submit` say — tell the user to click Submit and complete the challenge.
 
 ### The four-status contract
 One JSON object on stdout every time (`--json` suppresses the human-readable Decision table, which
 otherwise prints to stderr):
 - **`submitted`** — `{slug, confirmation:{detected, text?, url?, screenshot?}, filled, usage}`; the
   runner clicked Submit and the ATS confirmed it; the pipeline entry for this posting is now `applied`.
-- **`ready_to_submit`** — nothing left to ask, and either `p.auto_submit` is off or unset — the
-  summary is ready for the user to review and click Submit.
+- **`ready_to_submit`** — nothing left to ask, and either `p.auto_submit` is off or unset, or the
+  board is Lever — the summary is ready for the user to review and click Submit.
 - **`needs_user`** — `{questions:[{qid, label, options?, remember_as:{kind,id}?, why}]}`. A question
   nobody could write from memory carries `{kind:"draft", writes:"why_us"|"expand"|"narrative",
   prompt, grounding:string[], limits, label, why}` instead — see "Writing a `draft` item" below.
-- **`blocked`** — `{reason, detail?, screenshot?}`, e.g. `unsupported_ats` (URL is neither a
-  hosted Greenhouse nor Ashby board), `queue_empty`, `submit_failed` (Submit was clicked but no ATS
+- **`blocked`** — `{reason, detail?, screenshot?}`, e.g. `unsupported_ats` (URL is not a hosted
+  Greenhouse, Ashby or Lever board), `queue_empty`, `submit_failed` (Submit was clicked but no ATS
   confirmation was detected — the tab is left open, untouched, for the user to finish by hand), or a
   captcha/dead-tab failure mid-fill. When a `slug` is present, some fields may already be set —
   `apply.mjs --resume <slug>` re-attaches and lists every field still not on the form with its

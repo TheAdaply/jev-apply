@@ -4,6 +4,7 @@
 export { detectAts, sniffAts, normalize, fetchSchema, loadFormPlan, recordSchema } from "./normalize.mjs";
 export { fetchGreenhouse, normalizeGreenhouse } from "./greenhouse.mjs";
 export { fetchAshby, normalizeAshby } from "./ashby.mjs";
+export { fetchLever, normalizeLever } from "./lever.mjs";
 export {
   classify,
   parseLimits,

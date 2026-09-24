@@ -801,6 +801,9 @@ export function matchLiveControls(live, { questions = [], decisions = [] } = {})
         type: row.multiple ? "multi_select" : "single_select",
         control: row.control,
         selector: row.selector,
+        // A board that renders its options in the DOM (Lever's radio surveys) hands them over so
+        // `p.eeo` is mapped onto the form's own wording; Greenhouse's closed menus send none.
+        ...(row.options?.length ? { options: row.options } : {}),
         class: "sensitive",
       });
       continue;

@@ -6,24 +6,30 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fetchGreenhouse, normalizeGreenhouse } from "./greenhouse.mjs";
 import { fetchAshby, normalizeAshby } from "./ashby.mjs";
+import { applyUrlFor, fetchLever, normalizeLever } from "./lever.mjs";
 
-// v1 supports the two hosted boards only. An embedded board (iframe#grnhse_iframe on a company
+// Hosted Greenhouse, Ashby and Lever boards. An embedded board (iframe#grnhse_iframe on a company
 // site) or any other ATS returns null → apply.mjs emits blocked{reason:"unsupported_ats"}.
 const GREENHOUSE_RE = /^https?:\/\/(?:job-boards|boards)(?:\.eu)?\.greenhouse\.io\/([^/?#]+)\/jobs\/(\d+)/i;
 const ASHBY_RE = /^https?:\/\/jobs\.ashbyhq\.com\/([^/?#]+)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+// The posting page and its `/apply` form share the id; either URL plans the same form.
+const LEVER_RE = /^https?:\/\/jobs\.(eu\.)?lever\.co\/([^/?#]+)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 
-/** detectAts(url) → {ats:"greenhouse",token,id} | {ats:"ashby",org,id} | null */
+/** detectAts(url) → {ats:"greenhouse",token,id} | {ats:"ashby",org,id} | {ats:"lever",site,id,region} | null */
 export function detectAts(url) {
   const href = String(url || "").trim();
   const gh = GREENHOUSE_RE.exec(href);
   if (gh) return { ats: "greenhouse", token: gh[1], id: gh[2] };
   const ashby = ASHBY_RE.exec(href);
   if (ashby) return { ats: "ashby", org: ashby[1], id: ashby[2].toLowerCase() };
+  const lever = LEVER_RE.exec(href);
+  if (lever) return { ats: "lever", site: lever[2], id: lever[3].toLowerCase(), region: lever[1] ? "eu" : null };
   return null;
 }
 
 /** Which ATS a recorded raw response came from, by shape. */
 export function sniffAts(raw) {
+  if (raw?._lever && typeof raw?.html === "string") return "lever";
   if (raw?.data?.jobPosting || raw?.jobPosting || raw?.applicationForm) return "ashby";
   if (Array.isArray(raw?.questions) || typeof raw?.absolute_url === "string") return "greenhouse";
   return null;
@@ -344,18 +350,21 @@ export function placeOf(raw, job = {}, ats) {
 /** normalize(raw, ats, url) → FormPlan. `ats` may be omitted; the shape is then sniffed. */
 export function normalize(raw, ats, url) {
   const kind = ats || sniffAts(raw);
-  const plan =
-    kind === "greenhouse" ? normalizeGreenhouse(raw, url) : kind === "ashby" ? normalizeAshby(raw, url) : null;
+  const normalizer = { greenhouse: normalizeGreenhouse, ashby: normalizeAshby, lever: normalizeLever }[kind];
+  const plan = normalizer ? normalizer(raw, url) : null;
   if (!plan) throw unsupported(`unrecognised schema shape${url ? ` for ${url}` : ""}`);
-  plan.job = { ...plan.job, ...placeOf(raw, plan.job, kind) };
+  // A country or remote flag the ATS states in a field of its own (Lever's `country`,
+  // `workplaceType`) outranks what the location text implies.
+  const stated = { ...(plan.job.country && { country: plan.job.country }), ...(plan.job.remote === true && { remote: true }) };
+  plan.job = { ...plan.job, ...placeOf(raw, plan.job, kind), ...stated };
   return plan;
 }
 
 /** Fetch the raw public schema for an already-detected posting. */
 export async function fetchSchema(target) {
-  return target.ats === "greenhouse"
-    ? fetchGreenhouse({ token: target.token, id: target.id })
-    : fetchAshby({ org: target.org, id: target.id });
+  if (target.ats === "greenhouse") return fetchGreenhouse({ token: target.token, id: target.id });
+  if (target.ats === "lever") return fetchLever({ site: target.site, id: target.id, region: target.region });
+  return fetchAshby({ org: target.org, id: target.id });
 }
 
 /** loadFormPlan(urlOrFile) → FormPlan. http(s) → fetch + normalize; anything else → recorded JSON. */
@@ -382,7 +391,7 @@ export async function recordSchema(url, dir = "eval/fixtures") {
   const target = detectAts(url);
   if (!target) throw unsupported(`unsupported_ats: ${url}`);
   const raw = await fetchSchema(target);
-  const board = target.ats === "greenhouse" ? target.token : target.org;
+  const board = { greenhouse: target.token, ashby: target.org, lever: target.site }[target.ats];
   const file = path.resolve(dir, `${target.ats}-${board}-${shortId(target.id)}.json`);
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, `${JSON.stringify({ _source_url: url, ...raw }, null, 1)}\n`);
@@ -399,6 +408,7 @@ function urlFromFile(raw, ats, file) {
   const recorded = typeof raw?._source_url === "string" ? raw._source_url.trim() : "";
   if (recorded && detectAts(recorded)) return recorded;
   if (ats === "greenhouse") return raw.absolute_url || "";
+  if (ats === "lever") return raw.posting?.applyUrl || (raw._lever?.site ? applyUrlFor(raw._lever) : "");
   const posting = raw?.data?.jobPosting || raw?.jobPosting || raw;
   const parts = path.basename(file, ".json").split("-");
   const org = parts.slice(1, -1).join("-");

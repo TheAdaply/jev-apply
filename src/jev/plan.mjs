@@ -37,6 +37,7 @@ import { optionStating, topicsIn, unmetTopics, vocabFor } from "../canon/normali
 // The field's stated limit decides the length variant, and the same rule has to hold in the
 // deterministic pass, here, and in the writer — one definition, in the leaf module both import.
 import { pickVariant } from "../schema/classes.mjs";
+import { countryFromText, countryOfLocation } from "../schema/normalize.mjs";
 import { appendTrace } from "../browser/trace.mjs";
 import { NONE, choice, noul, systemOne, withNone } from "./client.mjs";
 import { GATES, gate, runnerUpGap } from "./gates.mjs";
@@ -760,6 +761,19 @@ function applySavedItems(rows, answers, pools) {
  * equality, and the canonical vocabulary the question belongs to (`src/canon/normalize.mjs`),
  * which maps a saved answer onto a list that spells it differently or does not spell it at all.
  */
+/**
+ * The one option naming `country`: by its ISO value (Lever posts alpha-2 codes), else by its
+ * label. More than one candidate ("United States" and "United States Minor Outlying Islands") is
+ * no answer, and the row goes to Jev as before.
+ */
+export function countryOption(q, country) {
+  const options = q?.options ?? [];
+  const byValue = options.filter((o) => String(o?.value ?? "").toUpperCase() === country);
+  if (byValue.length === 1) return byValue[0].label;
+  const byLabel = options.filter((o) => countryFromText(o?.label ?? "") === country);
+  return byLabel.length === 1 ? byLabel[0].label : null;
+}
+
 async function optionStage(rows, { byQid, slug, signal, totals }) {
   const pending = [];
   for (const d of rows) {
@@ -784,6 +798,20 @@ async function optionStage(rows, { byQid, slug, signal, totals }) {
         d.source = d.source === "none" ? "option" : d.source;
         if (!stated.exact && d.action === "fill") d.action = "check";
         d.why = `${d.why} → ${stated.exact ? "option" : "closest option"} "${clip(stated.label, 40)}"`;
+        continue;
+      }
+    }
+    // A current-location question offered as a list of countries (Lever's demographic survey):
+    // the saved location names its country, and the one option stating it is committed as a
+    // `check`, a value read out of the location rather than a silent fill.
+    if (d.canon === "q.core.location_current" && q.type === "single_select") {
+      const country = countryOfLocation(d.value);
+      const picked = country ? countryOption(q, country) : null;
+      if (picked) {
+        d.option = picked;
+        d.source = d.source === "none" ? "option" : d.source;
+        if (d.action === "fill") d.action = "check";
+        d.why = `${d.why} → country ${country} → option "${clip(picked, 40)}"`;
         continue;
       }
     }

@@ -23,13 +23,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
-import { countryFromText, countryInQuestion, detectAts, loadFormPlan } from "../src/schema/normalize.mjs";
+import { countryFromText, countryInQuestion, countryOfLocation, detectAts, loadFormPlan } from "../src/schema/normalize.mjs";
 import { normalizeAshby } from "../src/schema/ashby.mjs";
 import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
 import { NONE } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
-import { CANON_RULES, applyRephrasing, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { CANON_RULES, applyRephrasing, countryOption, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
 import { ID_CATALOGUE } from "../src/memory/schema.mjs";
 import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
 import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
@@ -2117,6 +2117,23 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   check(
     "lever survey: a stored survey the page is not showing yet is deferred behind its location select, never counted as a refused write",
     result.ok === false && result.reason === "control_not_found" && stored.mounts_after === "candidate_location" && deferredMount(stored, result),
+  );
+}
+
+{
+  check(
+    "location country: a saved location names its country only when every part agrees",
+    countryOfLocation("San Francisco, CA") === "US" &&
+      countryOfLocation("Toronto, ON") === "CA" &&
+      countryOfLocation("London, ON") === null &&
+      countryOfLocation("Paris, TX") === null &&
+      countryOfLocation("Remote") === null,
+  );
+  const byCode = { options: [{ label: "United Kingdom", value: "GB" }, { label: "United States", value: "US" }, { label: "United States Minor Outlying Islands", value: "UM" }] };
+  const byName = { options: [{ label: "United Kingdom", value: "1" }, { label: "United States", value: "2" }] };
+  check(
+    "location country: the one option stating the country is picked by its ISO value, else by its label; none when no option states it",
+    countryOption(byCode, "US") === "United States" && countryOption(byName, "US") === "United States" && countryOption(byName, "DE") === null,
   );
 }
 

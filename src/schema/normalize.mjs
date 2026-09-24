@@ -283,6 +283,28 @@ export function countryFromText(text) {
   return firstPlace(PLACE_RULES, text);
 }
 
+// Region codes written after a city ("Austin, TX") that name exactly one country. WA and NT are
+// left out: each is a region of two countries.
+const REGION_COUNTRY = new Map([
+  ...["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WV", "WI", "WY"].map((c) => [c, "US"]),
+  ...["AB", "BC", "MB", "NB", "NL", "NS", "ON", "PE", "QC", "SK", "YT", "NU"].map((c) => [c, "CA"]),
+  ...["NSW", "VIC", "QLD", "SA", "TAS", "ACT"].map((c) => [c, "AU"]),
+]);
+
+/**
+ * The one country a saved location states, or null. Each comma-separated part is read on its own
+ * (a place through the place table, a later part also as a region code) and a country is returned
+ * only when every part that names one names the same: "London, ON" is GB by its city and CA by its
+ * province, so it states neither.
+ */
+export function countryOfLocation(text) {
+  const parts = String(text ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+  const named = parts
+    .map((part, i) => countryFromText(part) ?? (i > 0 ? REGION_COUNTRY.get(part.replace(/\./g, "").toUpperCase()) : null) ?? null)
+    .filter(Boolean);
+  return named.length && named.every((c) => c === named[0]) ? named[0] : null;
+}
+
 /**
  * The country a *nationality* names — what `f.citizenship` states, as an ISO-3166 alpha-2 code.
  *

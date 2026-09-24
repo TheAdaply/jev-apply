@@ -823,8 +823,22 @@ async function resumeStage(rows, { formPlan, mem, slug, signal, totals }) {
     ),
   };
   const answers = await ask({ stage: "resume", state, questions, slug, signal, totals });
-  applyResumePick(rows, resumes, answers.resume);
+  const picked = applyResumePick(rows, resumes, answers.resume);
+  if (!picked) noClearFit(rows, resumes);
   for (const d of rows) delete d._pickResume;
+}
+
+/**
+ * None of the saved résumés fits this posting clearly better than the others. A row left to ask
+ * says so and names them; a row the stated default already filled keeps it and says the same.
+ */
+export function noClearFit(rows, resumes) {
+  const names = resumes.map((doc) => path.basename(doc.path)).join(", ");
+  const note = `none of your ${resumes.length} résumés clearly fits this posting`;
+  for (const d of rows) {
+    if (d.action === "ask") d.why = `${note} — answer with one of ${names}, or save one tailored to it first (learn.mjs --resume <file>)`;
+    else if (d.action === "fill" || d.action === "check") d.why = `${d.why} (${note}; a tailored one may do better)`;
+  }
 }
 
 /**

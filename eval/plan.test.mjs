@@ -29,11 +29,11 @@ import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
 import { NONE } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
-import { CANON_RULES, applyRephrasing, applyResumePick, countryOption, resumeCriterion, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { CANON_RULES, applyRephrasing, applyResumePick, countryOption, noClearFit, resumeCriterion, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
 import { distinctiveLines, profileLines, resumeDigest } from "../src/memory/resume-text.mjs";
 import { ID_CATALOGUE } from "../src/memory/schema.mjs";
 import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
-import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
+import { applyAnswers, finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
 import { inferBlocked, inferRows, inferredMemoryRows } from "../src/plan/infer.mjs";
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
 import { boardAdapter, deferredMount, matchLiveControls, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
@@ -2198,6 +2198,32 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   check(
     "résumé text: a résumé with nothing of its own says so instead of repeating the shared text",
     /same content as the other résumés/.test(resumeDigest("copy.pdf", android, [android])) && resumeDigest("a.pdf", android, [backend], 60).length === 60,
+  );
+}
+
+{
+  const file = fileURLToPath(import.meta.url);
+  const ml = { id: "doc.resume.ml", path: file };
+  const backend = { id: "doc.resume.backend", path: file };
+  const unsure = [{ qid: "resume", action: "ask", source: "none" }];
+  const kept = [{ qid: "resume", action: "fill", why: "p.resume_by_role_family → doc.resume.ml", path: file }];
+  noClearFit([...unsure, ...kept], [ml, backend]);
+  check(
+    "résumé pick: with no clear fit, the question says so and names the saved résumés; a default already attached stays attached",
+    /none of your 2 résumés clearly fits/.test(unsure[0].why) && /plan\.test\.mjs/.test(unsure[0].why) && unsure[0].action === "ask" &&
+      kept[0].action === "fill" && kept[0].path === file && /tailored one may do better/.test(kept[0].why),
+  );
+  const q = [{ qid: "resume", label: "Resume/CV", type: "file", control: "file" }];
+  const answer = async (value) =>
+    (await applyAnswers([{ qid: "resume", action: "ask", remember_as: { kind: "document" } }], { resume: { value } }, { formPlan: { questions: q }, documents: [ml, backend], persist: false })).decisions[0];
+  const byName = await answer("backend");
+  const byPath = await answer(file);
+  const unknown = await answer("no-such-cv.pdf");
+  check(
+    "résumé answer: naming a saved résumé or giving a real path attaches that file; anything else stays a question",
+    byName.action === "fill" && byName.path === file && !byName.remember_as &&
+      byPath.action === "fill" && byPath.path === path.resolve(file) &&
+      unknown.action === "ask" && /no saved document or file named/.test(unknown.why),
   );
 }
 

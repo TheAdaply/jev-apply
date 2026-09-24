@@ -199,7 +199,7 @@ async function planPosting({ source, stores, budget, phases = newPhases(), reatt
 /** Step 9's second half: the host's answers → memory + the `ask` rows, re-planning only those. */
 async function applyToPlan(plan, answers, { stores, budget }) {
   const { mem, canon, baselines, pipeline } = stores;
-  const out = await applyAnswers(plan.decisions, answers, { formPlan: plan.formPlan, context: plan.context });
+  const out = await applyAnswers(plan.decisions, answers, { formPlan: plan.formPlan, context: plan.context, documents: mem.documents });
   let decisions = out.decisions;
   if (out.reopen.length) {
     const second = await timed(plan.phases, "plan", () =>

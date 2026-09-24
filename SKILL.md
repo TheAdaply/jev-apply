@@ -118,7 +118,16 @@ same `apply.mjs` invocation with `--answers answers.json` added. A `draft` quest
 just `{"value": "<the paragraph you wrote>"}` — it is per-application text, never memory, so it
 carries no `remember_as`. This re-plans only the rows still marked `ask` — idempotent, so a second
 run with the same file changes nothing — and stores an answer to memory whenever `remember_as` is
-present.
+present. A file question (the résumé) is answered with the file name of a saved résumé
+(`{"value": "backend-cv.pdf"}`) or a path to a file on disk, never with free text.
+
+### Choosing the résumé
+With several résumés saved, Jev reads each PDF and attaches the one whose own content (summary,
+skills, tailored bullets) best fits the posting; a résumé the user tied to the role family always
+wins. When the résumé question comes back with "none of your N résumés clearly fits this posting",
+ask the user in one line: *upload a résumé tailored to this role, or use one of the saved ones?* For
+a new file, run `learn.mjs --resume <file>` first, then answer with its file name; otherwise answer
+with the name of the saved one they pick.
 
 ## Verb 3 — "Use that answer next time" / corrections
 
@@ -138,6 +147,20 @@ node scripts/pipeline.mjs list [--status found] [--top 10]
 ```
 New postings enter `pipeline.yaml` as `found` with a Jev fit score and a reason built from the
 user's own story titles.
+
+## First session — guided start
+When the user is new ("set me up", "help me apply to jobs"), run the verbs in this order and ask
+only at the marked points:
+1. **Résumés.** Ask for their standard résumé and any role-specific ones (ML, backend, …). Pass each
+   as its own `--resume` to verb 1 and relay its `gaps[]` as usual.
+2. **Companies.** `scan.mjs` reads the user's own `~/.config/jev-apply/companies.yml`. If scan
+   reports none, ask which companies they want to track (names or careers-page URLs) and write that
+   list for them in the shape `references/companies-format.md` gives — only the companies they
+   named.
+3. **Find.** Verb 4, then show `pipeline.mjs list --top 10` and ask which to shortlist.
+4. **Apply.** Verb 5 on the shortlist. Each posting gets its best-fitting résumé; relay the one
+   merged `needs_user` batch, including any "upload a tailored résumé?" question (see "Choosing the
+   résumé").
 
 ## Verb 5 — "Apply to the queue"
 

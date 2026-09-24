@@ -120,3 +120,21 @@ export function documentFor(mem, ctx = {}) {
   }
   return docs.length === 1 ? docs[0] : undefined;
 }
+
+/** Every résumé on file (`learn.mjs` registers each as `doc.resume.<file>`). */
+export function resumeDocuments(mem) {
+  return (mem?.documents ?? []).filter((d) => /^doc\.resume\./.test(String(d?.id ?? "")) && d?.path);
+}
+
+/**
+ * The résumé the user tied to this role family, by tagging the document or naming it in
+ * `p.resume_by_role_family` — never the preference's `default`. null when they said nothing for it.
+ */
+export function statedResumeFor(mem, ctx = {}) {
+  if (!ctx.role_family) return null;
+  const docs = mem?.documents ?? [];
+  const tagged = docs.find((d) => (d?.role_families ?? []).some((f) => slugify(f) === slugify(ctx.role_family)));
+  if (tagged) return tagged;
+  const id = resolvePreference(mem, "p.resume_by_role_family", ctx)?.value?.[ctx.role_family];
+  return id ? (docs.find((d) => d?.id === id) ?? null) : null;
+}

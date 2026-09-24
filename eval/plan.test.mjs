@@ -23,19 +23,22 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
-import { countryFromText, countryInQuestion } from "../src/schema/normalize.mjs";
+import { countryFromText, countryInQuestion, countryOfLocation, detectAts, loadFormPlan } from "../src/schema/normalize.mjs";
 import { normalizeAshby } from "../src/schema/ashby.mjs";
 import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
 import { NONE } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
-import { CANON_RULES, applyRephrasing, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { CANON_RULES, applyRephrasing, applyResumePick, countryOption, noClearFit, resumeCriterion, ruleAnswer, storyPool } from "../src/jev/plan.mjs";
+import { distinctiveLines, profileLines, resumeDigest } from "../src/memory/resume-text.mjs";
 import { ID_CATALOGUE } from "../src/memory/schema.mjs";
 import { latestEducation, latestEmployment } from "../src/memory/derive.mjs";
-import { finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
+import { applyAnswers, finalize, formFingerprint, publicDecision, refillGuard, withFormFacts } from "../src/plan/decisions.mjs";
 import { inferBlocked, inferRows, inferredMemoryRows } from "../src/plan/infer.mjs";
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
-import { deferredMount, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
+import { boardAdapter, deferredMount, matchLiveControls, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
+import { atsFromUrl } from "../src/browser/adapters/index.mjs";
+import { pickSuggestion, setField as leverSetField } from "../src/browser/adapters/lever.mjs";
 import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
 import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, employersNamed, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
 import { catalogueValue, idCriteria, idDecision } from "../scripts/remember.mjs";
@@ -2043,6 +2046,184 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     formFingerprint(afterFill) !== frozen.form &&
       refillGuard({ frozen, formPlan: replanned, form: formFingerprint(published) }).ok === true &&
       refillGuard({ frozen, formPlan: changed, form: formFingerprint(changed) }).ok === false,
+  );
+}
+
+// ─── Lever — Spotify, Android Engineer (spotify/2193db3f), recorded 2026-09-24 ──────────────────
+// Offline: the recorded fixture is the posting JSON plus the apply page's <form>; no Jev, no browser.
+{
+  const posting = "https://jobs.lever.co/spotify/2193db3f-77c5-43b8-b030-8f92c9882bf1";
+  const target = detectAts(posting);
+  check(
+    "lever: a posting URL, its /apply form and an EU-hosted board are all detected",
+    target?.ats === "lever" &&
+      target.site === "spotify" &&
+      target.region === null &&
+      detectAts(`${posting}/apply`)?.id === target.id &&
+      detectAts("https://jobs.eu.lever.co/acme/2193db3f-77c5-43b8-b030-8f92c9882bf1")?.region === "eu" &&
+      atsFromUrl(`${posting}/apply`) === "lever",
+  );
+
+  const plan = await loadFormPlan(path.join(ROOT, "eval", "fixtures", "lever-spotify-2193db3f.json"));
+  const byQid = new Map(plan.questions.map((q) => [q.qid, q]));
+  check(`lever: 17 rows (got ${plan.questions.length})`, plan.questions.length === 17);
+  check("lever: the plan opens the /apply form, not the posting page", plan.ats === "lever" && plan.url.endsWith("/apply"));
+  check("lever: the posting's own country field decides job.country", plan.job.country === "GB" && plan.job.company === "Spotify");
+  check(
+    "lever: standard fields are keyed and selected by their input name",
+    byQid.get("name")?.selector === '[name="name"]' && byQid.get("name").required && byQid.get("resume")?.control === "file",
+  );
+  const cards = plan.questions.filter((q) => q.qid.startsWith("cards["));
+  check(
+    "lever: custom cards take their control from the card template (multiple-select → checkbox group, multiple-choice → radio)",
+    cards.length === 3 &&
+      cards[0].control === "checkbox_group" &&
+      cards[1].control === "radio" &&
+      cards[1].options.some((o) => o.value === "Yes") &&
+      cards[0].selector.startsWith('input[name="cards['),
+  );
+  check(
+    "lever: the country-gated demographic survey is not planned from the schema; its location select is",
+    !plan.questions.some((q) => q.qid.startsWith("surveysResponses")) && byQid.get("candidate_location")?.control === "native_select",
+  );
+  check("lever: the captcha response is never a row", !byQid.has("h-captcha-response"));
+}
+
+{
+  const three = ["London, Greater London, England, GBR", "London, ON, CAN", "London, OH, USA"];
+  check("lever location: a bare city with several matches is ambiguous, never picked by position", pickSuggestion(three, "London").pick === null);
+  check("lever location: a saved qualifier makes the match unique", pickSuggestion(three, "London, ON").pick === "London, ON, CAN");
+  check(
+    "lever location: a suggestion for a different city is never taken",
+    pickSuggestion(["South San Francisco, CA, USA"], "San Francisco, CA").pick === null &&
+      pickSuggestion(["San Francisco, CA, USA", "South San Francisco, CA, USA"], "San Francisco, CA").pick === "San Francisco, CA, USA",
+  );
+}
+
+{
+  check(
+    "lever submit: the board declares a human-only submit step; Greenhouse and Ashby do not",
+    typeof boardAdapter("lever").HUMAN_SUBMIT === "string" && !boardAdapter("greenhouse").HUMAN_SUBMIT && !boardAdapter("ashby").HUMAN_SUBMIT,
+  );
+  const live = [{ qid: "surveysResponses[s][responses][field0]", label: "What best describes your gender?", selector: 'input[name="x"]', control: "radio", multiple: false, options: [{ label: "Woman", value: "Woman" }] }];
+  const { novel } = matchLiveControls(live, { questions: [], decisions: [] });
+  const bare = matchLiveControls([{ ...live[0], options: undefined }], { questions: [], decisions: [] }).novel[0];
+  check(
+    "live survey: options rendered in the DOM reach the new sensitive row; a closed menu still sends none",
+    novel[0]?.class === "sensitive" && novel[0].options?.[0]?.label === "Woman" && !("options" in bare),
+  );
+  const hiddenPage = { locator: () => ({ first: () => ({ isVisible: async () => false }) }) };
+  const stored = { qid: "surveysResponses[s][responses][field0]", selector: 'input[name="x"]', control: "radio", class: "sensitive" };
+  const result = await leverSetField(hiddenPage, stored, "Prefer not to disclose", {});
+  check(
+    "lever survey: a stored survey the page is not showing yet is deferred behind its location select, never counted as a refused write",
+    result.ok === false && result.reason === "control_not_found" && stored.mounts_after === "candidate_location" && deferredMount(stored, result),
+  );
+}
+
+{
+  check(
+    "location country: a saved location names its country only when every part agrees",
+    countryOfLocation("San Francisco, CA") === "US" &&
+      countryOfLocation("Toronto, ON") === "CA" &&
+      countryOfLocation("London, ON") === null &&
+      countryOfLocation("Paris, TX") === null &&
+      countryOfLocation("Remote") === null,
+  );
+  const byCode = { options: [{ label: "United Kingdom", value: "GB" }, { label: "United States", value: "US" }, { label: "United States Minor Outlying Islands", value: "UM" }] };
+  const byName = { options: [{ label: "United Kingdom", value: "1" }, { label: "United States", value: "2" }] };
+  check(
+    "location country: the one option stating the country is picked by its ISO value, else by its label; none when no option states it",
+    countryOption(byCode, "US") === "United States" && countryOption(byName, "US") === "United States" && countryOption(byName, "DE") === null,
+  );
+}
+
+{
+  const file = fileURLToPath(import.meta.url);
+  const doc = (name, extra = {}) => ({ id: `doc.resume.${name}`, path: file, source: `resume:${name}.pdf`, ...extra });
+  const ml = doc("ml");
+  const backend = doc("backend");
+  const base = {
+    facts: [],
+    preferences: [],
+    answers: [],
+    stories: [
+      { id: "b.1", title: "Trained a ranking model", source: "resume:ml.pdf#p1" },
+      { id: "b.2", title: "Built a payments API", source: "resume:backend.pdf#p1" },
+    ],
+    documents: [ml, backend],
+  };
+  const resumeRow = { qid: "resume", label: "Resume/CV", class: "identity", type: "file", control: "file", required: true };
+  const form = { job: { title: "Backend Engineer", company: "Acme", role_family: "backend" }, questions: [resumeRow] };
+  const resolved = (mem) => resolveForm(form, { mem }).decisions[0];
+  const oneOnly = { ...base, documents: [ml] };
+  const mapped = { ...base, preferences: [{ id: "p.resume_by_role_family", value: { backend: "doc.resume.ml" }, source: "user" }] };
+  check(
+    "résumé pick: Jev is consulted only with several résumés and none tied to this role family",
+    resolved(base)._pickResume === true && !resolved(oneOnly)._pickResume && !resolved(mapped)._pickResume && resolved(mapped).path === file,
+  );
+  check(
+    "résumé pick: a résumé whose PDF cannot be read is described by its file name and the stories read out of it",
+    resumeCriterion(ml, base).includes("Trained a ranking model") && !resumeCriterion(ml, base).includes("payments"),
+  );
+  const rows = () => [{ qid: "resume", action: "ask", source: "none", remember_as: { kind: "document" } }];
+  const confident = rows();
+  const picked = applyResumePick(confident, [ml, backend], { choice: "r1", confidence: 0.9, probabilities: { r0: 0.05, r1: 0.9, none_of_these: 0.05 } });
+  const thin = rows();
+  applyResumePick(thin, [ml, backend], { choice: "r1", confidence: 0.5, probabilities: { r0: 0.45, r1: 0.5, none_of_these: 0.05 } });
+  const none = rows();
+  applyResumePick(none, [ml, backend], { choice: "none_of_these", confidence: 0.8, probabilities: { r0: 0.1, r1: 0.1, none_of_these: 0.8 } });
+  check(
+    "résumé pick: a confident pick attaches that file, a thin one attaches it as a check, none_of_these leaves the stated rule's row",
+    picked === backend && confident[0].action === "fill" && confident[0].path === file && !confident[0].remember_as &&
+      thin[0].action === "check" &&
+      none[0].action === "ask" && none[0].remember_as?.kind === "document",
+  );
+  check("résumé pick: the reason names the pick and the runner-up with their probabilities", /backend.*90%.*vs doc\.resume\.ml 5%/.test(confident[0].why));
+}
+
+{
+  const shared = "T Example\nt@example.com · +1 415 555 0100 · github.com/texample\nEDUCATION\nBSc Computer Science, 2019";
+  const android = profileLines(`${shared}\nSUMMARY\nAndroid engineer shipping Kotlin apps\n• Built offline playback in Jetpack Compose\nSKILLS\nKotlin, Jetpack Compose, Android SDK\n-- 1 of 1 --`);
+  const backend = profileLines(`${shared}\nSUMMARY\nBackend engineer for payment systems\n• Designed Go microservices on Postgres\nSKILLS\nGo, Postgres, Kafka`);
+  check(
+    "résumé text: contact lines and page markers never leave the file, bullets are unwrapped, content stays in order",
+    !android.some((l) => /@|555|github|1 of 1/.test(l)) && android.includes("Built offline playback in Jetpack Compose") && android.indexOf("SKILLS") < android.indexOf("Kotlin, Jetpack Compose, Android SDK"),
+  );
+  const unique = distinctiveLines(android, [backend]);
+  check(
+    "résumé text: what only one résumé says is its summary, bullets and skills, not the shared name and education",
+    unique.includes("Kotlin, Jetpack Compose, Android SDK") && unique.includes("Android engineer shipping Kotlin apps") && !unique.includes("BSc Computer Science, 2019") && !unique.includes("SKILLS"),
+  );
+  check(
+    "résumé text: a résumé with nothing of its own says so instead of repeating the shared text",
+    /same content as the other résumés/.test(resumeDigest("copy.pdf", android, [android])) && resumeDigest("a.pdf", android, [backend], 60).length === 60,
+  );
+}
+
+{
+  const file = fileURLToPath(import.meta.url);
+  const ml = { id: "doc.resume.ml", path: file };
+  const backend = { id: "doc.resume.backend", path: file };
+  const unsure = [{ qid: "resume", action: "ask", source: "none" }];
+  const kept = [{ qid: "resume", action: "fill", why: "p.resume_by_role_family → doc.resume.ml", path: file }];
+  noClearFit([...unsure, ...kept], [ml, backend]);
+  check(
+    "résumé pick: with no clear fit, the question says so and names the saved résumés; a default already attached stays attached",
+    /none of your 2 résumés clearly fits/.test(unsure[0].why) && /plan\.test\.mjs/.test(unsure[0].why) && unsure[0].action === "ask" &&
+      kept[0].action === "fill" && kept[0].path === file && /tailored one may do better/.test(kept[0].why),
+  );
+  const q = [{ qid: "resume", label: "Resume/CV", type: "file", control: "file" }];
+  const answer = async (value) =>
+    (await applyAnswers([{ qid: "resume", action: "ask", remember_as: { kind: "document" } }], { resume: { value } }, { formPlan: { questions: q }, documents: [ml, backend], persist: false })).decisions[0];
+  const byName = await answer("backend");
+  const byPath = await answer(file);
+  const unknown = await answer("no-such-cv.pdf");
+  check(
+    "résumé answer: naming a saved résumé or giving a real path attaches that file; anything else stays a question",
+    byName.action === "fill" && byName.path === file && !byName.remember_as &&
+      byPath.action === "fill" && byPath.path === path.resolve(file) &&
+      unknown.action === "ask" && /no saved document or file named/.test(unknown.why),
   );
 }
 

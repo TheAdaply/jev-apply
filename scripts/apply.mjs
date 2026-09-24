@@ -61,6 +61,7 @@ import {
   attachPosting,
   activeAtsTab,
   autoSubmitOn,
+  boardAdapter,
   detectSubmit,
   newBudget,
   priorSubmit,
@@ -198,7 +199,7 @@ async function planPosting({ source, stores, budget, phases = newPhases(), reatt
 /** Step 9's second half: the host's answers → memory + the `ask` rows, re-planning only those. */
 async function applyToPlan(plan, answers, { stores, budget }) {
   const { mem, canon, baselines, pipeline } = stores;
-  const out = await applyAnswers(plan.decisions, answers, { formPlan: plan.formPlan, context: plan.context });
+  const out = await applyAnswers(plan.decisions, answers, { formPlan: plan.formPlan, context: plan.context, documents: mem.documents });
   let decisions = out.decisions;
   if (out.reopen.length) {
     const second = await timed(plan.phases, "plan", () =>
@@ -338,6 +339,13 @@ async function maybeSubmit({ plan, browser, stores, args }) {
   const want = submitWanted(args, plan, stores);
   if (!want.on) {
     log(`submit: not this run (${want.why})`);
+    return null;
+  }
+  // A board whose Submit is gated by a challenge only a person may answer is never clicked,
+  // whatever `p.auto_submit` or `--submit` say: it stops at ready_to_submit.
+  const human = boardAdapter(plan.formPlan.ats).HUMAN_SUBMIT;
+  if (human) {
+    log(`submit: held (${want.why}) — ${human}`);
     return null;
   }
   const readiness = submitReadiness({ decisions: plan.decisions, state: browser.state });

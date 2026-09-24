@@ -23,7 +23,7 @@ import path from "node:path";
 import YAML from "yaml";
 
 import { paths, slugify } from "../config.mjs";
-import { documentFor, getFact, resolvePreference } from "../memory/resolve.mjs";
+import { documentFor, getFact, resolvePreference, resumeDocuments, statedResumeFor } from "../memory/resolve.mjs";
 import { EEO_VALUES } from "../memory/schema.mjs";
 import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
 import { isAccommodationRequest } from "../schema/classes.mjs";
@@ -1302,9 +1302,13 @@ function identityRow(q, { mem, context, now = new Date() }) {
       return fileRow(cover, "cover letter on file");
     }
     if (RESUME_RE.test(label)) {
-      const doc = documentFor(mem, { role_family: context.role_family, company: context.company });
-      if (!doc) return miss("résumé document", { kind: "document", id: "doc.resume.main", scope: "global" });
-      return fileRow(doc, `p.resume_by_role_family → ${doc.id}`);
+      const ctx = { role_family: context.role_family, company: context.company };
+      const doc = documentFor(mem, ctx);
+      // Several résumés and none the user tied to this role family: Jev compares them with the
+      // posting (`resumeStage`, src/jev/plan.mjs), and this row is what stands if it cannot decide.
+      const pick = resumeDocuments(mem).length > 1 && !statedResumeFor(mem, ctx) ? { _pickResume: true } : {};
+      if (!doc) return { ...miss("résumé document", { kind: "document", id: "doc.resume.main", scope: "global" }), ...pick };
+      return { ...fileRow(doc, `p.resume_by_role_family → ${doc.id}`), ...pick };
     }
   }
 
@@ -1408,7 +1412,7 @@ function employmentRow(label, part, { mem, now, optional }) {
   return { source: "fact", value, action: "check", why: `${latest.id} (most recent role, since ${latest.since})` };
 }
 
-function fileRow(doc, why) {
+export function fileRow(doc, why) {
   if (!doc?.path || !existsSync(doc.path)) {
     return { source: "none", action: "ask", why: `${doc?.id ?? "document"} is not on disk` };
   }

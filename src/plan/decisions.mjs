@@ -13,6 +13,7 @@
 //                   asked once.
 
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -286,7 +287,26 @@ export async function readAnswersFile(file) {
  * however many times the user answers.
  * @returns {Promise<{decisions:object[], applied:string[], ignored:string[], stored:object[], reopen:object[]}>}
  */
-export async function applyAnswers(decisions, answers, { formPlan, context, persist = true } = {}) {
+/**
+ * A file question's answer → the file to attach: a saved document named by its id, its short name
+ * or its file name, else a path to a file that exists. null when it names neither.
+ */
+export function answeredFile(value, documents = []) {
+  const want = String(value ?? "").trim();
+  if (!want) return null;
+  const key = (s) => String(s ?? "").toLowerCase();
+  const saved = documents.find(
+    (d) =>
+      d?.path &&
+      [d.id, String(d.id ?? "").replace(/^doc\.resume\./, ""), path.basename(d.path), path.basename(d.path, path.extname(d.path))].some(
+        (name) => key(name) === key(want),
+      ),
+  );
+  if (saved) return saved.path;
+  return existsSync(want) ? path.resolve(want) : null;
+}
+
+export async function applyAnswers(decisions, answers, { formPlan, context, persist = true, documents = [] } = {}) {
   const byQid = new Map((formPlan?.questions ?? []).map((q) => [q.qid, q]));
   const out = decisions.map((d) => ({ ...d }));
   const applied = [];
@@ -314,6 +334,18 @@ export async function applyAnswers(decisions, answers, { formPlan, context, pers
       continue;
     }
     const q = byQid.get(d.qid);
+    if (q?.type === "file" || q?.control === "file") {
+      const file = answeredFile(value, documents);
+      if (!file) {
+        d.why = `no saved document or file named "${value}" — answer with one of your saved résumés, or save a new one first (learn.mjs --resume <file>)`;
+        ignored.push(d.qid);
+        continue;
+      }
+      Object.assign(d, { source: "user", value: path.basename(file), path: file, action: "fill", confidence: undefined, gap: undefined, why: "you chose this file (this application only)" });
+      delete d.remember_as;
+      applied.push(d.qid);
+      continue;
+    }
     d.source = "user";
     d.value = String(value);
     d.action = "fill";

@@ -1,7 +1,7 @@
 ---
 name: jev-apply
 description: >-
-  Fills Greenhouse and Ashby job applications from the user's own saved facts, preferences, and
+  Fills Greenhouse, Ashby and Lever job applications from the user's own saved facts, preferences, and
   stories: Jev selects the saved answer for each field (never guessing a personal detail, including
   EEO/demographic fields, which fill from the user's own onboarding answers), a writer model drafts
   only genuinely new text — OpenAI, a local OpenAI-compatible server, or, when neither is
@@ -73,20 +73,22 @@ true, the runner clicks Submit itself, waits for the ATS's own confirmation, and
 `--resume <slug>` re-attaches later and lists every field still not on the form, with its intended
 value. `--submit`/`--no-submit` override `p.auto_submit` for one run; `--detect-submit` locates the
 Submit control and its confirmation strategy and prints them without clicking, for a dry check
-against a real form.
+against a real form. **Lever is never auto-submitted:** its Submit runs an hCaptcha challenge the
+runner never solves, so a Lever run always ends at `ready_to_submit` (or `needs_user`) whatever
+`p.auto_submit` or `--submit` say — tell the user to click Submit and complete the challenge.
 
 ### The four-status contract
 One JSON object on stdout every time (`--json` suppresses the human-readable Decision table, which
 otherwise prints to stderr):
 - **`submitted`** — `{slug, confirmation:{detected, text?, url?, screenshot?}, filled, usage}`; the
   runner clicked Submit and the ATS confirmed it; the pipeline entry for this posting is now `applied`.
-- **`ready_to_submit`** — nothing left to ask, and either `p.auto_submit` is off or unset — the
-  summary is ready for the user to review and click Submit.
+- **`ready_to_submit`** — nothing left to ask, and either `p.auto_submit` is off or unset, or the
+  board is Lever — the summary is ready for the user to review and click Submit.
 - **`needs_user`** — `{questions:[{qid, label, options?, remember_as:{kind,id}?, why}]}`. A question
   nobody could write from memory carries `{kind:"draft", writes:"why_us"|"expand"|"narrative",
   prompt, grounding:string[], limits, label, why}` instead — see "Writing a `draft` item" below.
-- **`blocked`** — `{reason, detail?, screenshot?}`, e.g. `unsupported_ats` (URL is neither a
-  hosted Greenhouse nor Ashby board), `queue_empty`, `submit_failed` (Submit was clicked but no ATS
+- **`blocked`** — `{reason, detail?, screenshot?}`, e.g. `unsupported_ats` (URL is not a hosted
+  Greenhouse, Ashby or Lever board), `queue_empty`, `submit_failed` (Submit was clicked but no ATS
   confirmation was detected — the tab is left open, untouched, for the user to finish by hand), or a
   captcha/dead-tab failure mid-fill. When a `slug` is present, some fields may already be set —
   `apply.mjs --resume <slug>` re-attaches and lists every field still not on the form with its
@@ -116,7 +118,16 @@ same `apply.mjs` invocation with `--answers answers.json` added. A `draft` quest
 just `{"value": "<the paragraph you wrote>"}` — it is per-application text, never memory, so it
 carries no `remember_as`. This re-plans only the rows still marked `ask` — idempotent, so a second
 run with the same file changes nothing — and stores an answer to memory whenever `remember_as` is
-present.
+present. A file question (the résumé) is answered with the file name of a saved résumé
+(`{"value": "backend-cv.pdf"}`) or a path to a file on disk, never with free text.
+
+### Choosing the résumé
+With several résumés saved, Jev reads each PDF and attaches the one whose own content (summary,
+skills, tailored bullets) best fits the posting; a résumé the user tied to the role family always
+wins. When the résumé question comes back with "none of your N résumés clearly fits this posting",
+ask the user in one line: *upload a résumé tailored to this role, or use one of the saved ones?* For
+a new file, run `learn.mjs --resume <file>` first, then answer with its file name; otherwise answer
+with the name of the saved one they pick.
 
 ## Verb 3 — "Use that answer next time" / corrections
 
@@ -136,6 +147,20 @@ node scripts/pipeline.mjs list [--status found] [--top 10]
 ```
 New postings enter `pipeline.yaml` as `found` with a Jev fit score and a reason built from the
 user's own story titles.
+
+## First session — guided start
+When the user is new ("set me up", "help me apply to jobs"), run the verbs in this order and ask
+only at the marked points:
+1. **Résumés.** Ask for their standard résumé and any role-specific ones (ML, backend, …). Pass each
+   as its own `--resume` to verb 1 and relay its `gaps[]` as usual.
+2. **Companies.** `scan.mjs` reads the user's own `~/.config/jev-apply/companies.yml`. If scan
+   reports none, ask which companies they want to track (names or careers-page URLs) and write that
+   list for them in the shape `references/companies-format.md` gives — only the companies they
+   named.
+3. **Find.** Verb 4, then show `pipeline.mjs list --top 10` and ask which to shortlist.
+4. **Apply.** Verb 5 on the shortlist. Each posting gets its best-fitting résumé; relay the one
+   merged `needs_user` batch, including any "upload a tailored résumé?" question (see "Choosing the
+   résumé").
 
 ## Verb 5 — "Apply to the queue"
 

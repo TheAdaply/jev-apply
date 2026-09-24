@@ -10,14 +10,16 @@ import { detectControl } from "../controls.mjs";
 import * as ashby from "./ashby.mjs";
 import * as generic from "./generic.mjs";
 import * as greenhouse from "./greenhouse.mjs";
+import * as lever from "./lever.mjs";
 
-export const adapters = { greenhouse, ashby, generic };
+export const adapters = { greenhouse, ashby, lever, generic };
 
-/** v1 supports hosted Greenhouse and Ashby only (PLAN §2.2 step 1). */
+/** Hosted Greenhouse, Ashby and Lever boards (PLAN §2.2 step 1). */
 export function atsFromUrl(url) {
   const u = String(url ?? "");
   if (/(^|\/\/)(job-boards|boards)\.greenhouse\.io\//.test(u)) return "greenhouse";
   if (/(^|\/\/)jobs\.ashbyhq\.com\//.test(u)) return "ashby";
+  if (/(^|\/\/)jobs\.(eu\.)?lever\.co\//.test(u)) return "lever";
   return null;
 }
 

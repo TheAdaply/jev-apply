@@ -26,7 +26,7 @@ import { paths, slugify } from "../config.mjs";
 import { documentFor, getFact, resolvePreference, resumeDocuments, statedResumeFor } from "../memory/resolve.mjs";
 import { EEO_VALUES } from "../memory/schema.mjs";
 import { appliedBefore, latestEmployment, locationFact, noticeRule, roleFamilyFor, salaryFor, startDate, workAuth } from "../memory/derive.mjs";
-import { isAccommodationRequest } from "../schema/classes.mjs";
+import { PRONOUN_ROW_RE, isAccommodationRequest } from "../schema/classes.mjs";
 import { countryFromText, countryInQuestion, countryOfNationality, statesNamed } from "../schema/normalize.mjs";
 
 // ─── posting country ──────────────────────────────────────────────────────────────────────────
@@ -56,8 +56,9 @@ const NAME_RULES = [
   [/^(?:(?:your|full|legal|complete|entire)\s+)*names?\b/i, "full"],
 ];
 // "Name Pronunciation" starts like a name question but asks how the name is said: it belongs to
-// `q.core.name_pronunciation`, never to the name facts.
-const PRONUNCIATION_RE = /pronunciation|\bpronounce/i;
+// `q.core.name_pronunciation`, never to the name facts. "Name (phonetic)" is the same question one
+// wording away, and `^names?\b` claims it just as readily.
+const PRONUNCIATION_RE = /pronunciation|phonetic|\bpronounce/i;
 
 const LINK_RULES = [
   [/linked-?in/i, ["f.identity.linkedin_url"]],
@@ -1069,7 +1070,7 @@ function sensitiveRow(q, { mem, context }) {
   // `f.identity.pronouns` states it whether or not a demographic block was ever filled in. Tested
   // before `p.eeo` for exactly that reason — three postings left a pronouns field empty in round 1
   // while the fact was on file (docs/research/12-eval-judge-round1.md §3.7).
-  if (/\bpronouns?\b/i.test(q.label ?? "")) return pronounRow(mem, scopeCtx(context), labels, ask);
+  if (PRONOUN_ROW_RE.test(q.label ?? "")) return pronounRow(mem, scopeCtx(context), labels, ask);
   // An accommodation request is not a demographic question, whichever protected characteristic
   // its wording happens to mention: it is answered from one standing `p.accommodation` the user
   // stated, or it is asked (judge §3 N1).

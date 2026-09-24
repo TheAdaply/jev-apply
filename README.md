@@ -5,8 +5,9 @@ facts, preferences, or past answers belongs in each form field — it never writ
 guesses a personal detail. The few sentences that are genuinely new — a "why us" paragraph, an
 expanded story — are written by whichever backend you configure (or by the host agent, when you
 configure none). A Playwright runner fills the real form and reads every value back. It targets
-hosted **Greenhouse** and **Ashby** application forms, stops at ready-to-submit by default, and
-clicks Submit itself only once you turn auto-submit on.
+hosted **Greenhouse**, **Ashby** and **Lever** application forms, stops at ready-to-submit by
+default, and clicks Submit itself only once you turn auto-submit on — except on Lever, where the
+form is gated by a challenge only a person can answer: there it always stops for you to click.
 
 The only credential jev-apply cannot run without is a TypeSafe **Jev** key.
 
@@ -164,7 +165,8 @@ react-select, radio, checkbox, phone, file upload, location — landed and read 
 
 Live, end to end: real Greenhouse (Together AI) and Ashby (Baseten) forms filled — schema fetch,
 deterministic resolve, Jev, then Playwright with every write read back — at **1–2 Jev requests per
-posting**, about **$0.0004 of Jev per posting**.
+posting**, about **$0.0004 of Jev per posting**. Lever boards plan and fill the same way and are
+handed to you to submit.
 
 Ten-posting real-profile run, judged twice — before and after a round of correctness fixes
 (`--no-submit`, 136 fields, real Greenhouse and Ashby boards, each round judged cold field-by-field
@@ -214,7 +216,7 @@ test). Table, method and per-row notes: [`bench/results/fresh-pages.md`](bench/r
 src/
   config.mjs      constants, env loader, writer auto-detection, private-directory paths
   memory/         the YAML store and derivations (since:, notice, salary)
-  schema/         Greenhouse/Ashby schema fetch, question classification, FormPlan normalization
+  schema/         Greenhouse/Ashby/Lever schema fetch, question classification, FormPlan normalization
   jev/            the Jev client, request builders, confidence gates
   writer/         which backend writes, and the grounding/limit checks every draft passes
   plan/           resolve → decide → draft → execute → summarize

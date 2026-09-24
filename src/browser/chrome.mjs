@@ -25,6 +25,10 @@ export const DEFAULT_PORT = Number(process.env.JEV_CHROME_PORT) || 9223;
 /**
  * Windows installs land under one of three roots depending on installer and scope (system-wide
  * 64-bit, system-wide 32-bit, per-user). Built from the environment, not a drive letter.
+ *
+ * Suffix rank dominates root rank, or the policy below inverts: Chrome's own default installer
+ * puts stable Chrome under `%LOCALAPPDATA%`, and iterating roots first would let a system-wide
+ * `%PROGRAMFILES%\Chromium` outrank it.
  */
 export function windowsChromeCandidates(env = process.env) {
   const roots = [env.PROGRAMFILES, env["PROGRAMFILES(X86)"], env.LOCALAPPDATA].filter(Boolean);
@@ -33,7 +37,7 @@ export function windowsChromeCandidates(env = process.env) {
     ["Google", "Chrome SxS", "Application", "chrome.exe"],
     ["Chromium", "Application", "chrome.exe"],
   ];
-  return roots.flatMap((root) => suffixes.map((parts) => path.win32.join(root, ...parts)));
+  return suffixes.flatMap((parts) => roots.map((root) => path.win32.join(root, ...parts)));
 }
 
 /** The user's real browser first; Chromium / Chrome for Testing only as a fallback. */

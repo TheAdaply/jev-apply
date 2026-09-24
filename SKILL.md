@@ -8,7 +8,8 @@ description: >-
   configured, you: the host agent writes the paragraph from the prompt and grounding you're handed
   and returns it — and every fill is read back. When nothing is left to ask and the user's
   auto-submit preference is on, the runner clicks Submit itself and waits for the ATS's own
-  confirmation; otherwise it stops at "ready to submit" for the user to click. Use when the user says
+  confirmation (Lever always stops for the user: its Submit is behind a challenge only a person can
+  answer); otherwise it stops at "ready to submit" for the user to click. Use when the user says
   "learn my background" (onboard from a résumé and links), "complete this application <url>", "use
   that answer next time" or gives a correction, "find roles", or "apply to the queue".
 license: MIT
@@ -92,7 +93,9 @@ otherwise prints to stderr):
   confirmation was detected — the tab is left open, untouched, for the user to finish by hand), or a
   captcha/dead-tab failure mid-fill. When a `slug` is present, some fields may already be set —
   `apply.mjs --resume <slug>` re-attaches and lists every field still not on the form with its
-  intended value, so the user can finish by hand.
+  intended value, so the user can finish by hand. That run also reads the board's own confirmation
+  rules against the tab and reports `confirmation:{detected, strategy, text}`; once the user has
+  submitted by hand — which is always how a Lever application is sent — it answers `submitted`.
 
 ### Relaying `needs_user`
 For each ordinary question, in one message: `label` → its `options` if present. Always ask a
@@ -127,7 +130,11 @@ skills, tailored bullets) best fits the posting; a résumé the user tied to the
 wins. When the résumé question comes back with "none of your N résumés clearly fits this posting",
 ask the user in one line: *upload a résumé tailored to this role, or use one of the saved ones?* For
 a new file, run `learn.mjs --resume <file>` first, then answer with its file name; otherwise answer
-with the name of the saved one they pick.
+with the name of the saved one they pick. What that comparison sends is each résumé's *career*
+lines under a neutral label (`r0`, `r1`, …) — never the file's name, and never a contact, postal,
+date-of-birth, marital-status or nationality line. If the pick's file has been deleted since it was
+saved, the row says so by name and asks for `learn.mjs --resume <file>` rather than claiming no
+résumé fits.
 
 ## Verb 3 — "Use that answer next time" / corrections
 
@@ -153,10 +160,11 @@ When the user is new ("set me up", "help me apply to jobs"), run the verbs in th
 only at the marked points:
 1. **Résumés.** Ask for their standard résumé and any role-specific ones (ML, backend, …). Pass each
    as its own `--resume` to verb 1 and relay its `gaps[]` as usual.
-2. **Companies.** `scan.mjs` reads the user's own `~/.config/jev-apply/companies.yml`. If scan
-   reports none, ask which companies they want to track (names or careers-page URLs) and write that
-   list for them in the shape `references/companies-format.md` gives — only the companies they
-   named.
+2. **Companies.** `scan.mjs` reads the user's own `~/.config/jev-apply/companies.yml`, seeding it
+   once from the repo's starter list on a fresh install (it logs `seeded <path> from …`). Ask which
+   companies they want to track (names or careers-page URLs) when they say the seeded list is not
+   theirs, or when scan fails with `no …/companies.yml and no seed at …`, and write that list for
+   them in the shape `references/companies-format.md` gives — only the companies they named.
 3. **Find.** Verb 4, then show `pipeline.mjs list --top 10` and ask which to shortlist.
 4. **Apply.** Verb 5 on the shortlist. Each posting gets its best-fitting résumé; relay the one
    merged `needs_user` batch, including any "upload a tailored résumé?" question (see "Choosing the

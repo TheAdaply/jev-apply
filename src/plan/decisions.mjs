@@ -13,7 +13,7 @@
 //                   asked once.
 
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { statSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -224,15 +224,19 @@ export function formFingerprint(formPlan) {
 }
 
 /**
- * B1 — plan-vs-DOM identity. `apply.mjs --url` re-opens the tab, *reloads* it and re-fills from
+ * B1 — plan-vs-schema identity. `apply.mjs --url` re-opens the tab, *reloads* it and re-fills from
  * scratch before it reaches the submit gate. While the posting is unchanged that is only wasted
  * work; when the board has changed the form underneath it, the re-fill silently discards the
  * state a human reviewed and Submit would send something nobody read.
  *
- * So a run that is about to re-fill compares today's form against the fingerprint frozen beside
- * the decisions. Different shape plus at least one row the page confirmed = refuse, and say what
- * to do about it. `--refill` is the user saying "re-fill it anyway", which is the only thing
- * that may overrule this.
+ * So a run that is about to re-fill compares the form **as the board publishes it** against the
+ * fingerprint frozen beside the decisions. Both sides are the fetched schema, taken before stored
+ * conditional rows are merged in and before the fill loop corrects a row's control to what the
+ * page renders — otherwise the runner's own edits read as a changed board and every second run is
+ * refused. The price is that a change only the live DOM shows (a conditional row that disappeared,
+ * a control the board swapped) is no longer B1's to catch; `required_empty` and the read-backs are.
+ * Different schema plus at least one row the page confirmed = refuse, and say what to do about it.
+ * `--refill` is the user saying "re-fill it anyway", which is the only thing that may overrule this.
  *
  * A record frozen before fingerprints existed carries none; it is reported as unchecked rather
  * than refused, because refusing every pre-existing application would cost the user the runs it
@@ -256,8 +260,9 @@ export function refillGuard({ frozen = null, formPlan = null, form = null, refil
     checked: true,
     reason: "plan_identity",
     detail:
-      `this posting's form is not the one that was filled: ${reviewed.length} row(s) were written and read back against form ${frozen.form}, and the page now publishes ${now}. ` +
-      `Re-filling would discard what you reviewed — run \`apply.mjs --resume ${frozen.slug ?? "<slug>"}\` to see it, or re-run with --refill to plan the new form from scratch.`,
+      `this posting's form does not match the one that was filled: ${reviewed.length} row(s) were written and read back against form ${frozen.form}, and it now digests as ${now}. ` +
+      `Re-filling would discard what you reviewed — run \`apply.mjs --resume ${frozen.slug ?? "<slug>"}\` to see it, or re-run with --refill to plan the new form from scratch. ` +
+      `A record frozen by an earlier version carries a fingerprint taken *after* the fill instead of before it, so its first run under this one is refused once although the board never changed.`,
   };
 }
 
@@ -289,7 +294,10 @@ export async function readAnswersFile(file) {
  */
 /**
  * A file question's answer → the file to attach: a saved document named by its id, its short name
- * or its file name, else a path to a file that exists. null when it names neither.
+ * or its file name, else a path to a regular file that exists. null when it names neither.
+ *
+ * A directory exists as happily as a file does, and attaching one fails in the browser, three
+ * steps away from the answer that caused it — so the path has to be a file, here.
  */
 export function answeredFile(value, documents = []) {
   const want = String(value ?? "").trim();
@@ -303,7 +311,7 @@ export function answeredFile(value, documents = []) {
       ),
   );
   if (saved) return saved.path;
-  return existsSync(want) ? path.resolve(want) : null;
+  return statSync(want, { throwIfNoEntry: false })?.isFile() ? path.resolve(want) : null;
 }
 
 export async function applyAnswers(decisions, answers, { formPlan, context, persist = true, documents = [] } = {}) {

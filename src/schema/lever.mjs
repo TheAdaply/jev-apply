@@ -180,6 +180,13 @@ function selectOptions(html) {
 
 const quoted = (name) => String(name).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
+// A row that never reaches the FormPlan is invisible to every plan-level assertion (POSTMORTEM A4),
+// so the two places this normalizer drops one say so on stderr. Field names are the board's own
+// input names, never an answer.
+export function warnDropped(what, names) {
+  if (names.length) process.stderr.write(`[lever] warning: ${what}: ${names.join(", ")}\n`);
+}
+
 /** One block → a FormPlan row, or null when the block holds only plumbing. */
 function blockRow({ section, additional, html }, cards) {
   const controls = controlsIn(html).filter((c) => c.type !== "hidden");
@@ -205,6 +212,9 @@ function blockRow({ section, additional, html }, cards) {
   const card = cards.get(name) ?? null;
   const label = labelOf(html, card) || (additional ? section : "");
   if (!label) return null;
+  // One block, one row: a block with a second named input loses it. Correct for every board read so
+  // far, and the warning is how the next board's gap becomes visible instead of invisible.
+  warnDropped(`block "${label}" has more than one input; only ${name} is planned`, [...new Set(controls.filter((c) => c.name && c.name !== name && !PLUMBING_RE.test(c.name)).map((c) => c.name))]);
 
   const sameName = controls.filter((c) => c.name === name);
   const boxes = sameName.filter((c) => c.type === "checkbox").length;
@@ -272,7 +282,11 @@ export function normalizeLever(raw, url) {
   let previous = null;
   for (const block of blocks(form)) {
     const row = blockRow(block, cards);
-    if (!row || seen.has(row.qid)) continue;
+    if (!row) continue;
+    if (seen.has(row.qid)) {
+      warnDropped("a second block writes an input already planned; the later one is dropped", [row.qid]);
+      continue;
+    }
     seen.add(row.qid);
     const dependency = dependencyOn(row, previous);
     if (dependency) row.dependency = dependency;

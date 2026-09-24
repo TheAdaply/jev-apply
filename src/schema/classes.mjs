@@ -63,8 +63,15 @@ export const POLICY_GATE_RE =
 
 // EEO / demographic vocabulary. Matched against the label only: EEO boilerplate turns up in
 // unrelated help text, and Greenhouse's own EEO blocks are forced to `sensitive` by section.
-export const SENSITIVE_RE =
-  /\b(gender|racial|race|ethnic(?:ity)?|hispanic|latin[oax]|veteran|disabilit|sexual orientation|transgender|pronouns?\b|lgbtq|eeo|equal (?:employment )?opportunity|demographic|protected (?:veteran|class)|self[- ]identif|date of birth|marital status|religio)/i;
+//
+// A pronouns row is spelled once, here: the EEO branch that routes it to `f.identity.pronouns`
+// (`src/plan/resolve.mjs`) and the evidence tier that refuses to infer it (`src/plan/infer.mjs`)
+// read this same constant, so the three cannot drift apart again.
+export const PRONOUN_ROW_RE = /\bpronouns?\b/i;
+export const SENSITIVE_RE = new RegExp(
+  `\\b(gender|racial|race|ethnic(?:ity)?|hispanic|latin[oax]|veteran|disabilit|sexual orientation|transgender|${PRONOUN_ROW_RE.source}|lgbtq|eeo|equal (?:employment )?opportunity|demographic|protected (?:veteran|class)|self[- ]identif|date of birth|marital status|religio)`,
+  "i",
+);
 
 // …and the labels that name those characteristics only to say they are **not** asking for them.
 // 1Password's box reads "Other than your ethnicity, gender, and disability status (survey below),

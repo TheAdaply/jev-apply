@@ -480,7 +480,10 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
       requests: jev.requests,
       // The identity of the form these rows were filled against (B1). `refillGuard` reads it on
       // the next run and refuses to throw away a reviewed fill for a page that has changed.
-      form: plan.form ?? formFingerprint(formPlan),
+      // `planPosting()` always sets it and `applyToPlan()` mutates that same object, so there is
+      // nothing to fall back to: re-digesting `formPlan` here would freeze the *mutated* form and
+      // quietly reinstate the bug this fingerprint exists to fix.
+      form: plan.form,
       // `submit_attempted` is the double-submit guard's memory: true once the button was
       // actually clicked, whatever the board then said (PLAN §2.2 step 12).
       ...(submit
@@ -520,6 +523,10 @@ async function settle({ plan, started, browser = null, dryRun = false, submit = 
       : {}),
     ...(submit?.ok ? { confirmation: submit.confirmation } : {}),
     slug,
+    // The digest of the form *as the board published it* — what `freeze()` stores and `refillGuard`
+    // compares on the next run. Non-personal by construction (qid, control, required), and the only
+    // way a run's fingerprint is observable without reading `decisions.json`.
+    form: plan.form,
     url: formPlan.url,
     company: formPlan.job.company,
     title: formPlan.job.title,
@@ -882,7 +889,14 @@ async function mapLimit(items, limit, fn) {
 
 // ─── --resume SLUG ────────────────────────────────────────────────────────────────────────────
 
-/** What the summary's last line promises: every field that is not on the form, with its value. */
+/**
+ * What the summary's last line promises: every field that is not on the form, with its value.
+ *
+ * It is also where a hand-submitted application is verified. On a board whose Submit is gated by a
+ * challenge only a person can answer (`HUMAN_SUBMIT`) the runner never clicks, so the first
+ * evidence that the adapter's `CONFIRMATION` rules are right is the user's own submit — this run
+ * reads them against the tab and reports exactly what they saw, detected or not.
+ */
 async function resumeRun(args, stores) {
   const started = Date.now();
   const phases = newPhases();
@@ -897,14 +911,25 @@ async function resumeRun(args, stores) {
   let conn = null;
   let liveRows = null;
   let tab = null;
+  let confirmation = null;
   await timed(phases, "browser", async () => {
     try {
       conn = await connect({});
-      const { page } = await attachPosting(conn.context, url);
+      // A submitted application has left `/apply` for the board's receipt, so the posting itself is
+      // the prefix to match on: `findTab` would not recognise `…/thanks` from `…/apply`.
+      let { page } = await attachPosting(conn.context, url);
+      if (!page) ({ page } = await attachPosting(conn.context, url.replace(/\/(?:apply|application)\/?$/i, "")));
       if (page) {
         tab = page.url();
-        await waitForForm(page, { ats, timeout: 20000 }).catch(() => {});
-        liveRows = await snapshotRequired(page, { ats }).catch(() => null);
+        const verdict = await boardAdapter(ats).confirmSubmitted(page).catch(() => null);
+        confirmation = verdict ? { detected: verdict.detected === true, strategy: verdict.strategy ?? null, text: verdict.text ?? null, reason: verdict.reason ?? null } : null;
+        if (confirmation?.detected) {
+          log(`confirmation: ${boardAdapter(ats).CONFIRMATION?.strategy ?? ats} matched by ${confirmation.strategy}${confirmation.text ? ` — "${confirmation.text}"` : ""}`);
+        } else {
+          if (confirmation?.reason) log(`confirmation: not this page — ${confirmation.reason}`);
+          await waitForForm(page, { ats, timeout: 20000 }).catch(() => {});
+          liveRows = await snapshotRequired(page, { ats }).catch(() => null);
+        }
       }
     } catch (err) {
       log(`could not attach to the tab: ${err.message}`);
@@ -916,7 +941,9 @@ async function resumeRun(args, stores) {
   const rows = unfilled(frozen.decisions, { live: liveRows });
   const asked = needsUser(frozen.decisions, args.resume);
   const stillEmpty = (liveRows ?? []).filter((r) => !r.filled);
-  const status = asked.questions.length || stillEmpty.length ? "needs_user" : "ready_to_submit";
+  // The board's own receipt outranks the frozen plan: rows it still lists as unfilled were either
+  // filled by the user or were never required, and neither is a question to put to them again.
+  const status = confirmation?.detected ? "submitted" : asked.questions.length || stillEmpty.length ? "needs_user" : "ready_to_submit";
   if (!args.json) {
     log("");
     for (const r of rows) log(`${pad(r.qid, 26)} | ${pad(r.label, 40)} | ${pad(r.action, 6)} | ${pad(r.value ?? "", 40)} | ${r.why ?? ""}`);
@@ -929,6 +956,7 @@ async function resumeRun(args, stores) {
     company: frozen.company ?? null,
     title: frozen.job ?? null,
     tab,
+    confirmation,
     unfilled: rows,
     required_empty: stillEmpty.map((r) => ({ qid: r.qid, label: r.label })),
     asks: asked.questions,

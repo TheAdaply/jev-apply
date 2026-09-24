@@ -52,87 +52,156 @@ export function sniffAts(raw) {
 //     this table happens to list them.
 
 /**
- * Country code → the location phrasings that name it, as ATS location strings actually spell
- * them: the country's own names and codes, then the cities whose name alone identifies it.
- * Ambiguous city names are only listed qualified ("cambridge, ma" vs "cambridge, uk"), because a
- * bare "Cambridge" names no country and null is the honest answer.
+ * Country code → the country's own names and codes, as ATS location strings spell them.
+ *
+ * Held apart from the cities below because one part of a saved location may answer on its own only
+ * when it names a *country*: "London" is a city of GB, ON and OH, while "India" is one country
+ * however it is written.
  */
-const COUNTRY_PLACES = {
-  US: "united states(?: of america)?|u\\.s\\.a\\.|u\\.s\\.|usa|us|san francisco|sf bay|bay area|silicon valley|palo alto|mountain view|menlo park|sunnyvale|santa clara|cupertino|san jose|san mateo|redwood city|oakland|berkeley|seattle|bellevue|redmond|kirkland|new york|nyc|manhattan|brooklyn|boston|somerville|cambridge, ma|austin|dallas|houston|san antonio|chicago|denver|boulder|los angeles|santa monica|san diego|atlanta|miami|orlando|portland|pittsburgh|philadelphia|phoenix|salt lake city|minneapolis|detroit|ann arbor|nashville|charlotte|raleigh|durham|arlington, va|mclean|reston|princeton|las vegas|honolulu|washington,? d\\.?c\\.?",
-  CA: "canada|toronto|vancouver|montreal|montréal|ottawa|waterloo|kitchener|calgary|edmonton|winnipeg|halifax|mississauga|quebec city",
-  GB: "united kingdom|u\\.k\\.|uk|gb|england|scotland|wales|northern ireland|london|cambridge, (?:uk|england|united kingdom)|oxford|manchester|edinburgh|glasgow|bristol|leeds|belfast",
-  IE: "ireland|dublin|cork, ireland|galway",
-  DE: "germany|deutschland|berlin|munich|münchen|hamburg|frankfurt|cologne|köln|stuttgart|düsseldorf|dusseldorf|karlsruhe|dresden|leipzig",
-  FR: "france|paris|lyon|toulouse|grenoble|bordeaux|nantes|lille|marseille|sophia antipolis",
-  NL: "netherlands|holland|amsterdam|utrecht|eindhoven|rotterdam|the hague|den haag|delft|groningen",
-  CH: "switzerland|zurich|zürich|geneva|genève|lausanne|basel|bern|lugano",
-  AT: "austria|vienna|wien|graz|linz",
-  BE: "belgium|brussels|bruxelles|antwerp|ghent|leuven",
-  ES: "spain|espa[ñn]a|madrid|barcelona|valencia|seville|malaga|málaga|bilbao",
-  PT: "portugal|lisbon|lisboa|porto|braga|coimbra",
-  IT: "italy|italia|milan|milano|rome|roma|turin|torino|bologna|florence|firenze|naples",
-  SE: "sweden|stockholm|gothenburg|göteborg|malmö|malmo|lund|uppsala",
-  NO: "norway|oslo|trondheim|bergen, norway",
-  DK: "denmark|copenhagen|k[øo]benhavn|aarhus|odense",
-  FI: "finland|helsinki|espoo|tampere|oulu",
-  PL: "poland|polska|warsaw|warszawa|krakow|kraków|cracow|wroclaw|wrocław|gdansk|gdańsk|poznan|poznań",
-  CZ: "czech(?:ia| republic)?|prague|praha|brno",
-  RO: "romania|bucharest|cluj|cluj-napoca|timisoara|timișoara|iasi|iași",
-  UA: "ukraine|kyiv|kiev|lviv|kharkiv",
-  GR: "greece|athens, greece|thessaloniki",
-  // The rest of the EU/EEA. A posting in one of these named a country the table could not map,
-  // which is not "no country": `countryInQuestion()` returned null for Tenstorrent's Cyprus row
-  // and the relocation preference was then reported as not covering the location
-  // (docs/research/17-eval-judge-ten2.md §3 F3). Country name plus the capital, and only the
-  // cities whose name alone names the country — "split" and "cork" are ordinary words, so they
-  // are listed qualified or not at all.
-  CY: "cyprus|nicosia|limassol|larnaca|paphos",
-  MT: "malta|valletta",
+const COUNTRY_NAMES = {
+  US: "united states(?: of america)?|u\\.s\\.a\\.|u\\.s\\.|usa|us",
+  CA: "canada",
+  GB: "united kingdom|u\\.k\\.|uk|gb|england|scotland|wales|northern ireland",
+  IE: "ireland",
+  DE: "germany|deutschland",
+  FR: "france",
+  NL: "netherlands|holland",
+  CH: "switzerland",
+  AT: "austria",
+  BE: "belgium",
+  ES: "spain|espa[ñn]a",
+  PT: "portugal",
+  IT: "italy|italia",
+  SE: "sweden",
+  NO: "norway",
+  DK: "denmark",
+  FI: "finland",
+  PL: "poland|polska",
+  CZ: "czech(?:ia| republic)?",
+  RO: "romania",
+  UA: "ukraine",
+  GR: "greece",
+  CY: "cyprus",
+  MT: "malta",
   LU: "luxembourg",
-  SK: "slovakia|bratislava",
-  SI: "slovenia|ljubljana",
-  HR: "croatia|zagreb|split, croatia",
-  BG: "bulgaria|sofia",
-  HU: "hungary|budapest",
-  EE: "estonia|tallinn|tartu",
-  LV: "latvia|riga",
-  LT: "lithuania|vilnius|kaunas",
-  IS: "iceland|reykjav[íi]k",
-  LI: "liechtenstein|vaduz",
-  TR: "t[üu]rkiye|turkey|istanbul|ankara|izmir",
-  IL: "israel|tel aviv|tel-aviv|haifa|jerusalem|herzliya|ramat gan",
-  AE: "united arab emirates|uae|dubai|abu dhabi",
-  // The rest of the GCC, beside the UAE above: hardware and research postings are written for the
-  // whole bloc and the country a label names has to map, or the relocation row asks for nothing.
-  SA: "saudi arabia|ksa|riyadh|jeddah|dhahran|al khobar|neom",
-  QA: "qatar|doha",
+  SK: "slovakia",
+  SI: "slovenia",
+  HR: "croatia",
+  BG: "bulgaria",
+  HU: "hungary",
+  EE: "estonia",
+  LV: "latvia",
+  LT: "lithuania",
+  IS: "iceland",
+  LI: "liechtenstein",
+  TR: "t[üu]rkiye|turkey",
+  IL: "israel",
+  AE: "united arab emirates|uae",
+  SA: "saudi arabia|ksa",
+  QA: "qatar",
   KW: "kuwait",
-  BH: "bahrain|manama",
-  OM: "oman|muscat",
-  IN: "india|bharat|bengaluru|bangalore|mumbai|bombay|new delhi|delhi|noida|gurgaon|gurugram|hyderabad|chennai|pune|kolkata|ahmedabad|jaipur|trivandrum|thiruvananthapuram",
+  BH: "bahrain",
+  OM: "oman",
+  IN: "india|bharat",
   SG: "singapore",
-  JP: "japan|tokyo|osaka|kyoto|yokohama|fukuoka|nagoya",
-  KR: "south korea|korea, republic|seoul|pangyo",
-  CN: "china|beijing|shanghai|shenzhen|hangzhou|guangzhou",
+  JP: "japan",
+  KR: "south korea|korea, republic",
+  CN: "china",
   HK: "hong kong",
-  TW: "taiwan|taipei|hsinchu",
-  AU: "australia|sydney|melbourne|brisbane|perth|canberra|adelaide",
-  NZ: "new zealand|auckland|wellington, nz|christchurch",
-  BR: "brazil|brasil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|florian[óo]polis|recife",
-  MX: "mexico|m[ée]xico|mexico city|ciudad de m[ée]xico|guadalajara|monterrey",
-  AR: "argentina|buenos aires|c[óo]rdoba, argentina|rosario",
-  CL: "chile|santiago, chile",
-  CO: "colombia|bogot[áa]|medell[íi]n",
-  ZA: "south africa|johannesburg|cape town|pretoria|durban",
-  NG: "nigeria|lagos|abuja",
-  KE: "kenya|nairobi",
-  EG: "egypt|cairo",
-  PH: "philippines|manila|cebu|makati",
-  VN: "vietnam|viet nam|hanoi|ho chi minh",
-  TH: "thailand|bangkok",
-  MY: "malaysia|kuala lumpur|penang",
-  ID: "indonesia|jakarta",
+  TW: "taiwan",
+  AU: "australia",
+  NZ: "new zealand",
+  BR: "brazil|brasil",
+  MX: "mexico|m[ée]xico",
+  AR: "argentina",
+  CL: "chile",
+  CO: "colombia",
+  ZA: "south africa",
+  NG: "nigeria",
+  KE: "kenya",
+  EG: "egypt",
+  PH: "philippines",
+  VN: "vietnam|viet nam",
+  TH: "thailand",
+  MY: "malaysia",
+  ID: "indonesia",
 };
+
+/**
+ * …and the cities whose name alone identifies that country, as ATS location strings actually
+ * spell them. Ambiguous city names are only listed qualified ("cambridge, ma" vs "cambridge, uk"),
+ * because a bare "Cambridge" names no country and null is the honest answer. Four countries
+ * (LU, KW, SG, HK) are a city and a country at once and are listed above only.
+ */
+const COUNTRY_CITIES = {
+  US: "san francisco|sf bay|bay area|silicon valley|palo alto|mountain view|menlo park|sunnyvale|santa clara|cupertino|san jose|san mateo|redwood city|oakland|berkeley|seattle|bellevue|redmond|kirkland|new york|nyc|manhattan|brooklyn|boston|somerville|cambridge, ma|austin|dallas|houston|san antonio|chicago|denver|boulder|los angeles|santa monica|san diego|atlanta|miami|orlando|portland|pittsburgh|philadelphia|phoenix|salt lake city|minneapolis|detroit|ann arbor|nashville|charlotte|raleigh|durham|arlington, va|mclean|reston|princeton|las vegas|honolulu|washington,? d\\.?c\\.?",
+  CA: "toronto|vancouver|montreal|montréal|ottawa|waterloo|kitchener|calgary|edmonton|winnipeg|halifax|mississauga|quebec city",
+  GB: "london|cambridge, (?:uk|england|united kingdom)|oxford|manchester|edinburgh|glasgow|bristol|leeds|belfast",
+  IE: "dublin|cork, ireland|galway",
+  DE: "berlin|munich|münchen|hamburg|frankfurt|cologne|köln|stuttgart|düsseldorf|dusseldorf|karlsruhe|dresden|leipzig",
+  FR: "paris|lyon|toulouse|grenoble|bordeaux|nantes|lille|marseille|sophia antipolis",
+  NL: "amsterdam|utrecht|eindhoven|rotterdam|the hague|den haag|delft|groningen",
+  CH: "zurich|zürich|geneva|genève|lausanne|basel|bern|lugano",
+  AT: "vienna|wien|graz|linz",
+  BE: "brussels|bruxelles|antwerp|ghent|leuven",
+  ES: "madrid|barcelona|valencia|seville|malaga|málaga|bilbao",
+  PT: "lisbon|lisboa|porto|braga|coimbra",
+  IT: "milan|milano|rome|roma|turin|torino|bologna|florence|firenze|naples",
+  SE: "stockholm|gothenburg|göteborg|malmö|malmo|lund|uppsala",
+  NO: "oslo|trondheim|bergen, norway",
+  DK: "copenhagen|k[øo]benhavn|aarhus|odense",
+  FI: "helsinki|espoo|tampere|oulu",
+  PL: "warsaw|warszawa|krakow|kraków|cracow|wroclaw|wrocław|gdansk|gdańsk|poznan|poznań",
+  CZ: "prague|praha|brno",
+  RO: "bucharest|cluj|cluj-napoca|timisoara|timișoara|iasi|iași",
+  UA: "kyiv|kiev|lviv|kharkiv",
+  GR: "athens, greece|thessaloniki",
+  CY: "nicosia|limassol|larnaca|paphos",
+  MT: "valletta",
+  SK: "bratislava",
+  SI: "ljubljana",
+  HR: "zagreb|split, croatia",
+  BG: "sofia",
+  HU: "budapest",
+  EE: "tallinn|tartu",
+  LV: "riga",
+  LT: "vilnius|kaunas",
+  IS: "reykjav[íi]k",
+  LI: "vaduz",
+  TR: "istanbul|ankara|izmir",
+  IL: "tel aviv|tel-aviv|haifa|jerusalem|herzliya|ramat gan",
+  AE: "dubai|abu dhabi",
+  SA: "riyadh|jeddah|dhahran|al khobar|neom",
+  QA: "doha",
+  BH: "manama",
+  OM: "muscat",
+  IN: "bengaluru|bangalore|mumbai|bombay|new delhi|delhi|noida|gurgaon|gurugram|hyderabad|chennai|pune|kolkata|ahmedabad|jaipur|trivandrum|thiruvananthapuram",
+  JP: "tokyo|osaka|kyoto|yokohama|fukuoka|nagoya",
+  KR: "seoul|pangyo",
+  CN: "beijing|shanghai|shenzhen|hangzhou|guangzhou",
+  TW: "taipei|hsinchu",
+  AU: "sydney|melbourne|brisbane|perth|canberra|adelaide",
+  NZ: "auckland|wellington, nz|christchurch",
+  BR: "s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|florian[óo]polis|recife",
+  MX: "mexico city|ciudad de m[ée]xico|guadalajara|monterrey",
+  AR: "buenos aires|c[óo]rdoba, argentina|rosario",
+  CL: "santiago, chile",
+  CO: "bogot[áa]|medell[íi]n",
+  ZA: "johannesburg|cape town|pretoria|durban",
+  NG: "lagos|abuja",
+  KE: "nairobi",
+  EG: "cairo",
+  PH: "manila|cebu|makati",
+  VN: "hanoi|ho chi minh",
+  TH: "bangkok",
+  MY: "kuala lumpur|penang",
+  ID: "jakarta",
+};
+
+/** What names a country in a location string: its own names first, then its cities. */
+const COUNTRY_PLACES = Object.fromEntries(
+  Object.entries(COUNTRY_NAMES).map(([cc, names]) => [cc, [names, COUNTRY_CITIES[cc]].filter(Boolean).join("|")]),
+);
 
 /**
  * Nationality adjectives, for the one fact that states a nationality rather than a place:
@@ -228,6 +297,9 @@ const PLACE_RULES = [
   [new RegExp(`\\bca[-\\s](?:on|bc|qc|ab|mb|sk|ns|nb|nl|pe)\\b`), "CA"],
 ];
 
+/** The same, without the cities: what a location's single part has to match to answer on its own. */
+const COUNTRY_NAME_RULES = Object.entries(COUNTRY_NAMES).map(([cc, alts]) => [new RegExp(`\\b(?:${alts})\\b`), cc]);
+
 // A *question's* own words are prose, not a location string, and two rules that are safe on
 // "Bellevue, WA" are traps inside a sentence: the bare code `us` is the pronoun ("tell us how you
 // heard about us"), and the ", XX" state rule reads "…the country you are currently in, or your
@@ -291,18 +363,41 @@ const REGION_COUNTRY = new Map([
   ...["NSW", "VIC", "QLD", "SA", "TAS", "ACT"].map((c) => [c, "AU"]),
 ]);
 
+// A qualifier written the way a region is ("WA", "NT", "S.A.") that neither table can read. It is
+// the part that would have settled the city, so it vetoes the answer instead of being dropped.
+const REGION_TOKEN_RE = /^[A-Za-z]{2,3}\.?$/;
+
 /**
  * The one country a saved location states, or null. Each comma-separated part is read on its own
  * (a place through the place table, a later part also as a region code) and a country is returned
  * only when every part that names one names the same: "London, ON" is GB by its city and CA by its
  * province, so it states neither.
+ *
+ * Two refusals, because this value picks the country select of a demographic survey — which
+ * country's block renders is decided by it, so a confident wrong answer puts the user in front of
+ * the wrong sensitive questions:
+ *   * A qualifier neither table can read is a veto, not a blank. "Vancouver, WA" is Washington's
+ *     Vancouver, and WA is unlisted precisely because it is also Western Australia; dropping it
+ *     would leave the city table to answer CA unopposed.
+ *   * A location of one part answers only when that part names a *country*. `COUNTRY_PLACES`
+ *     mixes countries and cities, and a bare city is exactly the case the Lever autocomplete
+ *     refuses as `ambiguous_location` ("London" is GB, ON and OH): the same string must not be
+ *     ambiguous there and decisive here.
  */
 export function countryOfLocation(text) {
   const parts = String(text ?? "").split(",").map((p) => p.trim()).filter(Boolean);
-  const named = parts
-    .map((part, i) => countryFromText(part) ?? (i > 0 ? REGION_COUNTRY.get(part.replace(/\./g, "").toUpperCase()) : null) ?? null)
-    .filter(Boolean);
-  return named.length && named.every((c) => c === named[0]) ? named[0] : null;
+  const named = [];
+  for (const [i, part] of parts.entries()) {
+    const cc = countryFromText(part) ?? (i > 0 ? REGION_COUNTRY.get(part.replace(/\./g, "").toUpperCase()) : null) ?? null;
+    if (!cc) {
+      if (REGION_TOKEN_RE.test(part)) return null;
+      continue;
+    }
+    named.push(cc);
+  }
+  if (!named.length || !named.every((c) => c === named[0])) return null;
+  if (parts.length === 1 && firstPlace(COUNTRY_NAME_RULES, parts[0]) !== named[0]) return null;
+  return named[0];
 }
 
 /**

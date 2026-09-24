@@ -22,10 +22,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
+import { PRONOUN_ROW_RE, classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
 import { countryFromText, countryInQuestion, countryOfLocation, detectAts, loadFormPlan } from "../src/schema/normalize.mjs";
 import { normalizeAshby } from "../src/schema/ashby.mjs";
 import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
+import { normalizeLever } from "../src/schema/lever.mjs";
 import { optionStating, unmetTopics } from "../src/canon/normalize.mjs";
 import { NONE } from "../src/jev/client.mjs";
 import { GATES } from "../src/jev/gates.mjs";
@@ -38,6 +39,7 @@ import { inferBlocked, inferRows, inferredMemoryRows } from "../src/plan/infer.m
 import { acceptHostDrafts, chooseStories, hostDraft } from "../src/plan/draft.mjs";
 import { boardAdapter, deferredMount, matchLiveControls, observedMatches, restoreRetried, rowOrder, samePlace } from "../src/plan/execute.mjs";
 import { atsFromUrl } from "../src/browser/adapters/index.mjs";
+import { matchConfirmation } from "../src/browser/adapters/generic.mjs";
 import { pickSuggestion, setField as leverSetField } from "../src/browser/adapters/lever.mjs";
 import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
 import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, employersNamed, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
@@ -91,7 +93,10 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
 {
   const plan = planFixture("greenhouse-togetherai-5179372007.json");
   const asks = plan.asks.filter((q) => !DEMOGRAPHIC_RE.test(q.label));
-  check("greenhouse: 22 rows", rowCount(plan) === 22);
+  // A floor, not an equality: the row count also moves with what the *profile* holds (a store with
+  // a saved answer for the optional row plans it instead of dropping it), so an exact number is a
+  // permanent red line for anyone whose bench store is not this one.
+  check(`greenhouse: >= 22 rows (got ${rowCount(plan)})`, rowCount(plan) >= 22);
   // EEO rows are filled from `p.eeo`, never skipped (PLAN D10): what is left to skip is the
   // optional cover letter and the optional free-text row nothing answers.
   check(`greenhouse: skip <= 2 (got ${plan.skipped})`, plan.skipped <= 2);
@@ -2002,14 +2007,24 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
 }
 
+// ─── Chrome discovery (src/browser/chrome.mjs) ─────────────────────────────────────────────────
 {
   const found = windowsChromeCandidates({ PROGRAMFILES: "C:\\Program Files", "PROGRAMFILES(X86)": "C:\\Program Files (x86)", LOCALAPPDATA: "C:\\Users\\u\\AppData\\Local" });
   check(
-    "chrome: Windows installs are looked up under every install root, built from the environment",
+    `chrome: Windows installs are looked up under every install root, built from the environment (got ${found.length} paths, first ${found[0] ?? "(none)"})`,
     found.length === 9 && found[0] === "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" && found.some((p) => p.startsWith("C:\\Users\\u\\AppData\\Local\\")) && windowsChromeCandidates({}).length === 0,
+  );
+  // The user's own Chrome outranks a system-wide Chromium *wherever* it is installed: Chrome's
+  // default installer writes %LOCALAPPDATA%, which iterating roots first would rank last.
+  const lastChrome = found.map((p) => p.includes("\\Google\\Chrome\\")).lastIndexOf(true);
+  const firstChromium = found.findIndex((p) => p.includes("\\Chromium\\"));
+  check(
+    `chrome: every Google Chrome path outranks every Chromium path, across all three roots (last Chrome ${lastChrome}, first Chromium ${firstChromium})`,
+    lastChrome === 2 && firstChromium === 6 && lastChrome < firstChromium,
   );
 }
 
+// ─── guard: B15 name pronunciation (docs/POSTMORTEM.md §2) ─────────────────────────────────────
 {
   const mem = {
     facts: [
@@ -2021,19 +2036,33 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     stories: [],
     documents: [],
   };
-  const labels = { say: "Name Pronunciation | How do you pronounce your name?", ask: "How do you pronounce your name?", name: "Full name", pronouns: "Pronouns" };
+  const labels = { say: "Name Pronunciation | How do you pronounce your name?", ask: "How do you pronounce your name?", name: "Full name", pronouns: "Pronouns", phonetic: "Name (phonetic)" };
   const questions = Object.entries(labels).map(([qid, label]) => ({ qid, label, class: classify(label, "", "text", false), type: "text", required: false }));
   const row = (qid) => resolveForm({ job: {}, questions }, { mem }).decisions.find((d) => d.qid === qid);
   check(
-    "pronunciation: 'how do you pronounce your name' is not a demographic question; 'Pronouns' still is",
+    "guard: B15 name_pronunciation_as_identity — 'how do you pronounce your name' is not a demographic question; 'Pronouns' still is",
     questions[0].class !== "sensitive" && questions[1].class !== "sensitive" && questions[3].class === "sensitive",
   );
   check(
-    "pronunciation: a name-pronunciation row is never filled with the name itself, while a name row still is",
+    "guard: B15 name_pronunciation_as_identity — a name-pronunciation row is never filled with the name itself, while a name row still is",
     row("say").action !== "fill" && row("say").value !== "T Example" && row("ask").value !== "T Example" && row("name").value === "T Example" && row("pronouns").action === "fill",
+  );
+  check(
+    "guard: B15 name_pronunciation_as_identity — the same question one wording away ('Name (phonetic)') is not the name either",
+    row("phonetic").action !== "fill" && row("phonetic").value !== "T Example",
+  );
+  // One spelling of a pronouns row, read by the classifier, the EEO branch and the evidence tier.
+  check(
+    "pronouns: the classifier, the resolver and the evidence tier share one spelling of a pronoun row",
+    PRONOUN_ROW_RE.test("Preferred pronouns (optional)") &&
+      !PRONOUN_ROW_RE.test("How do you pronounce your name?") &&
+      classify("Preferred pronouns (optional)", "", "text", false) === "sensitive" &&
+      row("pronouns").source === "fact" &&
+      inferBlocked({ qid: "pronouns", class: "sensitive", action: "ask" }, { label: "Preferred pronouns (optional)" }) === "a pronoun is stated, never inferred",
   );
 }
 
+// ─── guard: B1 refill identity (docs/POSTMORTEM.md §2) ─────────────────────────────────────────
 {
   const published = { ats: "greenhouse", questions: [{ qid: "first_name", control: "text", required: true }, { qid: "location", control: "react_select", required: true }] };
   const grown = { qid: "hispanic_ethnicity", control: "react_select", required: false };
@@ -2042,10 +2071,21 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   const replanned = { ...published, questions: [...published.questions, grown] };
   const changed = { ...published, questions: [...published.questions, { qid: "export_control", control: "radio", required: true }] };
   check(
-    "B1 refill identity: a control the page corrected and a row it grew do not make an unchanged posting a different form; a changed schema still does",
+    "guard: B1 refill_identity — a control the page corrected and a row it grew do not make an unchanged posting a different form; a changed schema still does",
     formFingerprint(afterFill) !== frozen.form &&
       refillGuard({ frozen, formPlan: replanned, form: formFingerprint(published) }).ok === true &&
       refillGuard({ frozen, formPlan: changed, form: formFingerprint(changed) }).ok === false,
+  );
+  // The refusal is also read by a user whose board did *not* change — the definition did. It may
+  // not tell them the form changed, and it has to say what the one-run refusal is.
+  const refusal = refillGuard({ frozen, formPlan: changed, form: formFingerprint(changed) }).detail;
+  check(
+    "guard: B1 refill_identity — the refusal states a digest mismatch and the one-run migration, never that the board changed",
+    !/form is not the one that was filled|this posting's form changed/.test(refusal) &&
+      refusal.includes(frozen.form) &&
+      /does not match the one that was filled/.test(refusal) &&
+      /frozen by an earlier version/.test(refusal) &&
+      /--refill/.test(refusal),
   );
 }
 
@@ -2098,12 +2138,72 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     pickSuggestion(["South San Francisco, CA, USA"], "San Francisco, CA").pick === null &&
       pickSuggestion(["San Francisco, CA, USA", "South San Francisco, CA, USA"], "San Francisco, CA").pick === "San Francisco, CA, USA",
   );
+  // The click has to be by index: Playwright's string `hasText` is a substring match, so filtering
+  // on the pick and taking `.first()` lands on "South San Francisco" (24-review-pr2.md §3.1).
+  const shown = ["South San Francisco, CA, USA", "San Francisco, CA, USA"];
+  const chosen = pickSuggestion(shown, "San Francisco, CA");
+  check(
+    `lever location: the pick carries the index of the suggestion it read, never a substring to filter on (got ${chosen.index})`,
+    chosen.index === 1 && shown[chosen.index] === chosen.pick && pickSuggestion(three, "London").index === -1 && pickSuggestion([], "London").index === -1,
+  );
 }
 
+// ─── a Lever row that never reaches the plan says so (POSTMORTEM A4's shape) ───────────────────
+{
+  const block = (label, inputs) => `<li class="application-question"><div class="application-label">${label}</div>${inputs}</li>`;
+  const html =
+    '<form id="application-form"><h4>Submit your application</h4>' +
+    block("Your links", '<input type="text" name="urls[LinkedIn]"><input type="text" name="urls[GitHub]">') +
+    block("Full name", '<input type="text" name="name">') +
+    block("Name again", '<input type="text" name="name">') +
+    "</form>";
+  const warnings = [];
+  const realWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (chunk, ...rest) => {
+    if (String(chunk).startsWith("[lever]")) warnings.push(String(chunk).trim());
+    else realWrite(chunk, ...rest);
+    return true;
+  };
+  let planned;
+  try {
+    planned = normalizeLever({ html, posting: {}, _lever: { site: "acme", id: "x" } }, "https://jobs.lever.co/acme/x/apply");
+  } finally {
+    process.stderr.write = realWrite;
+  }
+  check(
+    `lever schema: a second input in one block and a block repeating a planned input are both dropped *and* reported (got ${warnings.length} warning(s), ${planned.questions.length} rows)`,
+    planned.questions.length === 2 &&
+      warnings.length === 2 &&
+      warnings.some((w) => w.includes("urls[GitHub]") && w.includes("only urls[LinkedIn] is planned")) &&
+      warnings.some((w) => w.includes("already planned") && w.includes("name")),
+  );
+}
+
+// ─── the frozen fingerprint is the form as published (B1's ordering invariant) ──────────────────
+{
+  const fixture = path.join(HERE, "fixtures", "greenhouse-togetherai-5179372007.json");
+  const published = await loadFormPlan(fixture);
+  const run = planFixture("greenhouse-togetherai-5179372007.json", ["--no-infer"]);
+  check(
+    `plan: the run reports the digest of the form the board published, taken before any stored row is merged in (got ${run.form})`,
+    typeof run.form === "string" && run.form === formFingerprint(published) && refillGuard({ frozen: { slug: "x", form: run.form, decisions: [{ qid: "a", readback: { ok: true } }] }, form: run.form }).ok === true,
+  );
+}
+
+// ─── guard: B16 human-only submit (docs/POSTMORTEM.md §2) ──────────────────────────────────────
 {
   check(
-    "lever submit: the board declares a human-only submit step; Greenhouse and Ashby do not",
+    "guard: B16 human_only_submit — the board declares a human-only submit step; Greenhouse and Ashby do not",
     typeof boardAdapter("lever").HUMAN_SUBMIT === "string" && !boardAdapter("greenhouse").HUMAN_SUBMIT && !boardAdapter("ashby").HUMAN_SUBMIT,
+  );
+  // The runner never clicks here, so the first evidence for these rules is the user's own submit,
+  // read back by `apply.mjs --resume <slug>`. They must recognise the receipt and not the form.
+  const conf = boardAdapter("lever").CONFIRMATION;
+  const receipt = matchConfirmation({ url: "https://jobs.lever.co/spotify/2193db3f/thanks", text: "Thank you for applying", fields: 0, submits: 0, hits: [] }, conf);
+  const stillForm = matchConfirmation({ url: "https://jobs.lever.co/spotify/2193db3f/apply", text: "Submit application", fields: 17, submits: 1, hits: [] }, conf);
+  check(
+    `guard: B16 human_only_submit — a hand-submitted application is verified from the board's own receipt, and the form page is not one (got ${receipt.strategy} / ${stillForm.detected})`,
+    receipt.detected === true && receipt.strategy === "url" && stillForm.detected === false,
   );
   const live = [{ qid: "surveysResponses[s][responses][field0]", label: "What best describes your gender?", selector: 'input[name="x"]', control: "radio", multiple: false, options: [{ label: "Woman", value: "Woman" }] }];
   const { novel } = matchLiveControls(live, { questions: [], decisions: [] });
@@ -2129,6 +2229,19 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
       countryOfLocation("London, ON") === null &&
       countryOfLocation("Paris, TX") === null &&
       countryOfLocation("Remote") === null,
+  );
+  // …and it decides which country's demographic survey renders, so an unreadable qualifier is a
+  // veto and a bare city is no answer at all — the same string the Lever autocomplete refuses as
+  // ambiguous (docs/research/24-review-pr2.md §0.1).
+  check(
+    `location country: an unreadable region qualifier vetoes the city's reading and a lone city names nothing (got ${countryOfLocation("Vancouver, WA")} / ${countryOfLocation("London")})`,
+    countryOfLocation("Vancouver, WA") === null &&
+      countryOfLocation("Darwin, NT") === null &&
+      countryOfLocation("London") === null &&
+      countryOfLocation("Dublin") === null &&
+      countryOfLocation("Bengaluru, India") === "IN" &&
+      countryOfLocation("San Francisco, CA") === "US" &&
+      countryOfLocation("Portugal") === "PT",
   );
   const byCode = { options: [{ label: "United Kingdom", value: "GB" }, { label: "United States", value: "US" }, { label: "United States Minor Outlying Islands", value: "UM" }] };
   const byName = { options: [{ label: "United Kingdom", value: "1" }, { label: "United States", value: "2" }] };
@@ -2163,8 +2276,11 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     resolved(base)._pickResume === true && !resolved(oneOnly)._pickResume && !resolved(mapped)._pickResume && resolved(mapped).path === file,
   );
   check(
-    "résumé pick: a résumé whose PDF cannot be read is described by its file name and the stories read out of it",
-    resumeCriterion(ml, base).includes("Trained a ranking model") && !resumeCriterion(ml, base).includes("payments"),
+    "résumé pick: a résumé whose PDF cannot be read is described by its criterion label and the stories read out of it, never by its file name",
+    resumeCriterion(ml, base, "r0").startsWith("r0: ") &&
+      resumeCriterion(ml, base, "r0").includes("Trained a ranking model") &&
+      !resumeCriterion(ml, base, "r0").includes("payments") &&
+      !resumeCriterion(ml, base, "r0").includes(path.basename(file)),
   );
   const rows = () => [{ qid: "resume", action: "ask", source: "none", remember_as: { kind: "document" } }];
   const confident = rows();
@@ -2175,11 +2291,27 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   applyResumePick(none, [ml, backend], { choice: "none_of_these", confidence: 0.8, probabilities: { r0: 0.1, r1: 0.1, none_of_these: 0.8 } });
   check(
     "résumé pick: a confident pick attaches that file, a thin one attaches it as a check, none_of_these leaves the stated rule's row",
-    picked === backend && confident[0].action === "fill" && confident[0].path === file && !confident[0].remember_as &&
+    picked?.picked === backend && confident[0].action === "fill" && confident[0].path === file && !confident[0].remember_as &&
       thin[0].action === "check" &&
       none[0].action === "ask" && none[0].remember_as?.kind === "document",
   );
   check("résumé pick: the reason names the pick and the runner-up with their probabilities", /backend.*90%.*vs doc\.resume\.ml 5%/.test(confident[0].why));
+  // ─── follow-up to docs/research/24-review-pr2.md §0.3 ─────────────────────────────────────────
+  const goneDoc = { id: "doc.resume.gone", path: path.join(HERE, "no-such-resume.pdf") };
+  const stale = rows();
+  const verdict = applyResumePick(stale, [ml, goneDoc], { choice: "r1", confidence: 0.95, probabilities: { r0: 0.03, r1: 0.95, none_of_these: 0.02 } });
+  const offered = [{ qid: "resume", action: "ask", source: "none" }];
+  noClearFit(offered, [ml, goneDoc]);
+  check(
+    "résumé pick: a confident pick whose file is gone says so and names the file, and a deleted résumé is never offered as an answer",
+    verdict?.gone === goneDoc &&
+      !verdict.picked &&
+      stale[0].action === "ask" &&
+      /doc\.resume\.gone fits this posting best, but its file is gone/.test(stale[0].why) &&
+      /learn\.mjs --resume/.test(stale[0].why) &&
+      !offered[0].why.includes("no-such-resume.pdf") &&
+      offered[0].why.includes(path.basename(file)),
+  );
 }
 
 {
@@ -2197,7 +2329,19 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
   check(
     "résumé text: a résumé with nothing of its own says so instead of repeating the shared text",
-    /same content as the other résumés/.test(resumeDigest("copy.pdf", android, [android])) && resumeDigest("a.pdf", android, [backend], 60).length === 60,
+    /same content as the other résumés/.test(resumeDigest("r0", android, [android])) && resumeDigest("r0", android, [backend], 60).length === 60,
+  );
+  // The digest is the one place a document's own text leaves the machine, so it carries the
+  // criterion's neutral key and no personal line (docs/research/24-review-pr2.md §0.2).
+  const foreign = profileLines(
+    "J Example\n221B Baker Street, San Francisco, CA 94110\nDate of Birth: 4 June 1994\nMarital status: married\nNationality: Irish\nSUMMARY\nDistributed systems engineer\nBuilt a Raft implementation in Go",
+  );
+  check(
+    `résumé text: an address, a date of birth, a marital status and a nationality never leave the file, and the digest is labelled r0 (got ${foreign.length} lines)`,
+    foreign.includes("Built a Raft implementation in Go") &&
+      !foreign.some((l) => /Baker Street|94110|Birth|married|Irish/.test(l)) &&
+      resumeDigest("r0", foreign, [android]).startsWith("r0: ") &&
+      !resumeDigest("r0", foreign, [android]).includes("resume.pdf"),
   );
 }
 
@@ -2224,6 +2368,11 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
     byName.action === "fill" && byName.path === file && !byName.remember_as &&
       byPath.action === "fill" && byPath.path === path.resolve(file) &&
       unknown.action === "ask" && /no saved document or file named/.test(unknown.why),
+  );
+  const directory = await answer(HERE);
+  check(
+    "résumé answer: a directory is not a file — it stays a question instead of failing in the browser",
+    directory.action === "ask" && !directory.path && /no saved document or file named/.test(directory.why),
   );
 }
 

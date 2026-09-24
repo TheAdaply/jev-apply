@@ -63,6 +63,44 @@ produced it and a deterministic assertion in `eval/plan.test.mjs` (148 → 155).
   put N/A") fill that literal once memory refutes the condition, instead of leaving a required
   control empty.
 
+Two cold reviews of the merged branches (`docs/research/23-review-pr1.md`,
+`docs/research/24-review-pr2.md`) asked for one follow-up each. Every item below is theirs, with an
+assertion in `eval/plan.test.mjs` (199 → 211).
+
+- **One re-run of an application frozen before this version is refused once, and only once.** The
+  form fingerprint `decisions.json` stores is now taken from the schema *as the board publishes
+  it*, before stored conditional rows are merged in and before the fill loop corrects a control to
+  what the page renders. Records frozen by an earlier version carry the old, post-fill digest, so
+  the first `apply.mjs --url` on one of them sees a mismatch and refuses. The board did not change;
+  the definition did. `--refill` clears it and it does not come back. The refusal text says so
+  rather than claiming the posting's form changed (`src/plan/decisions.mjs`).
+- `src/browser/chrome.mjs` — on Windows, Google Chrome under *any* install root now outranks a
+  Chromium under every root: Chrome's own installer writes `%LOCALAPPDATA%`, which the previous
+  root-first order ranked below a system-wide `%PROGRAMFILES%\Chromium`.
+- `src/plan/resolve.mjs`, `src/schema/classes.mjs`, `src/plan/infer.mjs` — "Name (phonetic)" is a
+  pronunciation question, not the name (B15), and the one spelling of a pronouns row now lives in a
+  single exported `PRONOUN_ROW_RE` the classifier, the EEO branch and the evidence tier all read.
+- `src/schema/normalize.mjs` — a saved location answers the demographic survey's country select
+  only when it is unambiguous: a qualifier neither table can read now vetoes the answer
+  ("Vancouver, WA" is no longer Canada) and a location of one part must name a country rather than
+  a city ("London", "Dublin" name none). `Bengaluru, India` and `San Francisco, CA` are unchanged.
+- `src/memory/resume-text.mjs`, `src/jev/plan.mjs` — the per-posting résumé comparison sends each
+  file's career lines under a neutral label (`r0`, `r1`, …) instead of its file name, and drops
+  postal-address, date-of-birth, marital-status and nationality lines as well as contact lines. A
+  confident pick whose file has been deleted now says exactly that and names the file, instead of
+  reporting "no résumé clearly fits"; the résumés offered as an answer are filtered to those still
+  on disk, and a `--answers` value naming a *directory* is no longer accepted as a file.
+- `src/browser/adapters/lever.mjs` — the location suggestion is clicked by its index in the list
+  that was read, never by a substring filter: "San Francisco, CA, USA" is a substring of "South San
+  Francisco, CA, USA", so the old filter could land on the wrong row and turn a correct location
+  into a question. `src/schema/lever.mjs` now logs the two rows it drops (a second named input in
+  one block, a block repeating an input already planned) instead of dropping them silently.
+- `scripts/apply.mjs` — the `--json` payload carries `form`, the digest of the form as published;
+  `--resume <slug>` reads the board's own confirmation rules against the tab, reports what they saw
+  under `confirmation`, and settles `submitted` when the board's receipt is on screen. That is how
+  a board the runner never clicks for (Lever, B16) gets its confirmation rules verified — by the
+  user's own submit.
+
 ## v0.5.0
 
 A correctness pass driven by five cold judgements of filled, screenshotted forms rather than by

@@ -23,6 +23,7 @@
 // "which saved item answers this?" stay separate asks with their own criteria. They do travel in
 // one request when they apply to different rows, which is what keeps a posting inside three.
 
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -765,40 +766,53 @@ function applySavedItems(rows, answers, pools) {
  * equality, and the canonical vocabulary the question belongs to (`src/canon/normalize.mjs`),
  * which maps a saved answer onto a list that spells it differently or does not spell it at all.
  */
-/** A résumé as Jev sees it when its PDF cannot be read: its file name and its stories' titles. */
-export function resumeCriterion(doc, mem) {
+/**
+ * A résumé as Jev sees it when its PDF cannot be read: its criterion label and the titles of the
+ * stories onboarding read out of it. The file's own name stays here, for the same reason
+ * `resumeDigest` drops it (`src/memory/resume-text.mjs` header).
+ */
+export function resumeCriterion(doc, mem, label = "this résumé") {
   const titles = usableStories(mem)
     .filter((s) => doc?.source && String(s?.source ?? "").startsWith(`${doc.source}#`))
     .map((s) => s.title)
     .filter(Boolean)
     .slice(0, 8);
-  const name = path.basename(String(doc?.path ?? doc?.id ?? ""));
-  return clip(titles.length ? `${name}: ${titles.join("; ")}` : name, 400);
+  return clip(titles.length ? `${label}: ${titles.join("; ")}` : `${label}: (no readable text on file)`, 400);
 }
 
 /**
  * Jev's pick → the résumé rows. A confident pick attaches that file, a thin one attaches it as a
- * `check`; `none_of_these`, a pick below the gate, or a file no longer on disk leaves every row
- * exactly as the stated rule resolved it. Pure, so the rule is testable without a request.
+ * `check`; `none_of_these` and a pick below the gate leave every row exactly as the stated rule
+ * resolved it. Needs no request, so the rule is testable on its own.
+ *
+ * The three outcomes are *not* the same thing to a user, so each is reported rather than folded
+ * into one "no résumé fits": `{picked}` when the file was attached, `{gone}` when Jev chose
+ * confidently and the file it chose is missing (the rows then say so, `fileGone`), `null` when no
+ * résumé was chosen at all and the caller's `noClearFit` is the right sentence.
+ * @returns {{picked?:object, gone?:object, why?:string}|null}
  */
 export function applyResumePick(rows, resumes, answer) {
   if (!answer || answer.choice === NONE) return null;
   const action = gate(answer);
   if (action === "ask") return null;
   const doc = resumes[Number(String(answer.choice).slice(1))];
+  if (!doc) return null;
   const pct = (p) => `${Math.round((p ?? 0) * 100)}%`;
   const next = Object.entries(answer.probabilities ?? {})
     .filter(([key]) => key !== answer.choice && key !== NONE)
     .sort((a, b) => b[1] - a[1])[0];
   const runnerUp = next ? resumes[Number(next[0].slice(1))] : null;
   const vs = runnerUp ? ` vs ${runnerUp.id} ${pct(next[1])}` : "";
-  const row = doc ? fileRow(doc, `Jev picked ${doc.id} for this posting — ${pct(answer.probabilities?.[answer.choice] ?? answer.confidence)}${vs}`) : null;
-  if (!row || row.action !== "fill") return null;
+  const row = fileRow(doc, `Jev picked ${doc.id} for this posting — ${pct(answer.probabilities?.[answer.choice] ?? answer.confidence)}${vs}`);
+  if (row.action !== "fill") {
+    fileGone(rows, doc);
+    return { gone: doc, why: row.why };
+  }
   for (const d of rows) {
     delete d.remember_as;
     Object.assign(d, row, { action: action === "check" ? "check" : "fill", confidence: round(answer.confidence) });
   }
-  return doc;
+  return { picked: doc };
 }
 
 /**
@@ -808,12 +822,13 @@ export function applyResumePick(rows, resumes, answer) {
 async function resumeStage(rows, { formPlan, mem, slug, signal, totals }) {
   const resumes = resumeDocuments(mem);
   // Each résumé is described by what only it says, read from the PDF; one that cannot be read is
-  // described by the stories onboarding kept from it instead.
+  // described by the stories onboarding kept from it instead. The criterion's own key is the only
+  // name either description carries — a résumé's file name is usually the user's own.
   const lines = await Promise.all(resumes.map((doc) => resumeLines(doc.path).catch(() => null)));
   const criteria = {};
   resumes.forEach((doc, i) => {
     const others = lines.filter((l, j) => j !== i && l);
-    criteria[`r${i}`] = lines[i]?.length ? resumeDigest(path.basename(doc.path), lines[i], others) : resumeCriterion(doc, mem);
+    criteria[`r${i}`] = lines[i]?.length ? resumeDigest(`r${i}`, lines[i], others) : resumeCriterion(doc, mem, `r${i}`);
   });
   const state = { job: { ...jobState(formPlan), description: clip(formPlan?.job?.description, 3000) } };
   const questions = {
@@ -823,20 +838,37 @@ async function resumeStage(rows, { formPlan, mem, slug, signal, totals }) {
     ),
   };
   const answers = await ask({ stage: "resume", state, questions, slug, signal, totals });
-  const picked = applyResumePick(rows, resumes, answers.resume);
-  if (!picked) noClearFit(rows, resumes);
+  const verdict = applyResumePick(rows, resumes, answers.resume);
+  if (!verdict) noClearFit(rows, resumes);
   for (const d of rows) delete d._pickResume;
+}
+
+/**
+ * Jev chose one, and the file it chose is not on disk. Saying "no résumé fits" here would tell the
+ * user the opposite of what happened, and it is a different thing to fix: re-save the file.
+ */
+export function fileGone(rows, doc) {
+  const note = `${doc.id} fits this posting best, but its file is gone (${doc.path}) — re-save it with \`learn.mjs --resume <file>\``;
+  for (const d of rows) {
+    if (d.action === "ask") d.why = note;
+    else d.why = `${d.why} (${note})`;
+  }
 }
 
 /**
  * None of the saved résumés fits this posting clearly better than the others. A row left to ask
  * says so and names them; a row the stated default already filled keeps it and says the same.
+ *
+ * Only the files still on disk are offered: naming one that has been deleted invites an answer
+ * `answeredFile()` then refuses, one round-trip later.
  */
 export function noClearFit(rows, resumes) {
-  const names = resumes.map((doc) => path.basename(doc.path)).join(", ");
+  const onDisk = resumes.filter((doc) => doc?.path && existsSync(doc.path));
+  const names = onDisk.map((doc) => path.basename(doc.path)).join(", ");
   const note = `none of your ${resumes.length} résumés clearly fits this posting`;
+  const answerWith = names ? ` — answer with one of ${names}, or save one tailored to it first (learn.mjs --resume <file>)` : " — and none of them is still on disk: save one with `learn.mjs --resume <file>`";
   for (const d of rows) {
-    if (d.action === "ask") d.why = `${note} — answer with one of ${names}, or save one tailored to it first (learn.mjs --resume <file>)`;
+    if (d.action === "ask") d.why = `${note}${answerWith}`;
     else if (d.action === "fill" || d.action === "check") d.why = `${d.why} (${note}; a tailored one may do better)`;
   }
 }

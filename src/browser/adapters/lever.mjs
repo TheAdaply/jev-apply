@@ -73,19 +73,25 @@ const parts = (s) =>
  * A suggestion qualifies when its first segment is the saved city and every further segment the
  * user saved (a state, a country) appears among its segments; more than one qualifying suggestion
  * is ambiguous and never resolved by position.
- * @returns {{pick:string|null, reason?:string}}
+ *
+ * `index` is where that suggestion sits in the list as read, because the click has to be by index:
+ * Playwright's string `hasText` is a *substring* match, and "San Francisco, CA, USA" is a substring
+ * of nothing while "South San Francisco, CA, USA" contains it — filtering by text and taking
+ * `.first()` is the positional read this function exists to refuse.
+ * @returns {{pick:string|null, index:number, reason?:string}}
  */
 export function pickSuggestion(suggestions, want) {
   const wanted = parts(want);
-  if (!wanted.length) return { pick: null, reason: "no location value to type" };
+  if (!wanted.length) return { pick: null, index: -1, reason: "no location value to type" };
   const unique = [...new Set(suggestions.map((s) => norm(s)).filter(Boolean))];
   const hits = unique.filter((s) => {
     const p = parts(s);
     return p[0] === wanted[0] && wanted.slice(1).every((q) => p.includes(q));
   });
-  if (hits.length === 1) return { pick: hits[0] };
+  if (hits.length === 1) return { pick: hits[0], index: suggestions.findIndex((s) => norm(s) === hits[0]) };
   return {
     pick: null,
+    index: -1,
     reason: hits.length ? `ambiguous_location: ${hits.length} suggestions match "${norm(want)}"` : `no suggestion matches "${norm(want)}"`,
   };
 }
@@ -112,8 +118,8 @@ async function setLocation(page, question, value, opts) {
         timeout: 8000,
       });
       const choice = pickSuggestion(shown ?? [], want);
-      if (choice.pick) {
-        await box.locator(SUGGESTION).filter({ hasText: choice.pick }).first().click();
+      if (choice.pick && choice.index >= 0) {
+        await box.locator(SUGGESTION).nth(choice.index).click();
         picked = choice.pick;
         reason = null;
         break;

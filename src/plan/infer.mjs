@@ -55,6 +55,8 @@ import { fullTimeYears, noticeRule, startDate } from "../memory/derive.mjs";
 import { applicableCorrections, getFact, resolvePreference, usableStories } from "../memory/resolve.mjs";
 import { STANDARD_ACKS_ID, isUserSourced, parseSince, stamp } from "../memory/schema.mjs";
 import { upsertRow } from "../memory/store.mjs";
+// A pronoun row (`sensitive`, and never inferred — see the header) is spelled once, in the classifier.
+import { PRONOUN_ROW_RE } from "../schema/classes.mjs";
 import { asksAboutThisEmployer, employersNamed, factText, nameSplit, policySlug, yesNoOf } from "./resolve.mjs";
 
 /** The classes an evidence-based answer may reach. `sensitive`, `why_us` and `essay` are absent. */
@@ -112,8 +114,6 @@ const optionLabelsOf = (q) => (q?.options ?? []).map((o) => text(o?.label ?? o))
 
 // ─── which rows the tier may reach ────────────────────────────────────────────────────────────
 
-/** A pronoun row. Classed `sensitive`, and never inferred — see the header. */
-const PRONOUN_ROW_RE = /\bpronouns?\b/i;
 /** An employment-history or prior-application question: whose history it is about decides. */
 const EMPLOYMENT_HISTORY_RE =
   /\b(?:previously|ever|formerly|in the past|before)\b[^?]{0,60}\b(?:employ|work|contract|intern|appl(?:y|ied)|interview)\w*|\b(?:employ|work|contract|intern|appl(?:y|ied)|interview)\w*[^?]{0,40}\b(?:before|previously|in the past)\b/i;

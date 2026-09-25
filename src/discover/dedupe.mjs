@@ -45,7 +45,10 @@ export function companyRoleKey(job) {
     title = title.replace(/\s*\([^()]*\)\s*$/, "");
   } while (title !== prev);
 
-  title = title.replace(/\s*[-–—|]\s*[^-–—|]+$/, "");
+  // A plain hyphen separates a suffix only when spaced (" - Berlin"); unspaced it is part of a word
+  // ("Full-Stack", "Front-End"), and cutting there made distinct roles collide as "acme::full".
+  const spaced = title.replace(/\s+[-–—|]\s+(?:(?!\s[-–—|]\s).)+$/, "");
+  title = spaced !== title ? spaced : title.replace(/\s*[–—|]\s*[^–—|]+$/, "");
 
   title = title
     .toLowerCase()

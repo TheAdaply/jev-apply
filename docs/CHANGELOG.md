@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+**"Current or previous employer" answers from memory, and only that question does (#5, joint work
+with [Shine Gupta](https://github.com/Shine-5705)).** Stripe asks "Who is your current or previous
+employer?", and the employer and title patterns accepted only "current or most recent", so the row
+went back to the user with `f.employment.current` on file. Widening them in place also widened what
+they matched *anywhere* in a label — already true on main of "May we contact your current
+employer?" (Lyft) and "In your current role, how many employees directly report to you?" (Cohere),
+both filled with an employer or a title.
+
+- `src/schema/classes.mjs` — `CURRENT_EMPLOYER_RE` / `CURRENT_TITLE_RE`, one spelling that the
+  classifier and `src/plan/resolve.mjs identityRow()` both read. They match when the words open
+  the label, behind at most "who/what is" or "please provide/list/share", and take the qualifier as
+  "or previous / last / former / past / most recent", "(or …)" or "/ …" — so "Current / Most
+  Recent Title" and "Current/Last Company" answer without a Jev request. A question that only
+  mentions the employer (a reference consent, an agreement, a visa sponsor, a headcount) no longer
+  gets its name. Across 1,249 real labels, those two wrong fills are the only other answers that
+  change.
+- `src/plan/resolve.mjs` — a label with "former" or "past" accepts a role the user has left, as a
+  `check`; a bare "Current company" still does not.
+- `src/schema/classes.mjs` — "Why are you leaving …" is no longer classed `why_us`, which
+  `p.auto_draft` writes from the posting's own text: it asks for the user's reason.
+- `eval/plan.test.mjs` — the employer and title labels, and eight questions that only mention an
+  employer or a role.
+
 **A scan keeps every distinct role (#4, joint work with [Shine Gupta](https://github.com/Shine-5705)).**
 Two postings of one company were keyed as one role whenever their titles differed only after a
 dash or inside a hyphenated word, so a scan kept the first and dropped the rest, and the history

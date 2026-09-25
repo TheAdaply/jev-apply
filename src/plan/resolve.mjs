@@ -94,8 +94,8 @@ const COVER_RE = /cover letter/i;
 export const LOCATION_RE = /^(?:your |current |candidate )*(?:location|city|country)\b|where are you (?:currently )?(?:located|based)|current location|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)/i;
 const FUTURE_LOCATION_RE = /where (?:would|will) you (?:like to )?(?:work|be based)|where do you (?:intend|plan|expect|want|wish) to (?:work|be based|live)|from where do you intend to work|payroll location|desired (?:work )?location/i;
 const ADDRESS_RE = /\b(?:legal|home|mailing|street|postal)?\s*address\b/i;
-const CURRENT_COMPANY_RE = /^current (?:company|employer)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:employer|company)/i;
-const CURRENT_TITLE_RE = /^current (?:job ?title|title|role|position)|(?:your|the) current(?: or (?:most|more) recent)?\s+(?:job ?title|title|role|position)/i;
+const CURRENT_COMPANY_RE = /^current (?:company|employer)|(?:your|the) current(?: or (?:(?:most|more) recent|previous|last|former|past))?\s+(?:employer|company)/i;
+const CURRENT_TITLE_RE = /^current (?:job ?title|title|role|position)|(?:your|the) current(?: or (?:(?:most|more) recent|previous|last|former|past))?\s+(?:job ?title|title|role|position)/i;
 /**
  * Does this label accept the role the user has *left*? "Current or most recent employer" does;
  * a bare "Current company" does not, and answering it with an employer whose own dates ended
@@ -103,7 +103,7 @@ const CURRENT_TITLE_RE = /^current (?:job ?title|title|role|position)|(?:your|th
  * because the canonical path (`src/jev/plan.mjs` `employment.*` rules) answers the same
  * questions from the same facts and must draw the same line.
  */
-const MOST_RECENT_RE = /most recent|more recent|recent(?:ly)? work|previous(?:ly)?\b|last (?:employer|company|job|title|role|position)|have you worked|did you work/i;
+const MOST_RECENT_RE = /most recent|more recent|recent(?:ly)? work|previous(?:ly)?\b|\bformer\b|or past\b|last (?:employer|company|job|title|role|position)|have you worked|did you work/i;
 export const acceptsMostRecent = (label) => MOST_RECENT_RE.test(String(label ?? ""));
 
 // circumstance topics

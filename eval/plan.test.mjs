@@ -433,6 +433,83 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
 }
 
+// ─── employer and job-title rows asked with a past qualifier (#5) ─────────────────────────────
+// Stripe asks "Who is your current or previous employer?" (job 8043052), and the row went back to
+// the user with `f.employment.current` on file. Each label below asks for the employer or the title
+// the way a real board does, and answers from the saved employment facts. The same words inside a
+// question that asks something else never reach those facts.
+{
+  const now = new Date("2026-09-25T00:00:00Z");
+  const stated = {
+    facts: [
+      { id: "f.identity.full_name", value: "Example Person", source: "user" },
+      { id: "f.employment.current", value: "Globex", source: "user" },
+      { id: "f.employment.current_title", value: "Data Scientist", source: "user" },
+    ],
+    preferences: [],
+    answers: [],
+    stories: [],
+    documents: [],
+  };
+  const left = { ...stated, facts: [{ id: "f.employment.northwind", value: "Staff Inference Engineer — Northwind Compute, Mar 2024 – June 2026.", since: "2024-03", source: "cv.pdf#p1" }] };
+  const job = { company: "Acme", title: "Engineer", location: "San Francisco, CA", country: "US" };
+  const row = (label, mem = stated, type = "text") => {
+    const q = { qid: "q", label, class: classify(label, "", type, true), type, required: true, ...(type === "single_select" ? { options: [{ label: "Yes" }, { label: "No" }] } : {}) };
+    return { ...resolveForm({ job, questions: [q] }, { mem, now }).decisions[0], class: q.class };
+  };
+  const EMPLOYER = [
+    "Who is your current or previous employer?",
+    "Who is your current or last employer?",
+    "What is your current or former company?",
+    "Current or past employer",
+    "Current/Last Company",
+    "Please provide the name of your current (or most recent) company",
+  ];
+  const TITLE = ["What is your current or previous job title?", "What is your current or last role?", "Current / Most Recent Title"];
+  const OTHER = [
+    "May we contact your current or previous employer?",
+    "Are you subject to any agreements with your current or former employer that would restrict your work here?",
+    "Has your current or previous employer sponsored a visa for you?",
+    "In your current role, how many employees directly report to you?", // Cohere, required
+    "How long have you worked for your current or most recent employer?",
+    "Are you a current or former employee of Acme?",
+  ];
+
+  check(
+    "employment: an employer row asked with a past qualifier is an identity row, filled from f.employment.current",
+    EMPLOYER.every((l) => row(l).class === "identity" && row(l).action === "fill" && row(l).value === "Globex"),
+  );
+  check(
+    "employment: the job-title row likewise, from f.employment.current_title",
+    TITLE.every((l) => row(l).class === "identity" && row(l).action === "fill" && row(l).value === "Data Scientist"),
+  );
+  check(
+    "employment: a role the user has left answers each of them as a check, and still never a bare 'Current company'",
+    EMPLOYER.every((l) => row(l, left).action === "check" && row(l, left).value === "Northwind Compute") &&
+      TITLE.every((l) => row(l, left).action === "check" && row(l, left).value === "Staff Inference Engineer") &&
+      row("Current company", left).action === "ask",
+  );
+  check(
+    "employment: the same words inside a question that asks something else are never answered with an employer or a title",
+    OTHER.every((l) => {
+      const r = row(l, stated, "single_select");
+      return r.class !== "identity" && r.value !== "Globex" && r.value !== "Data Scientist";
+    }),
+  );
+  const nonCompete = row("Are you bound by a non-compete or non-solicit with your current or previous employer?", stated, "single_select");
+  check(
+    "employment: a non-compete naming 'your current or previous employer' reads p.legal.restrictive_agreements, never the employer fact",
+    nonCompete.class !== "identity" && nonCompete.action === "ask" && nonCompete.remember_as?.id === "p.legal.restrictive_agreements",
+  );
+  // Unanchored, this was an identity row filled with the job title; it is the user's own reason,
+  // so it must not land in `why_us` either, where `p.auto_draft` would have the writer compose one.
+  const leaving = ["text", "textarea"].map((type) => row("Why are you leaving your current role?", stated, type));
+  check(
+    "employment: 'Why are you leaving your current role?' is neither the job title nor a why_us draft",
+    leaving.every((r) => r.class !== "identity" && r.class !== "why_us" && r.value === undefined),
+  );
+}
+
 // ─── E3: a topic qualifier is the question (docs/research/16-eval-judge-ten.md) ────────────────
 // "What's your most complex project with LLM?" matched the topic-free
 // `q.narrative.exceptional_work` and pasted a GPU-kernel physics story into a required field on an

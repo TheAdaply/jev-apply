@@ -122,22 +122,45 @@ export function isAccommodationRequest(label) {
   return ACCOMMODATION_RE.test(text) && !ESSENTIAL_FUNCTIONS_RE.test(text);
 }
 
-// Name qualifiers stack ("Preferred First Name"), so the prefix group repeats. "current … employer"
-// needs a possessive ("your current or most recent employer") so that "bound by agreements with a
-// current or former employer" stays a circumstance question rather than an identity fact. The three
-// location phrasings at the end are the ones real boards ask in (judge §3.6): Figma's "From where do
-// you intend to work?" and DeepL's "What is your current city and country of residence?" both
-// classified `company_specific` while the location fact sat on file.
+// An employer or job-title row, asked for by name: "Current company", "Current / Most Recent
+// Title", "Who is your current or previous employer?" (Stripe), "Please provide the name of your
+// current (or most recent) company". One spelling, read here and by `src/plan/resolve.mjs
+// identityRow()`, so the class a row gets and the fact that answers it cannot drift apart.
+//
+// The words have to *open* the label, behind at most "who/what is" or "please provide/list/share".
+// "May we contact your current or previous employer?", "…any agreements with your current or former
+// employer that would restrict your work here?" and Cohere's "In your current role, how many
+// employees directly report to you?" name the same thing and ask something else: matched anywhere
+// in the label, each was classed `identity` and answered with an employer's name or a job title.
+const OR_PAST = String.raw`(?:\s*\/\s*|\s+\(?or\s+)(?:(?:most|more)\s+recent|previous|last|former|past)\)?`;
+const ASKS_FOR = String.raw`(?:please\s+)?(?:(?:who|what)(?:'s|’s|\s+is|\s+was)\s+|(?:provide|enter|list|share|state)\s+)?(?:the\s+name\s+of\s+)?(?:(?:your|the)\s+)?`;
+const currentRow = (nouns) => new RegExp(String.raw`^${ASKS_FOR}current(?:${OR_PAST})?\s+(?:${nouns})\b`, "i");
+export const CURRENT_EMPLOYER_RE = currentRow("company|employer");
+export const CURRENT_TITLE_RE = currentRow(String.raw`job\s?title|title|role|position`);
+
+// Name qualifiers stack ("Preferred First Name"), so the prefix group repeats. The employer and
+// job-title rows are the two patterns above. The three location phrasings are the ones real boards
+// ask in (judge §3.6): Figma's "From where do you intend to work?" and DeepL's "What is your current
+// city and country of residence?" both classified `company_specific` while the location fact sat on
+// file.
 //
 // One box asking for *several* links ("Social Network and Web Links") is the same identity row
 // wearing a textarea: the saved `f.identity.*` link facts are exactly what it asks for, and
 // classing it `optional_text` is what let d-matrix's row be skipped as "no saved item answers it"
 // while three of them sat on file (docs/research/17-eval-judge-ten2.md §3 F7).
-export const IDENTITY_RE =
-  /^(?:(?:first|last|legal|preferred|full|middle|given|family|nick)\s+)*names?\b|\be-?mail\b|\bphone\b|\bresum[ée]\b|\bcv\b|cover letter|linked-?in|git-?hub|google scholar|\btwitter\b|\bportfolio\b|personal (?:web)?site|\bwebsite\b|\bweb page\b|\bblog\b|\b(?:social(?: network| media)?|web|online|profile|relevant)\s+links?\b|^(?:(?:your|current|candidate)\s+)*(?:location|city|address|country)\b|\b(?:legal|home|mailing|street) address\b|where are you (?:currently )?(?:located|based)|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)|^current (?:company|employer|job ?title|title|role|position)\b|(?:your|the) current(?: or (?:(?:most|more) recent|previous|last|former|past))?\s+(?:employer|company|job ?title|title|role|position)|^pronunciation/i;
+export const IDENTITY_RE = new RegExp(
+  [
+    /^(?:(?:first|last|legal|preferred|full|middle|given|family|nick)\s+)*names?\b|\be-?mail\b|\bphone\b|\bresum[ée]\b|\bcv\b|cover letter|linked-?in|git-?hub|google scholar|\btwitter\b|\bportfolio\b|personal (?:web)?site|\bwebsite\b|\bweb page\b|\bblog\b|\b(?:social(?: network| media)?|web|online|profile|relevant)\s+links?\b|^(?:(?:your|current|candidate)\s+)*(?:location|city|address|country)\b|\b(?:legal|home|mailing|street) address\b|where are you (?:currently )?(?:located|based)|where do you (?:currently )?(?:intend|plan|expect|want|wish) to (?:work|be based|live)|(?:city|town) and (?:country|state)|^pronunciation/.source,
+    CURRENT_EMPLOYER_RE.source,
+    CURRENT_TITLE_RE.source,
+  ].join("|"),
+  "i",
+);
 
+// "Why are you leaving …" asks for the user's own reason, a fact the writer must never compose; the
+// exclusion reads every form of the verb, since `leave` alone let "leaving" through as `why_us`.
 export const WHY_US_RE =
-  /^\s*why\b(?!.*\b(?:did|leave|left|should we)\b)|\bwhy (?:do|would) you want to (?:work|join)\b|\bwhat (?:interests|excites|draws|attracts) you\b/i;
+  /^\s*why\b(?!.*\b(?:did|leav(?:e|ing)|left|should we)\b)|\bwhy (?:do|would) you want to (?:work|join)\b|\bwhat (?:interests|excites|draws|attracts) you\b/i;
 
 // Situation questions: everything the memory answers from facts/preferences rather than writing.
 // `\breferr` is anchored: without the boundary it fires inside "Preferred First Name".

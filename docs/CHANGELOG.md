@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+**A scan keeps every distinct role (#4, joint work with [Shine Gupta](https://github.com/Shine-5705)).**
+Two postings of one company were keyed as one role whenever their titles differed only after a
+dash or inside a hyphenated word, so a scan kept the first and dropped the rest, and the history
+fingerprint then hid every later posting under that key. Across 852 real postings from past scans
+and the corpus, 21 keys merged different titles — Baseten's "Software Engineer - GPU Kernels" and
+"- Dedicated Inference", xAI's three "Software Engineer - … (C++)", "Post-Training Research
+Scientist" and "…Engineer" as `baseten::post`. Now one key merges two titles, and they are one role.
+
+- `src/discover/dedupe.mjs` — `companyRoleKey` drops a trailing "(…)", " - …", " | …" or "—…" only
+  when it is a work mode or words the posting's own `location` states; any other suffix is the team
+  and stays in the key. A plain hyphen separates only when spaced: "Full-Stack Engineer" no longer
+  keys as "full".
+- `src/pipeline/store.mjs` — `seenKeys()` recomputes each history row's key from its own title,
+  company and location, so a fingerprint an older rule wrote stops hiding new postings; the row's
+  URL still keeps the posting itself from coming back.
+- `eval/plan.test.mjs` — the dedup keys, `dedupeJobs`, the confidence gate and the Jev answer
+  contract (choice ∈ criteria, probabilities sum ≈ 1, argmax == choice, no request without a
+  `none_of_these` exit). The block itself makes no request and reads no memory.
+
 **Repeating Education / Employment sections.** A form that asks for the education history now gets
 every degree on file — a Bachelor's *and* a Master's — each in its own entry, instead of one box
 typed with the newest degree or nothing at all. Read live on 2026-09-24: 15 of 90 hosted Greenhouse

@@ -2668,6 +2668,99 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   check("gaps item 1: ended employer is identified for autofill reconciliation", resolve("Current company").autofill_conflicts?.includes("Example Co"));
 }
 
+// The scan's dedup key and the Jev answer contract (#4). Pure functions: no key, no network. The
+// Baseten and Modal titles are real postings, each with the location its board published.
+{
+  const { companyRoleKey, dedupeJobs, normalizeUrl } = await import("../src/discover/dedupe.mjs");
+  const { gate } = await import("../src/jev/gates.mjs");
+  const { JevBadRequest, JevValidationError, systemOne, validateAnswer, withNone } = await import("../src/jev/client.mjs");
+  const key = (title, location = "") => companyRoleKey({ company: "Acme", title, location }).split("::")[1];
+
+  check(
+    "dedupe: a URL keeps gh_jid and its own params, sorted, and drops tracking params and a trailing slash",
+    normalizeUrl("https://Boards.Greenhouse.io/acme/jobs/?utm_source=x&gh_jid=42&ref=hn&b=2&a=1") === "boards.greenhouse.io/acme/jobs?a=1&b=2&gh_jid=42" &&
+      normalizeUrl("https://jobs.lever.co/acme/1/") === normalizeUrl("https://jobs.lever.co/acme/1?lever-source=li"),
+  );
+  check(
+    "dedupe: a suffix naming the posting's own place, or a work mode, is not part of the role",
+    key("Senior Engineer - Berlin, DE", "Berlin, DE") === "senior engineer" &&
+      key("Senior Engineer (Berlin) (Remote)", "Berlin, Germany") === "senior engineer" &&
+      key("Senior Engineer - Berlin - Hybrid", "Berlin, Germany") === "senior engineer" &&
+      key("Staff Engineer | Remote", "San Francisco, CA") === "staff engineer" &&
+      key("Staff Engineer — London", "London, UK") === "staff engineer" &&
+      key("Engineer - Winston-Salem, NC", "Winston-Salem, NC") === "engineer",
+  );
+  check(
+    "dedupe: a hyphen inside a word is not a separator — 'Full-Stack' and 'Post-Training' no longer key as 'full' and 'post'",
+    key("Full-Stack Engineer") === "full stack engineer" && key("Post-Training Research Scientist") === "post training research scientist" && key("Co-Founder") === "co founder",
+  );
+  check(
+    "dedupe: a team or specialization after the separator is part of the role",
+    key("Member of Technical Staff - ML Performance", "New York") !== key("Member of Technical Staff - Research, Post-Training", "New York") &&
+      key("Software Engineer - GPU Kernels", "San Francisco") !== key("Software Engineer - Dedicated Inference", "San Francisco") &&
+      key("Solutions Architect (Inference)", "London") !== key("Solutions Architect (Training)", "London"),
+  );
+  const jobs = [
+    { company: "Baseten", title: "Post-Training Research Scientist", location: "San Francisco", url: "https://a.example/1" },
+    { company: "Baseten", title: "Post-Training Research Engineer", location: "San Francisco", url: "https://a.example/2" },
+    { company: "Modal", title: "Member of Technical Staff - ML Performance", location: "New York", url: "https://b.example/1" },
+    { company: "Modal", title: "Member of Technical Staff - Research, Post-Training", location: "New York", url: "https://b.example/2" },
+    { company: "Acme", title: "ML Engineer - London", location: "London, UK", url: "https://c.example/1?utm_source=x" },
+    { company: "Acme", title: "Other", location: "London, UK", url: "https://c.example/1" },
+    { company: "Acme", title: "ML Engineer - Berlin", location: "Berlin, Germany", url: "https://c.example/3" },
+    { company: "Beta", title: "ML Engineer", location: "Paris", url: "https://d.example/1" },
+  ];
+  const seen = new Set(["beta::ml engineer"]);
+  const kept = dedupeJobs(jobs, seen).map((j) => j.url);
+  check(
+    "dedupe: every distinct role survives a scan; the same role in another city, a repeated URL and a role already in the history do not, and the history set is only read",
+    kept.join(" ") === "https://a.example/1 https://a.example/2 https://b.example/1 https://b.example/2 https://c.example/1?utm_source=x" && seen.size === 1,
+  );
+
+  check(
+    "gate: none_of_these, no choice, and a confidence under the floor or not a number all ask",
+    gate({ choice: NONE, confidence: 1, probabilities: { [NONE]: 1, a: 0 } }) === "ask" &&
+      gate({ choice: undefined, confidence: 1 }) === "ask" &&
+      gate({ choice: "a", confidence: GATES.askBelow - 0.01, probabilities: { a: 0.9, b: 0.1 } }) === "ask" &&
+      gate({ choice: "a", confidence: NaN, probabilities: { a: 0.9, b: 0.1 } }) === "ask",
+  );
+  check(
+    "gate: a margin under checkGap, or a pick the distribution does not score, is a check; a clear pick fills",
+    gate({ choice: "a", confidence: 1, probabilities: { a: 0.5, b: 0.5 - GATES.checkGap / 2 } }) === "check" &&
+      gate({ choice: "a", confidence: 1, probabilities: { b: 1 } }) === "check" &&
+      gate({ choice: "a", confidence: 1 }) === "check" &&
+      gate({ choice: "a", confidence: 1, probabilities: { a: 0.9, b: 0.1 } }) === "fill",
+  );
+
+  const q = { type: "choice", instructions: "pick", criteria: withNone({ a: "A", b: "B" }) };
+  const ok = { type: "choice", choice: "a", confidence: 0.8, probabilities: { a: 0.8, b: 0.15, [NONE]: 0.05 } };
+  const refusal = (answer) => {
+    try {
+      validateAnswer("q1", q, answer);
+      return "accepted";
+    } catch (err) {
+      return err instanceof JevValidationError ? err.reason : `unexpected ${err}`;
+    }
+  };
+  check("jev contract: a well-formed choice answer is accepted as returned", validateAnswer("q1", q, ok) === ok);
+  check(
+    "jev contract: an out-of-criteria choice, probabilities not summing to ~1, a choice that is not the argmax, mismatched keys and a non-numeric confidence are each refused for that reason",
+    /not one of the criteria/.test(refusal({ ...ok, choice: "z" })) &&
+      /sum to/.test(refusal({ ...ok, probabilities: { a: 0.8, b: 0.5, [NONE]: 0.05 } })) &&
+      /most probable/.test(refusal({ ...ok, choice: "b" })) &&
+      /keys do not match/.test(refusal({ ...ok, probabilities: { a: 0.8, b: 0.2 } })) &&
+      /confidence/.test(refusal({ ...ok, confidence: "high" })),
+  );
+  const noExit = await systemOne({ state: {}, questions: { q1: { type: "choice", instructions: "pick", criteria: { a: "A", b: "B" } } } }).then(
+    () => null,
+    (err) => err,
+  );
+  check(
+    "jev contract: a choice question with no none_of_these exit is refused before any request is sent",
+    noExit instanceof JevBadRequest && noExit.detail?.error_type === "missing_none_exit",
+  );
+}
+
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

@@ -199,14 +199,18 @@ export async function loadHistory() {
 
 /**
  * Every key `discover/dedupe.dedupeJobs` should treat as already seen: the normalized URL of each
- * historical posting and its `company::role` fingerprint. This is the cross-run dedup (PLAN §2.5).
+ * historical posting and its `company::role` key. This is the cross-run dedup (PLAN §2.5). The key
+ * is recomputed from the row's own title, company and location rather than read from its
+ * `fingerprint` column: a fingerprint written under an older rule ("modal::member of technical
+ * staff", cut from "… - ML Performance") would otherwise go on hiding every posting that rule
+ * merged into it.
  */
 export async function seenKeys() {
   const keys = new Set();
   for (const row of await loadHistory()) {
     const url = normalizeUrl(row.url);
     if (url) keys.add(url);
-    if (row.fingerprint) keys.add(row.fingerprint);
+    if (row.title || row.company) keys.add(companyRoleKey(row));
   }
   return keys;
 }

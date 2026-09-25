@@ -33,30 +33,41 @@ export function normalizeUrl(url) {
   return `${u.hostname.toLowerCase()}${path}${search}`;
 }
 
-// companyRoleKey(job) → "company::role" with a best-effort strip of trailing location suffixes
-// ("Senior Engineer (Berlin)" / "Senior Engineer - Berlin, DE" → "senior engineer").
+// companyRoleKey(job) → "company::role": one key for the same role posted per city, a different key
+// for every other role. A trailing "(…)", " - …", " | …" or "—…" is dropped only when it says where
+// or how the job is done: a work mode ("Remote", "Hybrid", "On-site"), or a run of words the
+// posting's own `location` states ("Senior Engineer - Berlin, DE" posted in "Berlin, DE"). Any
+// other suffix is the team or the specialization ("Machine Learning Engineer - Ads", "Member of
+// Technical Staff - ML Performance"). Cut, it made distinct roles one key: `dedupeJobs` kept the
+// first and dropped the rest, and the scan-history fingerprint then hid every later posting of that
+// title with another team. A plain hyphen separates only when spaced: "Full-Stack Engineer" and
+// "Post-Training Research Scientist" are one word each, where they used to key as "full"/"post".
 export function companyRoleKey(job) {
   const company = String(job?.company ?? "").toLowerCase().trim();
-  let title = String(job?.title ?? "");
+  const location = ` ${words(job?.location)} `;
+  const whereOrHow = (suffix) => {
+    const said = words(suffix);
+    return Boolean(said) && (WORK_MODE_RE.test(said) || location.includes(` ${said} `));
+  };
 
-  let prev;
-  do {
-    prev = title;
-    title = title.replace(/\s*\([^()]*\)\s*$/, "");
-  } while (title !== prev);
+  let title = String(job?.title ?? "").trim();
+  for (;;) {
+    const last = /\s*\(([^()]*)\)\s*$/.exec(title) ?? /\s+[-–—|]\s+((?:(?!\s[-–—|]\s).)+)$/.exec(title) ?? /\s*[–—|]\s*([^–—|]+)$/.exec(title);
+    if (!last || !whereOrHow(last[1])) break;
+    title = title.slice(0, last.index);
+  }
 
-  // A plain hyphen separates a suffix only when spaced (" - Berlin"); unspaced it is part of a word
-  // ("Full-Stack", "Front-End"), and cutting there made distinct roles collide as "acme::full".
-  const spaced = title.replace(/\s+[-–—|]\s+(?:(?!\s[-–—|]\s).)+$/, "");
-  title = spaced !== title ? spaced : title.replace(/\s*[–—|]\s*[^–—|]+$/, "");
+  return `${company}::${words(title)}`;
+}
 
-  title = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
+// A work mode the way boards write one, compared in `words()` form: "Remote", "On-site",
+// "In-Office", "Remote-First", "Hybrid / Remote". A bare "Office" is a team as often as a place.
+const MODE = String.raw`(?:remote|hybrid|onsite|on site|in office|in person)(?: (?:first|only|friendly))?`;
+const WORK_MODE_RE = new RegExp(String.raw`^${MODE}(?: (?:or |and )?${MODE})*$`);
 
-  return `${company}::${title}`;
+/** Lowercase alphanumeric words, single-spaced: the form both the key and the location compare in. */
+function words(text) {
+  return String(text ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 // dedupeJobs(jobs, seenKeys?) → Job[], deduplicated within this batch and against a caller-supplied

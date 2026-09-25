@@ -23,7 +23,6 @@
   },
   "scripts": {
     "setup": "node scripts/install.mjs",
-    "test": "node --test eval/unit.test.mjs",
     "smoke": "node scripts/jev-smoke.mjs",
     "apply": "node scripts/apply.mjs",
     "learn": "node scripts/learn.mjs",

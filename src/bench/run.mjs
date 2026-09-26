@@ -16,7 +16,7 @@
 //     forms would leave twenty tabs open, so the bench closes each one itself, by URL, afterwards.
 
 import { spawn } from "node:child_process";
-import { readFile, readlink } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -50,68 +50,27 @@ export async function loadSecrets(file = REAL_ENV_FILE) {
   return { env, found: KEYS.filter((k) => env[k]), missing: KEYS.filter((k) => !env[k]) };
 }
 
+
 /**
- * Which profile is the browser on `port` running?
- *
- * Chrome will not say: `/json/version` reports the build, and `Browser.getBrowserCommandLine`
- * (the call that would return `--user-data-dir`) is refused unless the browser was launched with
- * `--enable-automation`, which `chromeArgs` deliberately does not pass. Two facts do line up,
- * though: `SystemInfo.getProcessInfo` names the browser process id, and Chrome symlinks
- * `<profile>/SingletonLock` to `<hostname>-<pid>` of the process that owns that profile. Equal
- * pids mean the browser answering on this port is running out of this profile.
- *
- * `DevToolsActivePort` is checked first because it is free, but Chrome only writes it for some
- * launch shapes — it is absent when `--remote-debugging-port` names an explicit port.
+ * Refuse synthetic benchmark writes unless the browser on `port` owns this bench profile.
+ * `connect` verifies the PID lock or Chrome's profile path; no second POSIX-only check here.
  */
-async function profilePid(profileDir) {
-  const link = await readlink(path.join(profileDir, "SingletonLock")).catch(() => "");
-  const pid = Number(/-(\d+)$/.exec(link)?.[1]);
-  return Number.isInteger(pid) && pid > 0 ? pid : null;
-}
+export async function assertBenchPort({ port, home }) {
+  const profileDir = path.join(home, "profile");
+  if (!(await cdpVersion(port))) return { ok: true, state: "free" };
 
-async function activePort(profileDir) {
-  const text = await readFile(path.join(profileDir, "DevToolsActivePort"), "utf8").catch(() => "");
-  return Number(text.split("\n")[0].trim()) || null;
-}
-
-/** The browser process id behind a live CDP endpoint, or null when the browser will not say. */
-async function browserPid(port, profileDir) {
-  let conn = null;
+  let conn;
   try {
     conn = await connect({ profileDir, port, spawnIfMissing: false });
-    const session = await conn.browser.newBrowserCDPSession();
-    const { processInfo } = await session.send("SystemInfo.getProcessInfo");
-    await session.detach().catch(() => {});
-    return processInfo?.find((p) => p.type === "browser")?.id ?? null;
-  } catch {
-    return null;
+    return { ok: true, state: "bench", via: "verified profile" };
+  } catch (err) {
+    throw new Error(
+      `cannot verify Chrome on 127.0.0.1:${port} belongs to bench profile ${profileDir}: ${err.message}. ` +
+        "Close that browser or pass --port; refusing synthetic writes.",
+    );
   } finally {
     if (conn) await disconnect(conn.browser, { port, verify: false }).catch(() => {});
   }
-}
-
-/**
- * Refuse to benchmark through somebody else's browser. Nothing on the port is fine — the child
- * spawns its own Chrome on the bench profile.
- *
- * @returns {Promise<{ok:true, state:"free"|"bench", via?:string}>}
- * @throws when a browser that is not the bench profile answers on `port`
- */
-export async function assertBenchPort({ port, home, userHome = path.join(homedir(), ".config", "jev-apply") }) {
-  const benchProfile = path.join(home, "profile");
-  if (!(await cdpVersion(port))) return { ok: true, state: "free" };
-
-  if ((await activePort(benchProfile)) === port) return { ok: true, state: "bench", via: "DevToolsActivePort" };
-  const live = await browserPid(port, benchProfile);
-  if (live != null && live === (await profilePid(benchProfile))) return { ok: true, state: "bench", via: "SingletonLock pid" };
-
-  const userProfile = path.join(userHome, "profile");
-  const theirs = live != null && live === (await profilePid(userProfile));
-  throw new Error(
-    `a browser is already listening on 127.0.0.1:${port} and it is not the bench profile at ${benchProfile}` +
-      (theirs ? ` — it is the jev-apply profile at ${userProfile}.` : ".") +
-      ` Close it or pass --port. Refusing to type synthetic data into a profile the bench does not own.`,
-  );
 }
 
 /** The last line of stdout that parses as a JSON object — the runner's one-object contract. */

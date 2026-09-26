@@ -7,6 +7,7 @@
 
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
+import { readlink, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "playwright";
@@ -15,10 +16,8 @@ import { paths } from "../config.mjs";
 
 /**
  * The CDP port of the dedicated profile. `JEV_CHROME_PORT` moves it so a second store
- * (`JEV_APPLY_HOME`) gets a second browser: `scripts/bench.mjs` runs on 9224 against
- * `/tmp/jev-bench/profile` and must never attach to whatever is already answering on 9223 —
- * that would be the user's own Chrome, and `connect({})` takes the port, not the profile, as
- * the identity of a running browser.
+ * (`JEV_APPLY_HOME`) gets a second browser. A port is only a discovery hint: `connect`
+ * checks the responding Chrome's profile before exposing its tabs to a caller.
  */
 export const DEFAULT_PORT = Number(process.env.JEV_CHROME_PORT) || 9223;
 
@@ -98,6 +97,42 @@ async function waitForEndpoint(port, timeoutMs) {
   return null;
 }
 
+/** Refuse to type into a browser whose profile is not the one the caller selected. */
+async function ownsProfile(browser, context, profileDir) {
+  // Chrome writes <hostname>-<pid> to this profile's SingletonLock symlink. The bench uses
+  // the same PID witness to keep synthetic runs out of the user's browser.
+  const lock = await readlink(path.join(profileDir, "SingletonLock")).catch(() => "");
+  const expectedPid = Number(/-(\d+)$/.exec(lock)?.[1]);
+  if (Number.isInteger(expectedPid) && expectedPid > 0) {
+    let session;
+    try {
+      session = await browser.newBrowserCDPSession();
+      const { processInfo } = await session.send("SystemInfo.getProcessInfo");
+      const actualPid = Number(processInfo?.find((p) => p.type === "browser")?.id);
+      if (Number.isInteger(actualPid) && actualPid > 0) return actualPid === expectedPid;
+    } catch {
+      // Some Chrome builds lack process info; verify the profile path instead.
+    } finally {
+      if (session) await session.detach().catch(() => {});
+    }
+  }
+
+  // Windows and unusual Chrome launches may not expose SingletonLock. This read-only page
+  // reports the active profile; close it before the caller sees any tab.
+  let page;
+  try {
+    page = await context.newPage();
+    await page.goto("chrome://version", { waitUntil: "domcontentloaded", timeout: 5000 });
+    const profilePath = (await page.locator("#profile_path").textContent({ timeout: 5000 }))?.trim();
+    if (!profilePath) return false;
+    return (await realpath(path.dirname(profilePath))) === (await realpath(profileDir));
+  } catch {
+    return false;
+  } finally {
+    if (page) await page.close().catch(() => {});
+  }
+}
+
 /** Detached so the browser outlives this process (D12); stdio ignored so it never holds the pipe. */
 export function spawnChrome({ profileDir, port, binary = chromeBinary() }) {
   mkdirSync(profileDir, { recursive: true, mode: 0o700 });
@@ -142,6 +177,14 @@ export async function connect({
     await browser.close().catch(() => {});
     throw new Error(`connected to ${endpoint} but Chrome exposes no browser context`);
   }
+  try {
+    if (!(await ownsProfile(browser, context, profileDir))) {
+      throw new Error(`Chrome on 127.0.0.1:${port} does not use ${path.resolve(profileDir)}. Close it or choose a free JEV_CHROME_PORT.`);
+    }
+  } catch (err) {
+    await browser.close().catch(() => {});
+    throw err;
+  }
   return { browser, context, endpoint, spawned, version, port, profileDir };
 }
 
@@ -155,14 +198,14 @@ export function pagesOf(contextOrBrowser) {
   return contexts.flatMap((c) => (typeof c?.pages === "function" ? c.pages() : []));
 }
 
-/** The already-open tab for a posting — how `--answers` / `--resume` re-attach (D12). */
+/** Exact URL or a descendant/receipt; a posting page is never its `/application` form. */
 export async function findTab(context, urlPrefix) {
   const want = stripSlash(urlPrefix);
   if (!want) return null;
   for (const page of pagesOf(context)) {
     if (page.isClosed?.()) continue;
     const here = stripSlash(page.url());
-    if (here === want || here.startsWith(want) || want.startsWith(here)) return page;
+    if (here === want || (here.startsWith(want) && "/?#".includes(here[want.length]))) return page;
   }
   return null;
 }

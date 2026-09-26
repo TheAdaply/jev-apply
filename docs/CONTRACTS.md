@@ -170,8 +170,9 @@ export async function acceptHostDrafts({ decisions, answers, pipeline, company, 
 
 ## src/browser/*.mjs (Playwright library over CDP; PLAN D12)
 ```js
-export async function connect({ profileDir = paths.profile, port = 9223 }); // spawns Chrome if needed, connectOverCDP → { browser, context }
-export async function openTab(context, url);   export async function findTab(context, urlPrefix);
+export async function connect({ profileDir = paths.profile, port = 9223 }); // verifies Chrome owns profileDir
+export async function openTab(context, url);
+export async function findTab(context, urlPrefix); // exact or descendant URL, never a parent posting page for /application
 export async function disconnect(browser);    // never closes Chrome
 // adapters/index.mjs — the dispatcher. `detectControl` names the widget; an ATS adapter gets it only
 //   when its `HANDLES` claims that kind, and a question the ATS types `date` always goes to the

@@ -244,13 +244,10 @@ widget they render as, so their own row shows no bucket.
   and a separate no-progress counter for the EEO block fix that.
 - **The bench never sets `p.auto_submit`.** Every application it drives stops at `ready_to_submit`;
   the bench adds no way to opt in and it never passes `--submit` or `--answers`.
-- **The browser is the bench's own.** `assertBenchPort` refuses to start when something already
-  answers on the bench port that is not the bench profile. Chrome will not name its own
-  `--user-data-dir` over CDP (`Browser.getBrowserCommandLine` needs `--enable-automation`, which
-  `chromeArgs` does not pass), so the check compares the browser process id from
-  `SystemInfo.getProcessInfo` with the pid in `<profile>/SingletonLock`; `DevToolsActivePort` is
-  tried first when Chrome wrote one. If the user's own profile is squatting on the port, the error
-  says so.
+- **The browser is the bench's own.** `assertBenchPort` uses the runner's profile-verified CDP
+  connection before any synthetic fill. Chrome's `SingletonLock` PID is compared with the CDP
+  browser PID when available; otherwise `chrome://version` must show the bench profile path.
+  A different or unprovable profile is refused. Use `--port` for a separate bench browser.
 - **Credentials come only from `~/.config/jev-apply/env`** (or the environment). They travel in
   the child's environment and are never written under `/tmp`, never logged, never in a result
   file. The bench home deliberately has no `env` file.

@@ -6,7 +6,7 @@ For a host agent (Claude Code, Codex, …) setting this skill up for a user the 
 ## 1. Get the code
 
 ```
-git clone https://github.com/theadaply/jev-apply.git && cd jev-apply && npm install
+git clone https://github.com/theadaply/jev-apply.git && cd jev-apply && npm ci
 ```
 
 Node ≥ 20 required. Dependencies: `@typesafe-ai/sdk`, `playwright` (library only — no browsers to
@@ -27,14 +27,18 @@ prints `~/.config/jev-apply/env` itself.
 
 One `KEY=VALUE` per line, then `chmod 600 ~/.config/jev-apply/env`:
 
+`.env.example` lists credential and writer variable names; put real values only in the private
+file, never in the repository.
+
 ```
 TYPESAFE_API_KEY=…
 ```
 
 This is the only credential jev-apply cannot run without. `loadEnv()` in `src/config.mjs` reads
-this file at process start and fails fast, naming any variable still missing plus its signup URL.
-Re-run `node scripts/install.mjs` to confirm it is present. Never place a key under the repo, in a
-script argument, a prompt, or a tool output.
+this file at process start and fails fast, naming a missing variable and its signup URL.
+Re-run `node scripts/install.mjs` to check for a nonempty value; it does not authenticate.
+`node scripts/jev-smoke.mjs` makes a live Jev request to verify the key. Never put a key in
+the repo, a script argument, a prompt, or a tool output.
 
 ## 4. Choose how the few drafted sentences get written
 
@@ -80,7 +84,7 @@ contacts, and one story per bullet line) — no OpenAI key is required to onboar
 ## Sanity checks
 
 ```
-node scripts/jev-smoke.mjs             # Jev reachable: prints a 3-option choice + latency
+node scripts/jev-smoke.mjs             # live paid Jev choice; verifies key and network
 node scripts/writer-smoke.mjs --detect # which writer backend is active, if any
-node scripts/install.mjs               # confirms the private directory + the Jev key are present
+node scripts/install.mjs               # private directory + nonempty Jev key value (no API call)
 ```

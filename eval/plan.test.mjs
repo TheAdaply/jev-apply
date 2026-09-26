@@ -46,7 +46,7 @@ import { RULES, preflight, submitGate } from "../src/plan/preflight.mjs";
 import { appliedBeforeFor, asksAboutThisEmployer, eeoCanonical, eeoMapFor, employersNamed, policySlug, relocationAnswer, resolveForm, workAuthAnswer } from "../src/plan/resolve.mjs";
 import { catalogueValue, idCriteria, idDecision } from "../scripts/remember.mjs";
 import { expectedRows } from "../src/bench/shots.mjs";
-import { windowsChromeCandidates } from "../src/browser/chrome.mjs";
+import { findTab, openTab, windowsChromeCandidates } from "../src/browser/chrome.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -2666,6 +2666,25 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   const stale = { ...memory, answers: [{ qid: "q.core.full_name", kind: "constant", value: "Wrong Name", source: "fact:f.identity.full_name" }] };
   check("gaps item 12: stale derived name cannot contradict its stated source", !evidencePool({ mem: stale }).some((r) => r.kind === "answer"));
   check("gaps item 1: ended employer is identified for autofill reconciliation", resolve("Current company").autofill_conflicts?.includes("Example Co"));
+}
+
+// A posting tab cannot stand in for its /application form. A receipt can still be found by
+// its posting URL, but a sibling posting with the same leading id cannot.
+{
+  const postingUrl = "https://jobs.ashbyhq.com/example/12345678-1234-1234-1234-123456789abc";
+  const page = (url) => ({ url: () => url, isClosed: () => false, bringToFront: async () => {}, waitForLoadState: async () => {} });
+  const context = (...tabs) => ({ pages: () => tabs });
+  let landed = "about:blank";
+  const formPage = { ...page(""), url: () => landed, goto: async (url) => { landed = url; } };
+  const opened = await openTab({ ...context(page(postingUrl)), newPage: async () => formPage }, `${postingUrl}/application`);
+  check(
+    "browser tabs: a posting page is not its application, receipts still attach, and sibling ids do not match",
+    opened === formPage &&
+      landed === `${postingUrl}/application` &&
+      (await findTab(context(formPage), postingUrl)) === formPage &&
+      (await findTab(context(page(`${postingUrl}/thanks`)), postingUrl))?.url() === `${postingUrl}/thanks` &&
+      (await findTab(context(page(`${postingUrl}-other`)), postingUrl)) === null,
+  );
 }
 
 // The scan's dedup key and the Jev answer contract (#4). Pure functions: no key, no network. The

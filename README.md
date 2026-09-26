@@ -1,245 +1,91 @@
 # jev-apply
 
-A memory-backed job-application skill. TypeSafe AI's **Jev** model *selects* which of your saved
-facts, preferences, or past answers belongs in each form field — it never writes text and never
-guesses a personal detail. The few sentences that are genuinely new — a "why us" paragraph, an
-expanded story — are written by whichever backend you configure (or by the host agent, when you
-configure none). A Playwright runner fills the real form and reads every value back. It targets
-hosted **Greenhouse**, **Ashby** and **Lever** application forms, stops at ready-to-submit by
-default, and clicks Submit itself only once you turn auto-submit on — except on Lever, where the
-form is gated by a challenge only a person can answer: there it always stops for you to click.
+Fill job applications from your saved answers, without inventing personal details.
 
-The only credential jev-apply cannot run without is a TypeSafe **Jev** key.
+jev-apply reuses your résumé and answers across hosted Greenhouse, Ashby and Lever forms. Jev matches saved answers, Playwright fills and reads them back, and unknown facts come back to you.
 
-## Quickstart
+**Status:** experimental; hosted forms only. Lever leaves the final Submit click to you. LinkedIn Easy Apply is not supported.
 
+## How it works
+
+```mermaid
+flowchart LR
+    you["Your résumé + answers"] --> memory[(Private memory)]
+    form["Hosted job form"] --> plan["Resolve each field"]
+    memory --> plan
+    plan -->|known fact| browser["Playwright fills + reads back"]
+    plan -->|uncertain match| jev["Jev selects or refuses"]
+    jev -->|selected answer| browser
+    jev -->|none of these| ask["Ask you"]
 ```
-git clone https://github.com/theadaply/jev-apply.git && cd jev-apply && npm install
+
+New writing is optional: OpenAI, a local model, or your host agent can draft a paragraph. A draft is checked against your material and is not saved as a fact unless you keep it.
+
+## Get started
+
+You need Node 20+, Google Chrome, and a [TypeSafe Jev key](https://console.typesafe.ai/keys). OpenAI is optional. The installer creates `~/.config/jev-apply/`; put your real key only in its private `env` file, not in this repo or a shell command.
+
+```bash
+git clone https://github.com/TheAdaply/jev-apply.git
+cd jev-apply
+npm ci
 node scripts/install.mjs
-printf 'TYPESAFE_API_KEY=...\n' > ~/.config/jev-apply/env && chmod 600 ~/.config/jev-apply/env
-node scripts/learn.mjs --resume you.pdf --links https://linkedin.com/in/you,https://github.com/you
-node scripts/apply.mjs --url <posting>
+umask 077; touch ~/.config/jev-apply/env; chmod 600 ~/.config/jev-apply/env
+${EDITOR:-vi} ~/.config/jev-apply/env
+node scripts/install.mjs
 ```
 
-`learn.mjs` prints day-1 questions. Save answers in `~/.config/jev-apply/answers.json`,
-keyed by `remember_as.id` (or the fact IDs named by gaps without it), never by a `g.*`
-prompt ID; then run `node scripts/learn.mjs --answers ~/.config/jev-apply/answers.json`.
+In the editor add `TYPESAFE_API_KEY=your-key`. The second install checks that the value is nonempty, not that the key is valid. [Writer and agent setup](INSTALL.md) has the optional choices.
 
-## Choose how text gets written
+## Use it
 
-`apply.mjs` writes only a handful of sentences per application — the rest is your own saved
-material, selected by Jev, never generated. Pick one:
+1. Import your résumé: `node scripts/learn.mjs --resume /path/to/resume.pdf`.
+2. Answer the returned `gaps` in `~/.config/jev-apply/onboarding-answers.json`, keyed by `remember_as.id`. For example, `g.email` asks for `f.identity.email`, **not** `g.email`; gaps without `remember_as` name their fact IDs in the question. Save only your own answers.
+3. Store them: `node scripts/learn.mjs --answers ~/.config/jev-apply/onboarding-answers.json`.
 
-```
-echo 'OPENAI_API_KEY=sk-...' >> ~/.config/jev-apply/env                       # OpenAI writes it
-echo 'JEV_APPLY_WRITER_URL=http://127.0.0.1:11434/v1' >> ~/.config/jev-apply/env  # your own model writes it
-# do nothing                                                                   # your agent writes it
-```
+Then fill a hosted posting. Replace the URL with the one you are applying to:
 
-A local server (Ollama, llama.cpp, LM Studio) also needs `JEV_APPLY_WRITER_MODEL=<name>` in the
-same file; it costs nothing and needs no key. With neither set, jev-apply detects it is running
-inside Claude Code or Codex and hands the paragraph's prompt, grounding, and word limit back as a
-question for the host agent to write and return — checked against the same rules a model's draft
-would face. `node scripts/writer-smoke.mjs --detect` prints which one is active.
-
-## Daily use
-
-### Complete one application
-
-```
-node scripts/apply.mjs --url <posting>
+```bash
+JOB_URL='https://job-boards.greenhouse.io/<board>/jobs/<id>'
+node scripts/apply.mjs --url "$JOB_URL" --no-submit
 ```
 
-Fills every field it can, then prints one JSON object with a status:
+If the result is `needs_user`, save `{"<qid>":{"value":"your answer"}}` to `~/.config/jev-apply/application-answers.json` using the printed `qid`, then run:
 
-- **`submitted`** — Submit was clicked and the ATS confirmed it.
-- **`ready_to_submit`** — nothing left to ask; review the summary and click Submit yourself.
-- **`needs_user`** — some fields need you; see below.
-- **`blocked{reason}`** — e.g. `unsupported_ats`. `apply.mjs --resume <slug>` re-attaches and lists
-  every field still unfilled with its intended value, so you can finish by hand.
-
-Answer a `needs_user` batch in `~/.config/jev-apply/answers.json` using each printed `qid`:
-`{"<qid>": {"value": "…"}}`. Copy `remember_as` through as printed when you want a row saved,
-then re-run with those answers:
-
-```
-node scripts/apply.mjs --url <posting> --answers ~/.config/jev-apply/answers.json
-node scripts/apply.mjs --resume <slug>          # re-attach later, list unfilled fields
+```bash
+node scripts/apply.mjs --url "$JOB_URL" --answers ~/.config/jev-apply/application-answers.json --no-submit
 ```
 
-### Corrections
+Keep `--no-submit` on every demo run, including answer reruns. `ready_to_submit` leaves the filled tab open for review; `node scripts/apply.mjs --resume <slug>` lists anything still missing. `submitted` means the ATS confirmed a click; `blocked` gives a reason and keeps any opened tab available for manual completion. Auto-submit is opt-in, and Lever always requires your click.
 
+## Evidence from real forms
+
+```mermaid
+pie showData
+    title Final rerun: 12 pages, 229 fields
+    "Correct fills" : 178
+    "Unanswered or unsupported" : 50
+    "Answerable but missed" : 1
 ```
-node scripts/remember.mjs "my email is now jane@example.com"
+
+The 12 Greenhouse/Ashby pages were new before the first of **three passes**. After fixes informed by earlier passes, an independent screenshot review of the final rerun found **178 correct fills, 0 wrong fills, 50 unanswered or unsupported fields, and 1 missed field**. No application was submitted. This is one evaluated set, not a guarantee on other forms. [Method and per-page results](bench/results/fresh-pages.md).
+
+## Other ways to use it
+
+```bash
 node scripts/remember.mjs "never apply to contract roles"
-```
-
-Jev only classifies the instruction (fact, preference, or correction) — the words it stores are
-always yours, and what you tell it holds for every application from then on.
-
-### Find roles
-
-```
 node scripts/scan.mjs
 node scripts/pipeline.mjs list
+node scripts/pipeline.mjs queue 12 15  # use IDs from your list
+node scripts/apply.mjs --queue 2 --no-submit
 ```
 
-`scan.mjs` pulls new postings from your tracked companies into the pipeline; `pipeline.mjs list`
-shows them with a Jev fit score and a reason built from your own story titles.
+The queue batches repeated questions. On a `needs_user` rerun, add `--answers ~/.config/jev-apply/application-answers.json` **and keep `--no-submit`**. Or install the [agent skill](SKILL.md) with `npx skills add theadaply/jev-apply` and ask it to learn your background, find roles, or complete an application.
 
-### Apply to the queue
+## Contributing
 
-```
-node scripts/pipeline.mjs queue 12 15 19
-node scripts/apply.mjs --queue 3
-```
+`npm run check:syntax` parses tracked JavaScript and is the credential-free CI gate; it does not test behavior. `node eval/plan.test.mjs` uses private memory and live paid Jev calls. Browser fixture checks live in `scripts/controls-smoke.mjs` and `scripts/submit-smoke.mjs`; never run `eeo-smoke.mjs` on a real posting for a demo. Read [agent instructions](AGENTS.md), [design decisions](docs/PLAN.md), and [module contracts](docs/CONTRACTS.md) before editing. [Issues and PRs](https://github.com/TheAdaply/jev-apply/issues) welcome.
 
-`queue` shortlists ids from `pipeline.mjs list`; `apply.mjs --queue N` plans and fills all N in
-parallel and returns **one** merged, de-duplicated `needs_user` batch — "visa sponsorship?" is
-asked once even when five queued postings ask it. Feed `--answers` back once and every posting
-finishes to `submitted` or `ready_to_submit`.
+## License
 
-### Auto-submit
-
-Off by default. `p.auto_submit` is asked once at onboarding (`g.auto_submit`, y/n). Override it
-for one run:
-
-```
-node scripts/apply.mjs --url <posting> --submit      # force Submit on for this run
-node scripts/apply.mjs --url <posting> --no-submit    # force it off for this run
-```
-
-### Demographics and legal questions
-
-`p.eeo` (gender, race/ethnicity, veteran and disability status, pronouns — each independently
-declinable) and `p.legal.*` (non-compete and other stated legal stances) are asked once, at
-onboarding or the first time a form needs them, then filled from memory on every later
-application. Never guessed from your name, résumé, or photo.
-
-## With an agent
-
-Install as a skill — `npx skills add theadaply/jev-apply`, or symlink the clone into
-`~/.claude/skills/jev-apply` / `~/.agents/skills/jev-apply`. Then just say: "learn my background",
-"complete this application `<url>`", "use that answer next time", "find roles", or "apply to the
-queue".
-
-## What it never does
-
-- Never guesses a personal fact — an unknown value always comes back as a question, never a default.
-- Never picks a default option — a select needs an explicit match or it's asked.
-- Never writes your data into this repository — everything lives under `~/.config/jev-apply/`.
-- Never clicks Submit unless you've turned `auto_submit` on — otherwise it stops at ready-to-submit.
-
-## Where your data lives
-
-```
-~/.config/jev-apply/        (0700)
-  env                       TYPESAFE_API_KEY (required); OPENAI_API_KEY or JEV_APPLY_WRITER_URL /
-                            JEV_APPLY_WRITER_MODEL (optional) — chmod 600, read once at start
-  memory/                   facts, preferences, stories, pre-computed answers, drafts, corrections
-  documents/                résumés and other uploaded files
-  applications/<slug>/      per-application trace and decision log
-  pipeline/                 tracked companies, scanned postings, the queue
-```
-
-## Measured
-
-Hold-out coverage of the canonical question bank, on 100 postings it was never built from
-(`canon/eval-2026-09-22.md`, 1,946 question instances). The targets score **answerable** — mapped
-to a canonical question *that has an answer* — not merely recognised:
-
-| group | answerable | target |
-|---|---:|---:|
-| core | 98.5% ✓ | 95% |
-| screening | 64.9% ✗ | 85% |
-| narrative | 51.8% ✗ (91.1% mapped) | 80% |
-| overall | 78.3% (79.5% mapped) | — |
-
-Core clears it. Narrative is recognised on 91.1% of its instances but half of that is
-`q.narrative.why_company`, written per posting at queue time rather than pre-answered. EEO (349
-instances) maps to 0% by design: demographic rows are resolved from `p.eeo` directly, never judged
-by Jev.
-
-Control-driving accuracy, latest run (`bench/results/2026-09-22-round3-domfix.md`, 5 real
-postings): 60 of 97 fields filled automatically; every attempted control — text, textarea,
-react-select, radio, checkbox, phone, file upload, location — landed and read back at 100%.
-
-Live, end to end: real Greenhouse (Together AI) and Ashby (Baseten) forms filled — schema fetch,
-deterministic resolve, Jev, then Playwright with every write read back — at **1–2 Jev requests per
-posting**, about **$0.0004 of Jev per posting**. Lever boards plan and fill the same way and are
-handed to you to submit.
-
-Ten-posting real-profile run, judged twice — before and after a round of correctness fixes
-(`--no-submit`, 136 fields, real Greenhouse and Ashby boards, each round judged cold field-by-field
-against the stored profile by an independent second pass): **128/136 fields correct (94.1%)**, up
-from 122/136 (89.7%) before the fixes; 97%+ of filled fields correct; median **~13 s** and
-**~$0.0003** per application.
-
-![Ten-posting accuracy, before vs. after](bench/results/accuracy-ten.png)
-
-| company | fields | correct (before→after) | accuracy | time | cost |
-|---|---:|---|---:|---:|---:|
-| together-ai | 10 | 10 | 100.0% | 11.0s | $0.000000 |
-| tenstorrent | 15 | 14 | 93.3% | 15.8s | $0.000246 |
-| graphcore | 17 | 15 | 88.2% | 15.9s | $0.000273 |
-| scale-ai | 20 | 18→20 | 100.0% | 22.1s | $0.000241 |
-| modal | 4 | 4 | 100.0% | 4.8s | $0.000242 |
-| d-matrix | 10 | 9 | 90.0% | 8.9s | $0.000248 |
-| decagon | 10 | 9→10 | 100.0% | 8.8s | $0.000474 |
-| cerebras | 11 | 10 | 90.9% | 11.2s | $0.000496 |
-| mistral | 19 | 16→18 | 94.7% | 22.0s | $0.011390 |
-| snowflake | 20 | 17→18 | 90.0% | 16.8s | $0.001175 |
-
-Full per-posting table, method, and the root causes behind every row that moved:
-[`bench/results/accuracy-ten.md`](bench/results/accuracy-ten.md) ·
-[`docs/POSTMORTEM.md`](docs/POSTMORTEM.md).
-
-### Twelve pages it had never seen
-
-The strongest test: 12 postings from 12 companies (Twilio, GitLab, Gusto, Remote, Vercel, Discord,
-Notion, Harvey, Plaid, Lambda, Luma, OpenAI), none used while building, real profile, `--no-submit`,
-every row graded from its screenshot by an independent pass.
-
-![Twelve unseen pages, baseline vs final](bench/results/fresh-pages.png)
-
-| | rows | right | **wrong** | missed | couldn't | median time | median cost |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| before | 229 | 159 | 6 | 2 | 62 | 28 s | $0.00083 |
-| **after** | 229 | **168** | **0** | 7 | 54 | 29 s | $0.00084 |
-
-"couldn't" = nothing on file, a policy gate that correctly refused, or an unsupported widget — those
-come back as questions, never guesses. The 7 misses were closed after this run (each has a regression
-test). Table, method and per-row notes: [`bench/results/fresh-pages.md`](bench/results/fresh-pages.md).
-
-## Working on it
-
-```
-src/
-  config.mjs      constants, env loader, writer auto-detection, private-directory paths
-  memory/         the YAML store and derivations (since:, notice, salary)
-  schema/         Greenhouse/Ashby/Lever schema fetch, question classification, FormPlan normalization
-  jev/            the Jev client, request builders, confidence gates
-  writer/         which backend writes, and the grounding/limit checks every draft passes
-  plan/           resolve → decide → draft → execute → summarize
-  browser/        Chrome-over-CDP lifecycle and the per-control fill/readback adapters
-  discover/       board providers, filters, dedup, fit scoring
-  pipeline/       the pipeline store, status transitions, rendering
-  canon/          the question-bank builder and its pre-computed answers
-  bench/          the form-filling benchmark's synthetic profile, runner, and reports
-```
-
-Checks:
-
-```
-node eval/plan.test.mjs                 # resolve+Jev+gate pipeline against recorded fixtures
-node scripts/controls-smoke.mjs         # every browser control kind, driven live
-node scripts/writer-smoke.mjs --detect  # which writer backend this environment would use
-node scripts/bench.mjs --postings bench/smoke.txt --limit 2 --home /tmp/jev-bench
-node scripts/canon-scan.mjs             # rebuild the corpus (reads the seed list scan.mjs uses)
-node scripts/canon-cluster.mjs          # corpus → canon/questions.yaml
-node scripts/canon-eval.mjs             # hold-out coverage report
-```
-
-The question bank (`canon/`) is generated from real postings; see `canon/README.md` for how it's
-built and regenerated. Module interfaces are in `docs/CONTRACTS.md`; architecture, data shapes, and
-build order are in `docs/PLAN.md`.
+[MIT](LICENSE) © 2026 TheAdaply.

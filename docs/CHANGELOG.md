@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+**Browser and smoke safety.** CDP connections now verify Chrome's profile before using a port,
+and tab reuse no longer mistakes a posting page or sibling job for its application. The bench
+uses that same ownership check, including platforms without a POSIX lock. `eeo-smoke.mjs`
+requires `--live` and uses a separate browser profile for synthetic demographic writes.
+
+**Shorter onboarding and agent guidance.** The README now leads with the workflow and a sourced
+benchmark chart, followed by install and usage. Package metadata links to the repository and
+issues, and npm package contents include `INSTALL.md`. The new `npm run check:syntax` and
+GitHub Actions workflow check installation and parsing only, without Jev calls; the live
+acceptance eval stays separate. `AGENTS.md` names both checks explicitly.
+
+**Blank credentials no longer report ready.** `scripts/install.mjs` uses the runtime env parser
+instead of checking whether a variable name exists. Empty values and explicit empty process
+overrides report `needs_user`; stored and per-run writer precedence is preserved. Verified with
+isolated CLI smoke cases; no real credential or model request was used.
+
 **Missing contact details are asked at onboarding (#6, contribution by
 [@error9098x](https://github.com/error9098x)).** `learn.mjs` asks separately for an email and
 phone when the canonical facts are absent; typed answers become private `f.identity.*` facts.

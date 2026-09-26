@@ -1,15 +1,12 @@
 #!/usr/bin/env node
-// scripts/eeo-smoke.mjs — the EEO block, end to end, on a live posting (PLAN §2.2 step 8, risk 14).
+// EEO control check on a live Greenhouse posting. This mutates a real form with invented
+// demographic answers: use --live deliberately, never during a user's application or demo.
 //
-//   node scripts/eeo-smoke.mjs --url https://job-boards.greenhouse.io/<board>/jobs/<id> --port 9224
-//   node scripts/eeo-smoke.mjs --url … --schema eval/fixtures/greenhouse-togetherai-5179372007.json
+//   node scripts/eeo-smoke.mjs --live --url https://job-boards.greenhouse.io/<board>/jobs/<id>
 //
-// Fills **only** the demographic rows, from the synthetic profile below — never the user's own
-// `p.eeo`, because this drives somebody's real application form — reads every one of them back,
-// and prints one JSON object. Values are redacted in the output exactly as `trace.jsonl` redacts
-// them (`src/browser/trace.mjs`): the read-back text of an EEO row *is* the answer, so the report
-// carries whether it matched, never what it says. Submit is never clicked and nothing outside the
-// demographic block is touched.
+// Uses a separate smoke Chrome profile, never ~/.config/jev-apply/profile. Reads back only
+// the demographic rows and redacts values from stdout; Submit is never clicked. A CDP port
+// already owned by a different profile is refused before any tab is opened.
 //
 // Why a dedicated check: the board asks this block in an order its own API does not describe.
 // `#hispanic_ethnicity` has no schema row, and `#race` is not in the DOM until that question is
@@ -17,13 +14,30 @@
 // the live page — `greenhouse.eeoControls()` — and re-read after every fill, which is how a
 // control that mounts in response to an earlier answer gets filled at all.
 
+import { realpath } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import path from "node:path";
+
 import { connect, disconnect, openTab } from "../src/browser/chrome.mjs";
 import { loadFormPlan } from "../src/schema/index.mjs";
+import { detectAts } from "../src/schema/normalize.mjs";
 import { resolveForm } from "../src/plan/resolve.mjs";
 import { paths } from "../src/config.mjs";
 import * as greenhouse from "../src/browser/adapters/greenhouse.mjs";
 
+const SMOKE_PROFILE = path.join(tmpdir(), "jev-apply-eeo-smoke", "profile");
+
 class Blocked extends Error {}
+async function isolatedProfile() {
+  const canonical = (p) => realpath(p).catch(() => path.resolve(p));
+  const smoke = await canonical(SMOKE_PROFILE);
+  const userProfiles = [paths.profile, path.join(homedir(), ".config", "jev-apply", "profile")];
+  for (const user of userProfiles) {
+    if (smoke === (await canonical(user))) throw new Blocked("EEO smoke profile resolves to the user's application profile");
+  }
+  return SMOKE_PROFILE;
+}
+
 
 const emit = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
 const log = (line) => process.stderr.write(`${line}\n`);
@@ -56,17 +70,19 @@ const syntheticMemory = () => ({
 });
 
 function parseArgs(argv) {
-  const args = { url: null, port: 9224, schema: null, help: false };
+  const args = { url: null, port: 9224, schema: null, live: false, help: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--url") args.url = argv[++i];
     else if (arg === "--port") args.port = Number(argv[++i]);
     else if (arg === "--schema") args.schema = argv[++i];
+    else if (arg === "--live") args.live = true;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Blocked(`unknown argument ${arg}`);
   }
-  if (!args.help && !args.url) throw new Blocked("usage: eeo-smoke.mjs --url <posting> [--port 9224] [--schema <file>]");
+  if (!args.help && !args.url) throw new Blocked("usage: eeo-smoke.mjs --live --url <posting> [--port 9224] [--schema <file>]");
   if (!args.help && !Number.isFinite(args.port)) throw new Blocked("--port must be a number");
+  if (!args.help && !args.live) throw new Blocked("EEO smoke writes synthetic demographic values to a live form; pass --live to opt in");
   return args;
 }
 
@@ -131,23 +147,21 @@ function committed(observed, intended) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    emit({ ok: false, blocked: "usage: eeo-smoke.mjs --url <posting> [--port 9224] [--schema <file>]" });
+    emit({ ok: false, blocked: "usage: eeo-smoke.mjs --live --url <posting> [--port 9224] [--schema <file>]" });
     return;
   }
-  if (!/greenhouse/i.test(args.url)) throw new Blocked("only Greenhouse boards carry this demographic block today");
+  if (detectAts(args.url)?.ats !== "greenhouse") throw new Blocked("only hosted Greenhouse job URLs are supported");
+  const profileDir = await isolatedProfile();
 
   const schema = await schemaOptions(args.schema ?? args.url);
   const mem = syntheticMemory();
 
-  const { browser, context, endpoint, spawned } = await connect({ profileDir: paths.profile, port: args.port });
+  const { browser, context, endpoint, spawned } = await connect({ profileDir, port: args.port });
   log(`attached to ${endpoint}${spawned ? " (spawned)" : ""}`);
   const rows = [];
   let page = null;
   try {
-    page = await openTab(context, args.url);
-    // Always from a fresh render: a re-run against a tab that still holds the previous run's
-    // answers measures the idempotent path, not the fill path, and the two must not be confused.
-    await page.reload({ waitUntil: "domcontentloaded" });
+    page = await openTab(context, args.url, { reuse: false });
     await greenhouse.waitForForm(page);
     await page.waitForTimeout(1000);
 

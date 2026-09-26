@@ -1,9 +1,15 @@
 # jev-apply — agent context
 
-Memory-backed job-application assistant packaged as an agent skill. TypeSafe AI's **Jev** model *selects*
-which saved item (fact, preference, story, answer) fills each form field; an OpenAI model writes only
-genuinely new text; a Playwright runner executes and verifies. Read `docs/PLAN.md` before changing anything —
-it is the decision record (architecture §2, data shapes §2.3, memory §2.4, pipeline §2.5, build order §4).
+Memory-backed job-application skill: Jev selects saved answers, an optional OpenAI/local/host
+writer drafts only new text, and Playwright fills and reads back. Read `docs/PLAN.md` before changing
+anything — it records architecture (§2), data shapes (§2.3), memory (§2.4), and pipeline (§2.5).
+`SKILL.md` is the current user-facing CLI contract.
+
+## Commands
+- Install: `npm ci`; initialize a private home with `node scripts/install.mjs` (see `INSTALL.md`).
+- Fast CI check: `npm run check:syntax` (parsing only; no key or model calls).
+- Live acceptance: `node eval/plan.test.mjs` (private memory + paid Jev calls; not an offline test).
+- Browser fixture: `node scripts/controls-smoke.mjs` (Google Chrome; isolated bench profile).
 
 ## Conventions
 - Node ≥ 20, ESM `.mjs`, no build step, no framework. Dependencies: `@typesafe-ai/sdk`, `playwright`
@@ -11,18 +17,18 @@ it is the decision record (architecture §2, data shapes §2.3, memory §2.4, pi
   or import the standalone `undici` package. Its module init takes over the global dispatcher slot
   that built-in `fetch` reads, and every *other* module's responses then arrive still-compressed with
   `content-encoding` stripped — `JSON.parse` sees binary, which reads like a broken ATS, not a bad import.
-- Scripts in `scripts/` are the skill's entry points; `SKILL.md` maps the five user verbs to them.
-  Every script prints exactly one JSON object on stdout and exits 0 for `submitted`, `ready_to_submit`,
-  `needs_user`, and `blocked`.
+- `SKILL.md` maps the five user verbs to scripts in `scripts/`. `scripts/apply.mjs` prints exactly
+  one JSON object on stdout and exits 0 for `submitted`, `ready_to_submit`, `needs_user`, and
+  `blocked`; diagnostic smoke scripts print check lines instead.
 - Constants live in `src/config.mjs` (`JEV_MODEL = "jev-1.13.0"`, `OPENAI_MODEL`); thresholds only in
   `src/jev/gates.mjs`.
 
 ## Data and secrets
 - User data lives outside the repo in `~/.config/jev-apply/` (`env`, `memory/`, `documents/`,
   `applications/`, `pipeline/`, `profile/`). Nothing user-specific is ever written under the repo.
-- `~/.config/jev-apply/env` holds `TYPESAFE_API_KEY` and `OPENAI_API_KEY`. Never print, log, or commit
-  key material; `.env*` (except `.env.example`), `memory/`, `private/`, and local notes under
-  `docs/research/` are gitignored.
+- `~/.config/jev-apply/env` requires `TYPESAFE_API_KEY`; optional writing uses `OPENAI_API_KEY` or
+  `JEV_APPLY_WRITER_URL` + `JEV_APPLY_WRITER_MODEL`. Never print, log, or commit key material;
+  `.env*` (except `.env.example`), `memory/`, `private/`, and local `docs/research/` are gitignored.
 
 ## Invariants (do not break)
 - Jev never generates text; every Jev question has an explicit `none_of_these` exit and its answer is
@@ -46,5 +52,6 @@ it is the decision record (architecture §2, data shapes §2.3, memory §2.4, pi
   bank, never from a neighbouring preference, and `ask` whenever that row is absent.
 
 ## Working here
-- Implement one step of `docs/PLAN.md` §4 at a time; each step ends with its named observable check.
-- Do not run project-wide formatters, linters, or test suites unless the task says so.
+- Treat `docs/PLAN.md` as decisions; §4 is the historical build order, not a pending task list.
+- Run the relevant behavioral smoke for a change. Do not run project-wide formatters, linters,
+  or the live paid eval unless the task needs them.

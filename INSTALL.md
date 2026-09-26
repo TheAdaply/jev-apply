@@ -6,7 +6,7 @@ For a host agent (Claude Code, Codex, …) setting this skill up for a user the 
 ## 1. Get the code
 
 ```
-git clone https://github.com/theadaply/jev-apply.git && cd jev-apply && npm install
+git clone https://github.com/theadaply/jev-apply.git && cd jev-apply && npm ci
 ```
 
 Node ≥ 20 required. Dependencies: `@typesafe-ai/sdk`, `playwright` (library only — no browsers to
@@ -26,6 +26,9 @@ prints `~/.config/jev-apply/env` itself.
 ## 3. Put the Jev key in `~/.config/jev-apply/env`
 
 One `KEY=VALUE` per line, then `chmod 600 ~/.config/jev-apply/env`:
+
+`.env.example` lists credential and writer variable names; put real values only in the private
+file, never in the repository.
 
 ```
 TYPESAFE_API_KEY=…

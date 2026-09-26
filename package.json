@@ -1,8 +1,14 @@
 {
   "name": "jev-apply",
   "version": "0.1.0",
-  "description": "Memory-backed job-application assistant: Jev selects, OpenAI writes only what is new, Playwright fills and verifies.",
+  "description": "Memory-backed job applications: Jev selects saved answers, an optional writer drafts, Playwright verifies.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theadaply/jev-apply.git"
+  },
+  "homepage": "https://github.com/theadaply/jev-apply#readme",
+  "bugs": { "url": "https://github.com/theadaply/jev-apply/issues" },
   "type": "module",
   "private": false,
   "engines": {
@@ -23,6 +29,7 @@
   },
   "scripts": {
     "setup": "node scripts/install.mjs",
+    "check:syntax": "git ls-files -z '*.mjs' | xargs -0 -n 1 node --check",
     "smoke": "node scripts/jev-smoke.mjs",
     "apply": "node scripts/apply.mjs",
     "learn": "node scripts/learn.mjs",
@@ -44,6 +51,7 @@
   "files": [
     "SKILL.md",
     "README.md",
+    "INSTALL.md",
     "LICENSE",
     "scripts/",
     "src/",
@@ -56,6 +64,7 @@
     "typesafe",
     "job-application",
     "greenhouse",
+    "lever",
     "ashby",
     "playwright",
     "agent-skill"

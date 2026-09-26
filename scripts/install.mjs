@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Prepare the private data directory (PLAN D11). Idempotent, and it never touches secrets:
-// the `env` file is read for *presence only* and is never created, overwritten, or printed.
+// Prepare the private data directory (PLAN D11). Idempotent; it never writes secrets:
+// it checks nonempty credential presence without printing values or changing the env file.
 // One JSON object on stdout; the human-readable tree also goes to stderr.
 
-import { mkdirSync, chmodSync, statSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, chmodSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
   CONFIG_DIR,
@@ -13,6 +13,7 @@ import {
   SIGNUP,
   WRITER_MODEL_VAR,
   WRITER_URL_VAR,
+  loadEnv,
   paths,
 } from "../src/config.mjs";
 import { describeWriter, detectWriter } from "../src/writer/backend.mjs";
@@ -52,26 +53,22 @@ try {
 chmodSync(paths.configJson, FILE_MODE);
 tree.push(`${label(paths.configJson)}  ${mode(paths.configJson)}  ${configWritten ? "created" : "existed"}`);
 
-// env: presence and variable names only. Values are never read into the output.
+// env: use the same parser as the runner. Blank keys (including explicit empty process overrides)
+// are missing; values are never printed.
 let envPresent = true;
-let names = [];
 try {
-  names = readFileSync(paths.env, "utf8")
-    .split("\n")
-    .map((l) => l.trim().replace(/^export\s+/, ""))
-    .filter((l) => l && !l.startsWith("#") && l.includes("="))
-    .map((l) => l.slice(0, l.indexOf("=")).trim());
+  statSync(paths.env);
 } catch (err) {
   if (err.code !== "ENOENT") throw err;
   envPresent = false;
 }
+// Detection distinguishes a process-level writer URL from one stored in the env file.
+const writer = detectWriter({ refresh: true });
+loadEnv({ require: [] });
 const keys = [...REQUIRED_KEYS, ...OPTIONAL_KEYS];
-const present = Object.fromEntries(keys.map((k) => [k, names.includes(k) || Boolean(process.env[k])]));
+const present = Object.fromEntries(keys.map((k) => [k, Boolean(process.env[k]?.trim())]));
 const missing = REQUIRED_KEYS.filter((k) => !present[k]);
 tree.push(`${label(paths.env)}  ${envPresent ? mode(paths.env) : "----"}  ${envPresent ? "existed (not modified)" : "MISSING"}`);
-
-// Which model writes the few sentences that are not on file. Presence only — no key material.
-const writer = detectWriter({ refresh: true });
 
 /** The three ways to have a writer, in the order a new user should consider them. */
 const WRITER_HELP = [

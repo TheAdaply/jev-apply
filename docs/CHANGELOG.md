@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**Shorter onboarding and agent guidance.** The README now leads with the workflow and a sourced
+benchmark chart, followed by install and usage. Package metadata links to the repository and
+issues, and the published package includes `INSTALL.md`. The new `npm run check:syntax` and
+GitHub Actions workflow check installation and parsing only, without Jev calls; the live
+acceptance eval stays separate. `AGENTS.md` names both checks explicitly.
+
+**Blank credentials no longer report ready.** `scripts/install.mjs` uses the runtime env parser
+instead of checking whether a variable name exists. Empty values and explicit empty process
+overrides report `needs_user`; stored and per-run writer precedence is preserved. Verified with
+isolated CLI smoke cases; no real credential or model request was used.
+
 **"Current or previous employer" answers from memory, and only that question does (#5, joint work
 with [Shine Gupta](https://github.com/Shine-5705)).** Stripe asks "Who is your current or previous
 employer?", and the employer and title patterns accepted only "current or most recent", so the row

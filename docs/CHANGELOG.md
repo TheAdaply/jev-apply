@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Missing contact details are asked at onboarding (#6, contribution by
+[@error9098x](https://github.com/error9098x)).** `learn.mjs` asks separately for an email and
+phone when the canonical facts are absent; typed answers become private `f.identity.*` facts.
+Duplicate-contact selection stays unchanged. The agent guide now keys answers by
+`remember_as.id`, and answer batches live under `~/.config/jev-apply/` rather than the repo.
+
 **"Current or previous employer" answers from memory, and only that question does (#5, joint work
 with [Shine Gupta](https://github.com/Shine-5705)).** Stripe asks "Who is your current or previous
 employer?", and the employer and title patterns accepted only "current or most recent", so the row

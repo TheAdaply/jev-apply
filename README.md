@@ -21,8 +21,9 @@ node scripts/learn.mjs --resume you.pdf --links https://linkedin.com/in/you,http
 node scripts/apply.mjs --url <posting>
 ```
 
-`learn.mjs` prints the day-1 questions it still needs answered; write them to `answers.json`
-(`{"<id>": <answer>}`) and re-run `node scripts/learn.mjs --answers answers.json`.
+`learn.mjs` prints day-1 questions. Save answers in `~/.config/jev-apply/answers.json`,
+keyed by `remember_as.id` (or the fact IDs named by gaps without it), never by a `g.*`
+prompt ID; then run `node scripts/learn.mjs --answers ~/.config/jev-apply/answers.json`.
 
 ## Choose how text gets written
 
@@ -57,12 +58,12 @@ Fills every field it can, then prints one JSON object with a status:
 - **`blocked{reason}`** — e.g. `unsupported_ats`. `apply.mjs --resume <slug>` re-attaches and lists
   every field still unfilled with its intended value, so you can finish by hand.
 
-Answer a `needs_user` batch by writing `answers.json` (`{"<qid>": {"value": "…"}}` from the
-questions it printed — add "remember_as" back through exactly as printed for a row you want saved)
-and re-running with the answers:
+Answer a `needs_user` batch in `~/.config/jev-apply/answers.json` using each printed `qid`:
+`{"<qid>": {"value": "…"}}`. Copy `remember_as` through as printed when you want a row saved,
+then re-run with those answers:
 
 ```
-node scripts/apply.mjs --url <posting> --answers answers.json
+node scripts/apply.mjs --url <posting> --answers ~/.config/jev-apply/answers.json
 node scripts/apply.mjs --resume <slug>          # re-attach later, list unfilled fields
 ```
 

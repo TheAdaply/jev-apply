@@ -13,7 +13,7 @@ with it, this file gets patched.
 | D3 | Writer | OpenAI Responses API (GPT-5.x) for *new* text only; output is a per-application draft, never memory | Jev cannot write; drafts are not facts |
 | D4 | First targets | Greenhouse, then Ashby | 41 Ashby / 30 Greenhouse in a 74-company AI-infra probe; both expose the form schema without auth |
 | D5 | Discovery | **Pipeline**: 6–8 providers + tracked companies + cross-run dedup + statuses + queue→apply; batch apply plans all N first and asks once | user decision; a fixed provider contract and filter chain keep it model-free |
-| D6 | Onboarding input | Résumé PDF(s) + links; an **eight-item** day-1 questionnaire; everything else asked lazily at first sight | user decision; a 19-prompt interview breaks "embarrassingly simple" |
+| D6 | Onboarding input | Résumé PDF(s) + links; eight core day-1 topics plus missing contact details; other form-specific questions asked lazily | user decision; a 19-prompt interview breaks "embarrassingly simple" |
 | D7 | Repo | `theadaply/jev-apply`, public, MIT | user decision |
 | D8 | Submit | `p.auto_submit` (per-user, overridable per company) gates the click: `true` + nothing left to ask → the runner clicks Submit, waits for the ATS's own confirmation, and returns `submitted`; `false`/absent (asked once at onboarding, defaults to unset until answered) → stops at `ready_to_submit` for the user to click | user decision; captcha/ToS risk becomes a per-user tradeoff set once, not a fixed rule |
 | D9 | LinkedIn Easy Apply | Out of scope | LinkedIn ToS §8.2 forbids automation |
@@ -34,8 +34,8 @@ or per-field approvals.
 
 1. **"Learn my background"** → `scripts/learn.mjs --resume a.pdf [--resume b.pdf] --links …`. The host
    echoes **≤6 lines of prose** ("Jane Doe, ML/inference engineer, 3 roles, 2 degrees, 14 project bullets,
-   LinkedIn/GitHub found") plus any contradictions, then asks the **eight day-1 questions** (§2.4) in one
-   message. Answers are written to memory. Re-running with a changed résumé produces a diff, not a reset.
+   LinkedIn/GitHub found") plus any contradictions, then asks the day-1 questions (§2.4) and any
+   missing contact details in one message. Answers go to memory; a changed résumé yields a diff, not a reset.
 2. **"Complete this application <url>"** → `scripts/apply.mjs --url … --json`. The runner fills
    everything it can — including EEO/demographic rows from `p.eeo` and restrictive-agreements rows from
    `p.legal.restrictive_agreements` whenever those preferences are on file — **then** returns `needs_user`
@@ -251,14 +251,17 @@ card's required controls, independently of the current checkbox.
   promotions are forced to `company:<slug>` scope and checked against existing answers with one Jev Noul ("same content?") to
   prevent duplicates. "Submitted without edit" does **not** promote.
 
-**Day-1 questionnaire (exactly eight, asked once):** (1) work authorization per target country
+**Day-1 questionnaire (eight core topics, plus missing email/phone):** (1) work authorization per target country
 (two-valued); (2) notice-period rule; (3) salary range + currency per role family and which end to state;
-(4) preferred email/phone — only if the résumé shows more than one; (5) which résumé for which role family
+(4) preferred email/phone — ask for each missing fact, or a preference when the résumé has duplicates; (5) which résumé for which role family
 — only if more than one PDF; (6) "what are you looking for" (target roles, must-haves, dealbreakers,
 acceptable locations); (7) EEO self-identification (`p.eeo`: gender, hispanic/latino, race, veteran
 status, disability status, pronouns), each field its own "decline to answer" option — reused, filled, on
 every future form's demographic block instead of skipped; (8) auto-submit preference (`p.auto_submit`):
 should the runner click Submit itself once nothing else needs asking, or always stop at ready-to-submit.
+The runner also asks once whether it may draft prose and accept standard application
+acknowledgements; both preferences remain unset until the user answers.
+
 **Lazy at first sight, then remembered at the right scope:** relocation / in-office per city, security
 clearance, references, arbitration/consent/AI-usage attestations (company scope, always asked —
 `policy_gate` is never answered from memory), restrictive-agreements / non-compete attestations (one
@@ -349,7 +352,7 @@ additions are reviewed in batches before merging. Hold out 20% of postings for t
 % of form questions mapped to a canonical question that has an answer — targets core ≥ 95%,
 screening ≥ 85%, narrative ≥ 80%.
 
-Onboarding after the eight questions: the user picks families → `scripts/answers.mjs` fills `answers.yaml`
+After the day-1 questions: the user picks families → `scripts/answers.mjs` fills `answers.yaml`
 for core + those families: constants and rules silently; narrative drafts (≤150 words, three length
 variants) shown once for curation; a coverage line ("answers ready for 96% of questions seen in 400 real
 forms; 12 narratives to review"). Queue time adds `company` answers for the selected postings, with the
@@ -362,7 +365,7 @@ SKILL.md                 six-field frontmatter (name: jev-apply); five verbs →
 README.md · LICENSE (MIT) · INSTALL.md (agent-facing) · package.json (node ≥ 20)
 scripts/
   install.mjs            creates ~/.config/jev-apply (0700) + config.json {envFile, profile}; fail-fast message naming TYPESAFE_API_KEY / OPENAI_API_KEY + signup URLs
-  learn.mjs              résumé/links → memory YAML + ≤6-line echo + gaps (eight items max); diff mode on sha256 change
+  learn.mjs              résumé/links → memory YAML + ≤6-line echo + standing/conditional gaps; diff mode on sha256 change
   apply.mjs              --url | --tab | --queue N · --answers f · --resume slug · --dry-run · --schema f · --record-schema · --json
   remember.mjs           corrections / promotions (d1, c1 handles) / new facts with scope
   scan.mjs               discovery → pipeline (found + fit score)
@@ -462,8 +465,8 @@ hold-out (core ≥ 95%), wall time, Jev requests per application (≤ 4), cost p
    answered from the global `p.legal.restrictive_agreements` preference once it exists. O1 is chosen
    without one.
 3. **Gate thresholds unvalidated** — M0-b in Phase A on 34 real fields; one file; pinned model.
-4. **Application #1 is mostly questions** (7/21 fields fillable from a résumé alone) — eight-item
-   questionnaire + derived answers + fill-before-ask (D13) so the questions arrive on a half-filled form;
+4. **Application #1 is mostly questions** (7/21 fields fillable from a résumé alone) — day-1
+   questions + derived answers + fill-before-ask (D13) so they arrive on a half-filled form;
    ≤ 3 asks on #1.
 5. **Fan-out token cap** — kind pre-filter + estimator split (A1 check).
 6. **React-select commit semantics** — portal-option click + hidden-required assert; wrong-value

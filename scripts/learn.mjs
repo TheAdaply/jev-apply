@@ -267,11 +267,10 @@ async function importResumes(files, links) {
 // --------------------------------------------------------------------- gaps
 
 /**
- * What memory still cannot answer: the eight day-1 questions (PLAN §2.4), minus the ones already
- * answered, in the words a person would use. Two of the eight only exist when they have to — the
- * contact question when more than one email or phone is on file, the résumé question when more
- * than one document is. Never a guessed value, and nothing else is asked on day 1: everything a
- * form needs beyond this is asked the first time a form asks it.
+ * What memory still cannot answer: the day-1 questions (PLAN §2.4), minus the ones already
+ * answered, in the words a person would use. Contact details are collected here when either one is
+ * missing; choosing between duplicates and choosing among multiple résumés are conditional. Never
+ * a guessed value, and everything else a form needs is asked the first time a form asks it.
  *
  * A gap carries `remember_as` wherever the answer has exactly one home, so the host hands answers
  * back to `learn.mjs --answers` keyed by that id. `g.work_auth` has none: its answer is one
@@ -293,10 +292,16 @@ function gapsFor(mem) {
     add("g.salary", "What pay are you looking for, and in what currency? A range is fine — tell me which end to put on forms.", preference("p.salary"));
   }
 
-  // One id per fact: the seed and `extractResume` both mint the `f.identity.*` namespace.
-  const emails = listFacts(mem, "f.identity.email").length;
-  const phones = listFacts(mem, "f.identity.phone").length;
-  if ((emails > 1 || phones > 1) && !resolvePreference(mem, "p.contact")) {
+  // Form filling reads the canonical id; a differently named contact fact does not satisfy it.
+  const emails = listFacts(mem, "f.identity.email");
+  const phones = listFacts(mem, "f.identity.phone");
+  if (!emails.some(({ id }) => id === "f.identity.email")) {
+    add("g.email", "What email address should applications use?", { kind: "fact", id: "f.identity.email" });
+  }
+  if (!phones.some(({ id }) => id === "f.identity.phone")) {
+    add("g.phone", "What phone number should applications use?", { kind: "fact", id: "f.identity.phone" });
+  }
+  if ((emails.length > 1 || phones.length > 1) && !resolvePreference(mem, "p.contact")) {
     add("g.contact", "I found more than one email or phone number. Which ones should applications use?", preference("p.contact"));
   }
   if ((mem.documents?.length ?? 0) > 1 && !resolvePreference(mem, "p.resume_by_role_family")) {

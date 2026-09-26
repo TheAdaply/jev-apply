@@ -282,8 +282,9 @@ guess, and never a skip. Ethnicity outranks race on a form that folds both into 
 A `p.eeo.<field>` row on its own is read as well as the whole mapping, and it may hold the form's
 own wording ("Male") rather than a token — that is what the host stores when the user answers one
 demographic row (`src/plan/decisions.mjs memoryRow()`), so the same vocabulary translates it back.
-`scripts/learn.mjs --answers answers.json` (`{"<memory id>": <value>}`, the ids the gaps name)
-writes these canonically: wording no vocabulary states is rejected and reported, never stored.
+`scripts/learn.mjs --answers ~/.config/jev-apply/answers.json` (keys are `gaps[].remember_as.id`, not the
+`g.*` prompt IDs) writes demographic answers canonically: wording no vocabulary states is
+rejected and reported, never stored.
 
 Redaction is unchanged by any of this: a `class: sensitive` row is never photographed, its trace
 row carries neither its text nor its length, and the summary prints `••••`
@@ -556,10 +557,10 @@ overwrite a row whose `source` is `user` (pass `{overwriteUser: true}` to mean i
   run a diff.
 - Both print `{status, facts, preferences, documents, stories, answers, echo[], gaps[]}`. `status` is
   one of the three every script is bound to — `needs_user` while `gaps[]` is non-empty, otherwise
-  `ready_to_submit`, or `blocked` with a `reason` for a usage error. `gaps[]` is the day-1
-  questions minus those already answered — the six standing ones, the demographic block and
-  auto-submit, plus drafting — each in the words a person would use, each carrying the id its
-  answer is stored under. Nothing else is asked on day 1, and a gap is never filled with a default.
+  `ready_to_submit`, or `blocked` with a `reason` for a usage error. `gaps[]` contains the standing
+  and conditional day-1 questions, including `g.email` and `g.phone` when their canonical facts
+  are missing. For each gap with `remember_as`, use that `.id` as the answer-file key, not the
+  `g.*` prompt ID. Nothing is defaulted.
 - `scripts/remember.mjs "<instruction>" [--id <memory id>] [--dry-run]` — **one** Jev
   request carrying two choices: the row kind and the memory **id** it belongs to. It writes the
   row with `source: user` and prints `{status, kind, id}` — `ready_to_submit` when written,

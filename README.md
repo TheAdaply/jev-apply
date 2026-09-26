@@ -66,8 +66,12 @@ node scripts/apply.mjs --url "https://job-boards.greenhouse.io/company/jobs/123"
 
 Replace the résumé path and posting URL with yours.
 
-- **Onboarding:** `learn.mjs` returns `gaps`. Save `{"<id>": <answer>}` to `~/.config/jev-apply/answers.json`, then run `node scripts/learn.mjs --answers ~/.config/jev-apply/answers.json`.
-- **Missing answers:** an application returns `needs_user` with question IDs. Save `{"<qid>":{"value":"your answer"}}` to that private answer file, then rerun `apply.mjs` with the same URL and `--answers ~/.config/jev-apply/answers.json`.
+- **Onboarding:** `learn.mjs` returns `gaps`. Save answers in `~/.config/jev-apply/answers.json`
+  under each `remember_as.id` (`g.email` uses `f.identity.email`, never `g.email`). A gap without
+  `remember_as` names the fact IDs to use. Then run `node scripts/learn.mjs --answers ~/.config/jev-apply/answers.json`.
+- **Missing answers:** Save each printed `qid` as `{"<qid>":{"value":"your answer"}}` in that
+  private file. Re-run the same `apply.mjs` command with `--answers ~/.config/jev-apply/answers.json`,
+  keeping `--no-submit` on every run, including queue mode.
 - **Review:** `ready_to_submit` leaves the tab open; `node scripts/apply.mjs --resume <slug>` reattaches. Auto-submit is opt-in; `--no-submit` forces review. `submitted` requires ATS confirmation; `blocked` includes a reason.
 
 Save corrections or work through a shortlist:

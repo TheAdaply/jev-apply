@@ -292,16 +292,16 @@ function gapsFor(mem) {
     add("g.salary", "What pay are you looking for, and in what currency? A range is fine — tell me which end to put on forms.", preference("p.salary"));
   }
 
-  // One id per fact: the seed and `extractResume` both mint the `f.identity.*` namespace.
-  const emails = listFacts(mem, "f.identity.email").length;
-  const phones = listFacts(mem, "f.identity.phone").length;
-  if (!emails) {
+  // Form filling reads the canonical id; a differently named contact fact does not satisfy it.
+  const emails = listFacts(mem, "f.identity.email");
+  const phones = listFacts(mem, "f.identity.phone");
+  if (!emails.some(({ id }) => id === "f.identity.email")) {
     add("g.email", "What email address should applications use?", { kind: "fact", id: "f.identity.email" });
   }
-  if (!phones) {
+  if (!phones.some(({ id }) => id === "f.identity.phone")) {
     add("g.phone", "What phone number should applications use?", { kind: "fact", id: "f.identity.phone" });
   }
-  if ((emails > 1 || phones > 1) && !resolvePreference(mem, "p.contact")) {
+  if ((emails.length > 1 || phones.length > 1) && !resolvePreference(mem, "p.contact")) {
     add("g.contact", "I found more than one email or phone number. Which ones should applications use?", preference("p.contact"));
   }
   if ((mem.documents?.length ?? 0) > 1 && !resolvePreference(mem, "p.resume_by_role_family")) {

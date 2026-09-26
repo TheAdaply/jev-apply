@@ -34,18 +34,21 @@ and with neither, you are the writer; see "Writing a `draft` item" under verb 2.
 ```
 node scripts/learn.mjs --resume cv.pdf [--resume other.pdf] [--links url,url]
 node scripts/learn.mjs --seed DIR          # fresh install only, from a prepared seed
-node scripts/learn.mjs --answers answers.json   # store the day-1 questionnaire's typed answers
+node scripts/learn.mjs --answers ~/.config/jev-apply/answers.json   # private typed answers
 ```
 Prints one JSON object: `{status, facts, preferences, documents, stories, answers, echo[], gaps[]}`.
 Without a writer model configured, résumé reading uses a deterministic extractor (name from the
 top line, contacts by regex, one story per bullet under a work/projects heading) instead of an
 LLM — onboarding needs no OpenAI key. Relay `echo` (≤6 lines) to the user, then ask every
-`gaps[].ask` in one message. Each gap that has exactly one memory home carries `remember_as:
-{kind, id}` (`p.*` ids become preferences, `f.*` ids become facts); write a file shaped
-`{"<id>": <answer>}` keyed by each gap's own `id` — e.g. `{"p.eeo": {"gender":"male", …},
-"p.auto_submit": true, "p.auto_draft": true, "p.salary": {"min": 150000, "currency": "USD"}}` —
-and re-run with `--answers answers.json`; it canonicalises demographic wording through
-`canon/vocab/eeo-*.yaml` and reports anything no vocabulary states as `rejected[]`, never stored.
+`gaps[].ask` in one message. A gap with one memory home carries `remember_as: {kind,id}`;
+use **`remember_as.id`**, not the `g.*` prompt ID, as the key in the private
+`~/.config/jev-apply/answers.json`.
+For example, `g.email` with `remember_as.id: f.identity.email` is answered as
+`{"f.identity.email":"robin@example.invalid"}`. `p.*` ids become preferences and `f.*` ids
+become facts; other answers may include `{"p.auto_submit":true,"p.salary":{"min":150000,
+"currency":"USD"}}`. Re-run `node scripts/learn.mjs --answers ~/.config/jev-apply/answers.json`.
+Demographic answers use `canon/vocab/eeo-*.yaml`; unrecognised wording is
+reported in `rejected[]`, never stored.
 `g.work_auth` and `g.identity.name_split` carry no `remember_as` — their answers are one or two
 plain fact ids named in the question itself (`f.work_auth.<CC>.*`, `f.identity.first_name` /
 `f.identity.last_name`). Free-text corrections and gaps with no `remember_as` still go through
@@ -58,7 +61,7 @@ Re-running after a résumé changes (its sha256 differs) reports a diff, not a r
 node scripts/apply.mjs --url <posting> [--json]
 node scripts/apply.mjs --tab                                  # the ATS tab already open in the profile
 node scripts/apply.mjs --resume <slug>                        # re-attach; list every unfilled field
-node scripts/apply.mjs --url <posting> --answers answers.json # finish after the host relays answers
+node scripts/apply.mjs --url <posting> --answers ~/.config/jev-apply/answers.json
 node scripts/apply.mjs --schema eval/fixtures/<ats>-<id>.json --dry-run   # plan offline, no browser
 ```
 `--url` (or `--tab` for the ATS tab already open) detects the ATS, fetches the public schema,
@@ -115,13 +118,12 @@ stay under the limit. It is checked exactly like a model's draft (grounding, sub
 and, if it fails, comes back as the same `ask` with the reason in `why` — fix it and resend.
 
 ### Feeding `--answers`
-Write a file shaped `{"<qid>": {"value": "…"}}`, adding `"remember_as": {"kind": "fact|preference|
-answer", "id": "…"}` only when the question carried one and you want it saved, and re-run the exact
-same `apply.mjs` invocation with `--answers answers.json` added. A `draft` question's answer is
-just `{"value": "<the paragraph you wrote>"}` — it is per-application text, never memory, so it
-carries no `remember_as`. This re-plans only the rows still marked `ask` — idempotent, so a second
-run with the same file changes nothing — and stores an answer to memory whenever `remember_as` is
-present. A file question (the résumé) is answered with the file name of a saved résumé
+In `~/.config/jev-apply/answers.json`, write `{"<qid>":{"value":"…"}}` using the question's
+printed `qid`. Copy its `remember_as` into the answer only if you want it saved, then re-run
+the same apply command with `--answers ~/.config/jev-apply/answers.json`. A `draft` answer
+is `{"value":"<the paragraph you wrote>"}`; it is per-application text, never memory, so it
+has no `remember_as`. Re-running with the same file only re-plans open `ask` rows and does
+not duplicate stored answers. A file question (the résumé) is answered with a saved file name
 (`{"value": "backend-cv.pdf"}`) or a path to a file on disk, never with free text.
 
 ### Choosing the résumé
@@ -174,7 +176,7 @@ only at the marked points:
 
 ```
 node scripts/pipeline.mjs queue <id> [<id> …]      # shortlist, from `pipeline.mjs list` ids
-node scripts/apply.mjs --queue 5 [--answers answers.json]
+node scripts/apply.mjs --queue 5 [--answers ~/.config/jev-apply/answers.json]
 ```
 Plans every queued posting (schema fetch + both Jev requests) in parallel, fills every resolved
 field on all N tabs, then returns **one** merged and deduplicated `needs_user` batch — "visa

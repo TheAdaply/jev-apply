@@ -251,9 +251,9 @@ card's required controls, independently of the current checkbox.
   promotions are forced to `company:<slug>` scope and checked against existing answers with one Jev Noul ("same content?") to
   prevent duplicates. "Submitted without edit" does **not** promote.
 
-**Day-1 questionnaire (exactly eight, asked once):** (1) work authorization per target country
+**Day-1 questionnaire (eight base questions, asked once, plus any missing required contact facts):** (1) work authorization per target country
 (two-valued); (2) notice-period rule; (3) salary range + currency per role family and which end to state;
-(4) preferred email/phone — only if the résumé shows more than one; (5) which résumé for which role family
+(4) preferred email/phone — asked when missing or when the résumé shows more than one; (5) which résumé for which role family
 — only if more than one PDF; (6) "what are you looking for" (target roles, must-haves, dealbreakers,
 acceptable locations); (7) EEO self-identification (`p.eeo`: gender, hispanic/latino, race, veteran
 status, disability status, pronouns), each field its own "decline to answer" option — reused, filled, on

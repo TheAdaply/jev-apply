@@ -10,6 +10,8 @@ anything — it records architecture (§2), data shapes (§2.3), memory (§2.4),
 - Fast CI check: `npm run check:syntax` (parsing only; no key or model calls).
 - Live acceptance: `node eval/plan.test.mjs` (private memory + paid Jev calls; not an offline test).
 - Browser fixture: `node scripts/controls-smoke.mjs` (Google Chrome; isolated bench profile).
+- `scripts/eeo-smoke.mjs --live --url ...` writes synthetic demographic answers to a real
+  Greenhouse form in a separate smoke profile; never run it during a user's application or demo.
 
 ## Conventions
 - Node ≥ 20, ESM `.mjs`, no build step, no framework. Dependencies: `@typesafe-ai/sdk`, `playwright`

@@ -62,15 +62,16 @@ node scripts/apply.mjs --url <posting> [--json]
 node scripts/apply.mjs --tab                                  # the ATS tab already open in the profile
 node scripts/apply.mjs --resume <slug>                        # re-attach; list every unfilled field
 node scripts/apply.mjs --url <posting> --answers ~/.config/jev-apply/answers.json
-node scripts/apply.mjs --schema eval/fixtures/<ats>-<id>.json --dry-run   # plan offline, no browser
+node scripts/apply.mjs --schema eval/fixtures/<ats>-<id>.json --dry-run   # no ATS/browser; live Jev/writer
 ```
 `--url` (or `--tab` for the ATS tab already open) detects the ATS, fetches the public schema,
 resolves everything deterministic (identity, work authorization, dates, money, EEO/demographic rows
 from `p.eeo`, restrictive-agreements rows from `p.legal.restrictive_agreements`) from memory, asks
 Jev for the rest, drafts what `p.auto_draft` allows, then fills every resolved field on the real
 page in the skill's dedicated Chrome profile — every fill is read back before the runner decides
-whether to submit. `--dry-run` skips the browser entirely (plan only, useful offline with
-`--schema`); `--record-schema` additionally saves the raw ATS response to
+whether to submit. `--dry-run --schema` reads a recorded ATS schema without fetching the board or
+opening a browser; Jev and any configured writer still make live, potentially paid calls.
+`--record-schema` additionally saves the raw ATS response to
 `eval/fixtures/<ats>-<id>.json` for replay. When nothing is left to ask and `p.auto_submit` resolves
 true, the runner clicks Submit itself, waits for the ATS's own confirmation, and reports
 `submitted`; otherwise the filled tab stays open after the runner exits at `ready_to_submit` —
@@ -80,6 +81,9 @@ Submit control and its confirmation strategy and prints them without clicking, f
 against a real form. **Lever is never auto-submitted:** its Submit runs an hCaptcha challenge the
 runner never solves, so a Lever run always ends at `ready_to_submit` (or `needs_user`) whatever
 `p.auto_submit` or `--submit` say — tell the user to click Submit and complete the challenge.
+
+`--no-submit` applies to one invocation. Keep it on every `--answers` or `--queue` rerun
+when the user wants to review before Submit.
 
 ### The four-status contract
 One JSON object on stdout every time (`--json` suppresses the human-readable Decision table, which

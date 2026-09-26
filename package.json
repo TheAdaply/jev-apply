@@ -1,7 +1,7 @@
 {
   "name": "jev-apply",
   "version": "0.1.0",
-  "description": "Memory-backed job applications: Jev selects saved answers, an optional writer drafts, Playwright verifies.",
+  "description": "Fill job applications from your saved answers, without inventing personal details.",
   "license": "MIT",
   "repository": {
     "type": "git",

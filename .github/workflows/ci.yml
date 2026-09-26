@@ -1,4 +1,4 @@
-name: Offline sanity
+name: Install and syntax
 
 on:
   push:

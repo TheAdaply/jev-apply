@@ -35,9 +35,10 @@ TYPESAFE_API_KEY=…
 ```
 
 This is the only credential jev-apply cannot run without. `loadEnv()` in `src/config.mjs` reads
-this file at process start and fails fast, naming any variable still missing plus its signup URL.
-Re-run `node scripts/install.mjs` to confirm it is present. Never place a key under the repo, in a
-script argument, a prompt, or a tool output.
+this file at process start and fails fast, naming a missing variable and its signup URL.
+Re-run `node scripts/install.mjs` to check for a nonempty value; it does not authenticate.
+`node scripts/jev-smoke.mjs` makes a live Jev request to verify the key. Never put a key in
+the repo, a script argument, a prompt, or a tool output.
 
 ## 4. Choose how the few drafted sentences get written
 
@@ -83,7 +84,7 @@ contacts, and one story per bullet line) — no OpenAI key is required to onboar
 ## Sanity checks
 
 ```
-node scripts/jev-smoke.mjs             # Jev reachable: prints a 3-option choice + latency
+node scripts/jev-smoke.mjs             # live paid Jev choice; verifies key and network
 node scripts/writer-smoke.mjs --detect # which writer backend is active, if any
-node scripts/install.mjs               # confirms the private directory + the Jev key are present
+node scripts/install.mjs               # private directory + nonempty Jev key value (no API call)
 ```

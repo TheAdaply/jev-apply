@@ -9,13 +9,20 @@
 In Codex, Claude Code, or another agent that can run shell commands, paste this:
 
 ```text
-Set up https://github.com/TheAdaply/jev-apply for me. Read SKILL.md and
-INSTALL.md, install the skill and handle the commands yourself. Show me how
-to put my TypeSafe Jev key in its private env file; don't ask me to paste a
-key into chat. Learn from my résumé, then fill the job URL I give you with
---no-submit on every run. Use your current CLI model for grounded drafts
-unless I've configured a writer. Show me the filled form and ask me only
-for facts, choices or attestations my record cannot answer.
+Set up TheAdaply/jev-apply for me.
+Read SKILL.md and INSTALL.md.
+Install the skill; run setup yourself.
+Show me how to put my TypeSafe Jev
+key in its private env file. Don't
+ask me to paste any key in chat.
+Learn from my résumé. Fill a job URL
+I give you with --no-submit on every
+run. Use your current CLI model for
+grounded drafts unless I configure
+a writer. Show me the filled form.
+Ask only for facts, choices, or
+attestations my record cannot
+answer.
 ```
 
 The agent follows [SKILL.md](SKILL.md) for the workflow and [INSTALL.md](INSTALL.md) for setup. You need **Node 20+, Google Chrome, and a [TypeSafe Jev key](https://console.typesafe.ai/keys)**. OpenAI is optional; the agent can draft from the model already running in your CLI. No personal data belongs in this repo.

@@ -57,7 +57,9 @@ Replace the example URL with a hosted posting you choose:
 
 ```bash
 JOB_URL='https://job-boards.greenhouse.io/<board>/jobs/<id>'
-node scripts/apply.mjs --no-submit --url "$JOB_URL"
+node scripts/apply.mjs \
+  --no-submit \
+  --url "$JOB_URL"
 ```
 
 ### 3. Answer what is missing
@@ -65,7 +67,9 @@ node scripts/apply.mjs --no-submit --url "$JOB_URL"
 If you get `needs_user`, write `{"<qid>":{"value":"your answer"}}` to `~/.config/jev-apply/application-answers.json`, using the printed `qid`. Then run:
 
 ```bash
-node scripts/apply.mjs --no-submit --url "$JOB_URL" \
+node scripts/apply.mjs \
+  --no-submit \
+  --url "$JOB_URL" \
   --answers ~/.config/jev-apply/application-answers.json
 ```
 
@@ -95,7 +99,8 @@ node scripts/remember.mjs "never apply to contract roles"
 node scripts/scan.mjs
 node scripts/pipeline.mjs list
 node scripts/pipeline.mjs queue 12 15  # replace with IDs from your list
-node scripts/apply.mjs --no-submit --queue 2
+node scripts/apply.mjs \
+  --no-submit --queue 2
 ```
 
 Queue mode groups repeated questions into one batch. Add `--answers ~/.config/jev-apply/application-answers.json` on a rerun, keeping `--no-submit`. Or [install the agent skill](SKILL.md) with `npx skills add theadaply/jev-apply` and say "learn my background" or "complete this application".

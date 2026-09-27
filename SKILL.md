@@ -3,13 +3,13 @@ name: jev-apply
 description: >-
   Fills Greenhouse, Ashby and Lever job applications from the user's own saved facts, preferences, and
   stories: Jev selects the saved answer for each field (never guessing a personal detail, including
-  EEO/demographic fields, which fill from the user's own onboarding answers), a writer model drafts
-  only genuinely new text — OpenAI, a local OpenAI-compatible server, or, when neither is
-  configured, you: the host agent writes the paragraph from the prompt and grounding you're handed
-  and returns it — and every fill is read back. When nothing is left to ask and the user's
-  auto-submit preference is on, the runner clicks Submit itself and waits for the ATS's own
-  confirmation (Lever always stops for the user: its Submit is behind a challenge only a person can
-  answer); otherwise it stops at "ready to submit" for the user to click. Use when the user says
+  EEO/demographic fields, which fill from the user's own onboarding answers). OpenAI, a keyed
+  OpenAI-compatible model, or the CLI agent currently running writes only grounded new prose.
+  Draft items are the agent's work, not questions for the user; unresolved personal facts and
+  attestations still require the user's answer. Every fill is read back. When nothing is left
+  to ask and the user's auto-submit preference is on, the runner clicks Submit itself and waits
+  for the ATS's own confirmation (Lever always stops for the user: its Submit is behind a challenge
+  only a person can answer); otherwise it stops at "ready to submit" for the user to click. Use when the user says
   "learn my background" (onboard from a résumé and links), "complete this application <url>", "use
   that answer next time" or gives a correction, "find roles", or "apply to the queue".
 license: MIT
@@ -24,10 +24,14 @@ allowed-tools: Bash(node scripts/*)
 
 Private data lives in `~/.config/jev-apply/` (`env`, `memory/`, `documents/`, `applications/`,
 `pipeline/`, `profile/`) — never in this repo. Run `node scripts/install.mjs` once to create it;
-see `INSTALL.md` if it reports a missing key. Only `TYPESAFE_API_KEY` is required. Writing the
-handful of sentences that are genuinely new is optional and auto-detected: `OPENAI_API_KEY` in the
-same file, or `JEV_APPLY_WRITER_URL` (+ `JEV_APPLY_WRITER_MODEL`) pointing at a server you run —
-and with neither, you are the writer; see "Writing a `draft` item" under verb 2.
+see `INSTALL.md` if it reports a missing key. Only `TYPESAFE_API_KEY` is required. For new prose,
+the runner selects `OPENAI_API_KEY` (optional `JEV_APPLY_WRITER_MODEL`), or
+`JEV_APPLY_WRITER_URL` + `JEV_APPLY_WRITER_MODEL` (+ optional `JEV_APPLY_WRITER_KEY`) for an
+OpenAI-compatible endpoint. With neither configured, **you, the current CLI agent**, write the
+draft from the supplied grounding; never turn that draft into a user chore.
+If the user points you at this repo rather than an installed skill, follow `INSTALL.md` yourself;
+let them enter the TypeSafe key in their private file, and ask for their résumé or posting URL
+only when you cannot locate one they already supplied.
 
 ## Verb 1 — "Learn my background"
 
@@ -92,9 +96,9 @@ otherwise prints to stderr):
   runner clicked Submit and the ATS confirmed it; the pipeline entry for this posting is now `applied`.
 - **`ready_to_submit`** — nothing left to ask, and either `p.auto_submit` is off or unset, or the
   board is Lever — the summary is ready for the user to review and click Submit.
-- **`needs_user`** — `{questions:[{qid, label, options?, remember_as:{kind,id}?, why}]}`. A question
-  nobody could write from memory carries `{kind:"draft", writes:"why_us"|"expand"|"narrative",
-  prompt, grounding:string[], limits, label, why}` instead — see "Writing a `draft` item" below.
+- **`needs_user`** — `{questions:[{qid, label, options?, remember_as:{kind,id}?, why}]}`. A
+  `kind:"draft"` item additionally carries `{writes:"why_us"|"expand"|"narrative", prompt,
+  grounding:string[], limits}` and is for the **CLI agent**, not the user.
 - **`blocked`** — `{reason, detail?, screenshot?}`, e.g. `unsupported_ats` (URL is not a hosted
   Greenhouse, Ashby or Lever board), `queue_empty`, `submit_failed` (Submit was clicked but no ATS
   confirmation was detected — the tab is left open, untouched, for the user to finish by hand), or a
@@ -104,22 +108,30 @@ otherwise prints to stderr):
   rules against the tab and reports `confirmation:{detected, strategy, text}`; once the user has
   submitted by hand — which is always how a Lever application is sent — it answers `submitted`.
 
-### Relaying `needs_user`
-For each ordinary question, in one message: `label` → its `options` if present. Always ask a
-`policy_gate`-class question (AI-usage attestation, arbitration, consent) — every time; it is never
-answered on the user's behalf. Restrictive-agreements and EEO/demographic rows are the opposite
-case: once `p.legal.restrictive_agreements` / `p.eeo` exist they are filled from memory and never
-appear here; the first time either is still unset, relay it exactly like any other row.
+### Handling `needs_user` without handing drafting to the user
+Split `questions` by `kind`. **First**, for each `kind:"draft"` item, write the paragraph
+yourself (instructions below), save it under its `qid` in a private `--answers` file and re-run
+the application with the same `--no-submit` preference. This is still the status name
+`needs_user` because the runner cannot call the model embedded in your CLI session; the
+`draft` item is explicitly for **you**, not the person. If a configured writer made a draft
+already, no such item appears.
 
-### Writing a `draft` item
-A question with `kind:"draft"` means no writer model is configured — you write it. `writes` names
-the shape (`why_us`, `expand`, a matched story; `narrative`, a free-form prompt); `grounding` is the
-only material you may draw from — the posting's own text and the user's saved facts/stories,
-rendered as plain lines; `limits` (`{words?, chars?}`) is the field's own stated cap, never
-advisory. Write one paragraph, first person, past tense for work already done, no marketing
-adjectives, no invented or rounded numbers, no company name from the user's other applications, and
-stay under the limit. It is checked exactly like a model's draft (grounding, substitution, limit)
-and, if it fails, comes back as the same `ask` with the reason in `why` — fix it and resend.
+**Then** relay only ordinary unresolved questions in one message: the `label` and its
+`options` if present. A `policy_gate` attestation (AI-usage, arbitration, consent)
+may be filled only from the user's explicit preference for **that exact attestation**;
+otherwise ask them. Restrictive-agreements and EEO/demographic rows fill from saved
+`p.legal.restrictive_agreements` and `p.eeo`; ask the user when either preference is
+absent. No model may invent work authorization, identity, salary, EEO, legal stance
+or any other missing personal fact.
+
+### Writing a `draft` item as the CLI agent
+The item carries `writes` (`why_us`, `expand`, `narrative`), `prompt`, `grounding` and
+`limits` (`{words?, chars?}`). Draw only on that posting and the user's saved facts/stories
+in `grounding`. Write one paragraph in first person, use past tense for completed work, no
+marketing adjectives, no invented or rounded numbers, no other company's name, and respect
+the stated limit. The runner checks your paragraph just like an API model's draft; if it
+returns the same item with a refusal in `why`, repair the text and resend. If the grounding
+cannot answer the question, do not fabricate a story: ask the user for the missing material.
 
 ### Feeding `--answers`
 In `~/.config/jev-apply/answers.json`, write `{"<qid>":{"value":"…"}}` using the question's
@@ -184,9 +196,10 @@ node scripts/apply.mjs --queue 5 [--answers ~/.config/jev-apply/answers.json]
 ```
 Plans every queued posting (schema fetch + both Jev requests) in parallel, fills every resolved
 field on all N tabs, then returns **one** merged and deduplicated `needs_user` batch — "visa
-sponsorship?" is asked once even when five queued postings ask it. Relay it exactly like verb 2's
-`needs_user`; feeding the same file back to `--answers` routes each answer to every posting that
-asked it, stores it to memory, and finishes each posting to `submitted` or `ready_to_submit`
+sponsorship?" is asked once even when five queued postings ask it. Resolve `kind:"draft"` items
+yourself first, then relay the remaining questions. Feeding the same file back to `--answers`
+routes each answer to every posting that asked it, stores it to memory, and finishes each
+posting to `submitted` or `ready_to_submit`
 depending on `p.auto_submit`.
 
 ## Rules
@@ -194,9 +207,10 @@ depending on `p.auto_submit`.
 - The runner clicks Submit only when `p.auto_submit` resolves true and nothing is left to ask; it
   always waits for the ATS's own confirmation before reporting `submitted`, and a click happens at
   most once per application. `p.auto_submit` starts unset — the user is asked once, at onboarding.
-- Always ask a `policy_gate` question (AI-usage attestation, arbitration, consent) — every time; it
-  is never answered for the user. Restrictive-agreements questions are the exception: answered from
-  the `p.legal.restrictive_agreements` preference once it exists.
+- A `policy_gate` attestation (AI-usage, arbitration, consent) can use only the explicit
+  `p.legal.<slug>` preference the user stated for **that attestation**; absent means ask. Never
+  borrow a neighbouring policy preference or a canonical answer. Restrictive-agreements
+  questions use the global `p.legal.restrictive_agreements` preference once it exists.
 - EEO/demographic rows are filled from `p.eeo` whenever it is on file, and asked once, exactly like
   any other row, the first time it is unset. No personal detail is ever guessed or defaulted from a
   name, photo, or résumé: an unknown value is always `ask`, never a first-option or first-saved-item

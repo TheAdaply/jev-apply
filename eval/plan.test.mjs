@@ -23,6 +23,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { PRONOUN_ROW_RE, classify, dependencyOn, fitsLimits, isAccommodationRequest } from "../src/schema/classes.mjs";
+import { writerFromEnv } from "../src/config.mjs";
 import { countryFromText, countryInQuestion, countryOfLocation, detectAts, loadFormPlan } from "../src/schema/normalize.mjs";
 import { normalizeAshby } from "../src/schema/ashby.mjs";
 import { normalizeGreenhouse } from "../src/schema/greenhouse.mjs";
@@ -78,6 +79,37 @@ function planFixture(fixture, extra = []) {
 /** `tally()` folds fill+check into `filled`, so `filled + asks + drafted + skipped` is every row. */
 function rowCount(plan) {
   return plan.filled + plan.asks.length + plan.drafted.length + plan.skipped;
+}
+
+// Writer selection is pure. A remote endpoint must not silently take a local $0 rate or leak a key.
+{
+  const openai = writerFromEnv({ OPENAI_API_KEY: "test-key", JEV_APPLY_WRITER_MODEL: "gpt-5.4-mini" });
+  const remote = writerFromEnv({
+    JEV_APPLY_WRITER_URL: "https://models.example.test/v1/",
+    JEV_APPLY_WRITER_MODEL: "my-model",
+    JEV_APPLY_WRITER_KEY: "private-test-key",
+  });
+  const local = writerFromEnv({ JEV_APPLY_WRITER_URL: "http://127.0.0.1:11434/v1", JEV_APPLY_WRITER_MODEL: "qwen" });
+  const keyedLocal = writerFromEnv({ JEV_APPLY_WRITER_URL: "http://localhost:11434/v1", JEV_APPLY_WRITER_MODEL: "proxy", JEV_APPLY_WRITER_KEY: "token" });
+  const host = writerFromEnv({});
+  const refuses = (env) => {
+    try {
+      writerFromEnv(env);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  check(
+    "writer routing: named OpenAI, keyed compatible endpoints, unkeyed loopback, host fallback; no unsafe URL or key leak",
+    openai.kind === "openai" && openai.model === "gpt-5.4-mini" && openai.modelOverride === true &&
+      remote.kind === "compatible" && remote.model === "my-model" && remote.baseURL === "https://models.example.test/v1" &&
+      !JSON.stringify(remote).includes("private-test-key") &&
+      local.kind === "local" && keyedLocal.kind === "compatible" && host.kind === "host" &&
+      refuses({ JEV_APPLY_WRITER_KEY: "secret" }) &&
+      refuses({ JEV_APPLY_WRITER_URL: "http://models.example.test/v1", JEV_APPLY_WRITER_MODEL: "m" }) &&
+      refuses({ JEV_APPLY_WRITER_URL: "https://secret@models.example.test/v1", JEV_APPLY_WRITER_MODEL: "m" }),
+  );
 }
 
 // The three rows Greenhouse's own EEOC block asks by these exact labels. They are `fill` whenever

@@ -68,7 +68,8 @@ async function runExtract(file) {
   const text = await readFile(file, "utf8");
   const t0 = Date.now();
   const { facts, stories } = await extractResume({ text, doc: path.basename(file) });
-  console.log(`extractResume ${file} · ${OPENAI_MODEL_FAST} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  const writer = detectWriter();
+  console.log(`extractResume ${file} · ${writer.kind === "openai" && !writer.modelOverride ? OPENAI_MODEL_FAST : writer.model} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   console.log(`  facts ${facts.length} · stories ${stories.length} · with since: ${facts.filter((f) => f.since).length}`);
   console.log(`  ids   ${facts.map((f) => f.id).join(" ")}`);
   for (const f of facts.slice(0, 3)) console.log(`  fact  ${f.id} = ${f.value} [${f.source}]`);
@@ -99,7 +100,7 @@ async function runWriter() {
 
   const t0 = Date.now();
   const variants = await narrative({ prompt: PROMPT, facts: FACTS, stories: STORIES, family: "backend", limits: LIMITS });
-  console.log(`narrative "${PROMPT}" limits ${JSON.stringify(LIMITS)} · ${OPENAI_MODEL} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  console.log(`narrative "${PROMPT}" limits ${JSON.stringify(LIMITS)} · ${detectWriter().model ?? OPENAI_MODEL} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   for (const v of ["short", "medium", "long"]) console.log(line(v, variants[v], caps[v], narrativeGrounding));
   console.log(`  medium: ${variants.medium}`);
 
@@ -137,7 +138,7 @@ try {
     // Not a failure: no writer model is a supported configuration. There is simply nothing for
     // this script to call — the host agent writes those few paragraphs and `apply.mjs` checks them.
     console.log(`writer backend: ${describeWriter()}`);
-    console.log("nothing to smoke — set OPENAI_API_KEY, or JEV_APPLY_WRITER_URL + JEV_APPLY_WRITER_MODEL.");
+    console.log("nothing to smoke — set OPENAI_API_KEY, or JEV_APPLY_WRITER_URL + JEV_APPLY_WRITER_MODEL (optional JEV_APPLY_WRITER_KEY).");
   } else {
     console.log(`writer backend: ${describeWriter()}`);
     await runWriter();

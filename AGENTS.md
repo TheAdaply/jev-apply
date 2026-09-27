@@ -1,7 +1,7 @@
 # jev-apply — agent context
 
-Memory-backed job-application skill: Jev selects saved answers, an optional OpenAI/local/host
-writer drafts only new text, and Playwright fills and reads back. Read `docs/PLAN.md` before changing
+Memory-backed job-application skill: Jev selects saved answers, an optional OpenAI/OpenAI-compatible/
+host writer drafts only grounded new text, and Playwright fills and reads back. Read `docs/PLAN.md` before changing
 anything — it records architecture (§2), data shapes (§2.3), memory (§2.4), and pipeline (§2.5).
 `SKILL.md` is the current user-facing CLI contract.
 
@@ -28,8 +28,9 @@ anything — it records architecture (§2), data shapes (§2.3), memory (§2.4),
 ## Data and secrets
 - User data lives outside the repo in `~/.config/jev-apply/` (`env`, `memory/`, `documents/`,
   `applications/`, `pipeline/`, `profile/`). Nothing user-specific is ever written under the repo.
-- `~/.config/jev-apply/env` requires `TYPESAFE_API_KEY`; optional writing uses `OPENAI_API_KEY` or
-  `JEV_APPLY_WRITER_URL` + `JEV_APPLY_WRITER_MODEL`. Never print, log, or commit key material;
+- `~/.config/jev-apply/env` requires `TYPESAFE_API_KEY`; optional writing uses `OPENAI_API_KEY`
+  (with an optional `JEV_APPLY_WRITER_MODEL`) or `JEV_APPLY_WRITER_URL` +
+  `JEV_APPLY_WRITER_MODEL` (with an optional `JEV_APPLY_WRITER_KEY`). Never print, log, or commit key material;
   `.env*` (except `.env.example`), `memory/`, `private/`, and local `docs/research/` are gitignored.
 
 ## Invariants (do not break)

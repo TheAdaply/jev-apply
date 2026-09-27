@@ -1,23 +1,18 @@
 // Which model writes the few sentences jev-apply cannot look up — and whether there is one at all.
 //
-// Three backends, auto-detected from the environment (src/config.mjs writerFromEnv):
-//   openai  OPENAI_API_KEY is set → the Responses API with a strict JSON schema.
-//   local   JEV_APPLY_WRITER_URL points at an OpenAI-compatible server (Ollama, llama.cpp,
-//           LM Studio). Chat completions, no key, and the schema is carried in the prompt rather
-//           than in `response_format`: a local server may not implement structured output at all,
-//           so the reply is parsed and one re-ask is spent on a reply that is not JSON.
-//   host    no writer at all. `complete()` throws `HostWriterRequired`, `src/plan/draft.mjs`
-//           turns that into a `needs_user` item of kind `draft`, and the host agent (Claude Code,
-//           Codex) writes the text and hands it back through `--answers`. The runner still checks
-//           it: a host-written draft goes through the same grounding and substitution checks.
+// Four writer modes, auto-detected from the environment (src/config.mjs writerFromEnv):
+//   openai      OPENAI_API_KEY → Responses API, strict JSON schema.
+//   local       unkeyed loopback OpenAI-compatible URL + model → chat completions.
+//   compatible  keyed loopback or remote HTTPS OpenAI-compatible URL → chat completions.
+//   host        no writer configured → the CLI agent writes checked `draft` items with --answers.
 //
-// Everything that generates text goes through `complete()`, so the rest of the writer never knows
-// which of the three answered. Usage is counted here, per model, and a locally hosted model is
-// billed as what it costs: nothing (PRICING.openai.local, src/config.mjs).
+// The chat endpoint carries the schema in the prompt for servers without structured output.
+// Every backend shares the same grounding and limit checks. Only an unkeyed loopback server
+// is priced $0; a keyed or remote provider's rate is unknown until listed in PRICING.
 
 import OpenAI from "openai";
 
-import { OPENAI_MODEL, WRITER_MODEL_VAR, WRITER_URL_VAR, loadEnv, writerFromEnv } from "../config.mjs";
+import { OPENAI_MODEL, WRITER_KEY_VAR, WRITER_MODEL_VAR, WRITER_URL_VAR, loadEnv, writerFromEnv } from "../config.mjs";
 
 const TIMEOUT_MS = 60_000;
 const MAX_RETRIES = 3; // SDK retries 408/409/429/5xx + connection errors, honouring Retry-After
@@ -55,7 +50,7 @@ let _detected = null;
  * Which backend this process writes with. Memoised: the answer is read once per run and printed
  * in logs, so it must not change under a caller mid-posting.
  * @param {{refresh?: boolean}} [opts] `refresh` re-reads the environment (tests, `--detect`).
- * @returns {{kind:"openai"|"local"|"host", model:string|null, baseURL:string|null}}
+ * @returns {{kind:"openai"|"local"|"compatible"|"host", model:string|null, baseURL:string|null}}
  */
 export function detectWriter({ refresh = false } = {}) {
   if (_detected && !refresh) return _detected;
@@ -73,11 +68,11 @@ export function detectWriter({ refresh = false } = {}) {
   return _detected;
 }
 
-/** One line for a log or `--detect`. Never prints key material — only which backend answered. */
+/** One log line without key material or a URL path that may contain a provider-specific secret. */
 export function describeWriter(cfg = detectWriter()) {
   if (cfg.kind === "openai") return `openai · ${cfg.model}`;
-  if (cfg.kind === "local") {
-    return `local · ${cfg.baseURL} · ${cfg.model ?? `model not set (${WRITER_MODEL_VAR})`}`;
+  if (cfg.kind === "local" || cfg.kind === "compatible") {
+    return `${cfg.kind} · ${new URL(cfg.baseURL).origin} · ${cfg.model ?? `model not set (${WRITER_MODEL_VAR})`}`;
   }
   return "host · no writer model configured; drafts are handed back to the host agent";
 }
@@ -88,11 +83,9 @@ let _clientKey = "";
 function client(cfg) {
   const key = `${cfg.kind}\u0000${cfg.baseURL ?? ""}`;
   if (_client && _clientKey === key) return _client;
-  _client =
-    cfg.kind === "local"
-      ? // A local server authenticates nothing; the SDK still insists on a non-empty string.
-        new OpenAI({ apiKey: "local", baseURL: cfg.baseURL, timeout: TIMEOUT_MS, maxRetries: MAX_RETRIES })
-      : new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: TIMEOUT_MS, maxRetries: MAX_RETRIES });
+  _client = cfg.kind === "openai"
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: TIMEOUT_MS, maxRetries: MAX_RETRIES })
+    : new OpenAI({ apiKey: process.env[WRITER_KEY_VAR] || "local", baseURL: cfg.baseURL, timeout: TIMEOUT_MS, maxRetries: MAX_RETRIES });
   _clientKey = key;
   return _client;
 }
@@ -152,8 +145,8 @@ export function resetUsage() {
 export async function complete({ system, input, schema = null, name = "answer", model, effort = "low", maxTokens = 4000, signal } = {}) {
   const cfg = detectWriter();
   if (cfg.kind === "host") throw new HostWriterRequired(name);
-  if (cfg.kind === "local") return localComplete(cfg, { system, input, schema, maxTokens, signal });
-  return openaiComplete({ system, input, schema, name, model: model ?? cfg.model ?? OPENAI_MODEL, effort, maxTokens, signal });
+  if (cfg.kind === "local" || cfg.kind === "compatible") return localComplete(cfg, { system, input, schema, maxTokens, signal });
+  return openaiComplete({ system, input, schema, name, model: cfg.modelOverride ? cfg.model : model ?? OPENAI_MODEL, effort, maxTokens, signal });
 }
 
 // ---------------------------------------------------------------- openai
@@ -234,7 +227,7 @@ async function localComplete(cfg, { system, input, schema, maxTokens, signal }) 
     messages.push({ role: "assistant", content: last.slice(0, 2000) });
     messages.push({ role: "user", content: `That reply was not a JSON object. ${jsonRules(schema)}` });
   }
-  throw new WriterError(`${cfg.model} at ${cfg.baseURL} returned text that is not JSON: ${last.slice(0, 200)}`);
+  throw new WriterError(`${cfg.model} at ${new URL(cfg.baseURL).origin} returned text that is not JSON: ${last.slice(0, 200)}`);
 }
 
 /** One chat-completions round trip. Retries once without `response_format` for a server that rejects it. */
@@ -244,9 +237,9 @@ async function localCall(cfg, { messages, maxTokens, signal }) {
   try {
     res = await client(cfg).chat.completions.create({ ...base, response_format: { type: "json_object" } }, { signal, timeout: TIMEOUT_MS });
   } catch (err) {
-    const rejected = err?.status >= 400 && err?.status < 500;
+    const rejected = err?.status === 400 || err?.status === 422;
     if (!rejected) {
-      throw new WriterError(`${cfg.model} at ${cfg.baseURL}: ${err?.status ?? ""} ${err?.message ?? err}`.trim(), {
+      throw new WriterError(`${cfg.model} at ${new URL(cfg.baseURL).origin}: ${err?.status ?? ""} ${err?.message ?? err}`.trim(), {
         status: err?.status,
         cause: err,
       });
@@ -254,15 +247,15 @@ async function localCall(cfg, { messages, maxTokens, signal }) {
     try {
       res = await client(cfg).chat.completions.create(base, { signal, timeout: TIMEOUT_MS });
     } catch (err2) {
-      throw new WriterError(`${cfg.model} at ${cfg.baseURL}: ${err2?.status ?? ""} ${err2?.message ?? err2}`.trim(), {
+      throw new WriterError(`${cfg.model} at ${new URL(cfg.baseURL).origin}: ${err2?.status ?? ""} ${err2?.message ?? err2}`.trim(), {
         status: err2?.status,
         cause: err2,
       });
     }
   }
-  record(LOCAL_USAGE_KEY, res.usage);
+  record(cfg.kind === "local" ? LOCAL_USAGE_KEY : `compatible:${cfg.model}`, res.usage);
   const text = String(res.choices?.[0]?.message?.content ?? "").trim();
-  if (!text) throw new WriterError(`${cfg.model} at ${cfg.baseURL} returned no text`);
+  if (!text) throw new WriterError(`${cfg.model} at ${new URL(cfg.baseURL).origin} returned no text`);
   return text;
 }
 

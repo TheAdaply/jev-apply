@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 490" role="img" aria-labelledby="title description">
+  <title id="title">A job application filled from a saved story</title>
+  <desc id="description">A saved note about replacing a polling queue sits beside a job application whose answer uses that note. An unsupported field remains open for the person.</desc>
+  <rect width="760" height="490" rx="24" fill="#14243B"/>
+  <path d="M38 108h684" stroke="#416071" stroke-width="1"/>
+  <text x="42" y="59" fill="#F7F4EB" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="36" font-weight="700" letter-spacing="-.7">Apply with receipts.</text>
+  <text x="43" y="87" fill="#B4C8C9" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="18">Every answer has a source. Anything else stays open.</text>
+
+  <g transform="rotate(-2 188 269)">
+    <rect x="45" y="140" width="287" height="270" rx="7" fill="#B8DAD3"/>
+    <path d="M45 176h287" stroke="#6E9B98" stroke-width="1"/>
+    <circle cx="69" cy="158" r="5" fill="#1E6062"/>
+    <text x="85" y="164" fill="#174A4D" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="17" font-weight="700" letter-spacing="1">SAVED STORY</text>
+    <text x="67" y="228" fill="#153B43" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="29" font-weight="700">Queue latency</text>
+    <path d="M67 245h240" stroke="#6E9B98" stroke-width="1"/>
+    <text x="67" y="283" fill="#153B43" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="21">Replaced polling with</text>
+    <text x="67" y="312" fill="#153B43" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="21">a worker pool.</text>
+    <text x="67" y="356" fill="#153B43" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="21">Shortened queue</text>
+    <text x="67" y="385" fill="#153B43" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="21">pickup time.</text>
+  </g>
+
+  <rect x="346" y="129" width="372" height="294" rx="8" fill="#F7F4EB"/>
+  <rect x="346" y="129" width="372" height="8" fill="#D9AA69"/>
+  <text x="369" y="172" fill="#526476" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="17" font-weight="700" letter-spacing="1">APPLICATION FIELD</text>
+  <text x="369" y="217" fill="#14243B" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="700">What work are you</text>
+  <text x="369" y="246" fill="#14243B" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="700">most proud of?</text>
+  <rect x="369" y="270" width="326" height="103" rx="5" fill="#FFFFFF" stroke="#A9C6BD" stroke-width="2"/>
+  <text x="384" y="299" fill="#213A48" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="19">I replaced polling with a</text>
+  <text x="384" y="325" fill="#213A48" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="19">worker pool to shorten</text>
+  <text x="384" y="351" fill="#213A48" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="19">queue pickup time.</text>
+  <circle cx="379" cy="398" r="7" fill="#277B71"/>
+  <path d="m375 398 3 3 5-6" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="394" y="404" fill="#277B71" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700">FILLED · READ BACK</text>
+
+  <text x="43" y="459" fill="#E8C087" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="700">No saved evidence?</text>
+  <text x="231" y="459" fill="#F7F4EB" font-family="Avenir Next, ui-sans-serif, system-ui, sans-serif" font-size="18">The field stays open for the person.</text>
+</svg>

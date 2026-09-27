@@ -2,9 +2,14 @@
 
 ## Unreleased
 
-**Agent-first README and writer routing.** The README now gives a CLI agent a short setup
-prompt and shows an illustrated, grounded form answer instead of the old field-count chart
-and manual answer-file walkthrough. `SKILL.md` handles `kind:"draft"` items in the current
+**Minimal README with a video walkthrough.** Removed badge strips, technical tables, and
+architecture sections from the human entry point; agent setup and behavior remain in
+`SKILL.md` and `INSTALL.md`. The hero links to a 72-second, silent GitHub-hosted video:
+clearly labeled illustrated steps plus a real local browser-adapter fill and readback.
+All candidate details are synthetic; no application is submitted.
+
+**Agent-first README and writer routing.** The README gives a CLI agent a short setup
+prompt instead of a manual answer-file walkthrough. `SKILL.md` handles `kind:"draft"` items in the current
 CLI model when no writer API is configured; personal facts, EEO choices and exact policy
 attestations still go to the person. A configured OpenAI model name, keyed HTTPS
 OpenAI-compatible endpoint, or unkeyed loopback model can write opt-in grounded prose.

@@ -72,15 +72,20 @@ node scripts/apply.mjs --url "$JOB_URL" --answers ~/.config/jev-apply/applicatio
 
 ## Measured on real forms
 
-```mermaid
-pie showData
-    title Final rerun: 12 pages, 229 fields
-    "Correct fills" : 178
-    "Unanswered or unsupported" : 50
-    "Answerable but missed" : 1
+```text
+Final rerun: 12 pages, 229 fields
+Correct  178  ██████████████████
+Open      50  █████
+Missed     1  ▏
+Wrong      0
 ```
 
-The 12 Greenhouse/Ashby pages were new to the runner **before** this evaluation. We graded each field from screenshots in three passes over those same pages. In the last pass, after fixes: **178 correct fills, 0 wrong fills, 50 unanswered or unsupported fields, 1 missed**. No application was submitted. This is one evaluated set, not a promise for other forms. [Method and per-page results](bench/results/fresh-pages.md).
+Each full block represents about 10 fields; the counts are exact. The 12 Greenhouse/Ashby
+pages were new before the **first** pass. These numbers come from a **third pass over the
+same pages**, after fixes, with every field graded from screenshots by an independent
+reviewer. "Open" means no answer was on file, a policy gate refused to sign, or the control
+could not be filled. No application was submitted. This is one evaluated set, not a
+promise for other forms. [Method and per-page results](bench/results/fresh-pages.md).
 
 ## More than one form
 

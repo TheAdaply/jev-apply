@@ -10,7 +10,7 @@ with it, this file gets patched.
 |---|---|---|---|
 | D1 | Form factor | Agent skill (Claude Code + Codex) with a **skill-owned Playwright runner** | Only form factor that keeps the fill loop in our process — no host turn per field |
 | D2 | Decider | Jev (`jev-1.13.0`, pinned) for every *selection*: canonical-question-for-field, option-for-select, fit score, label clustering when building the bank | 255-option Choice verified live; 100 titled options → correct at 1.0; ~400 ms warm, batchable |
-| D3 | Writer | OpenAI Responses API (GPT-5.x) for *new* text only; output is a per-application draft, never memory | Jev cannot write; drafts are not facts |
+| D3 | Writer | OpenAI Responses (optional model name), a keyed/unkeyed OpenAI-compatible chat endpoint, or the running host CLI agent for *new grounded prose only*; output is a per-application draft, never memory | Jev cannot write; no writer key is required beyond Jev because the host agent can draft, but no model may invent personal facts |
 | D4 | First targets | Greenhouse, then Ashby | 41 Ashby / 30 Greenhouse in a 74-company AI-infra probe; both expose the form schema without auth |
 | D5 | Discovery | **Pipeline**: 6–8 providers + tracked companies + cross-run dedup + statuses + queue→apply; batch apply plans all N first and asks once | user decision; a fixed provider contract and filter chain keep it model-free |
 | D6 | Onboarding input | Résumé PDF(s) + links; eight core day-1 topics plus missing contact details; other form-specific questions asked lazily | user decision; a 19-prompt interview breaks "embarrassingly simple" |
@@ -37,13 +37,15 @@ or per-field approvals.
    LinkedIn/GitHub found") plus any contradictions, then asks the day-1 questions (§2.4) and any
    missing contact details in one message. Answers go to memory; a changed résumé yields a diff, not a reset.
 2. **"Complete this application <url>"** → `scripts/apply.mjs --url … --json`. The runner fills
-   everything it can — including EEO/demographic rows from `p.eeo` and restrictive-agreements rows from
-   `p.legal.restrictive_agreements` whenever those preferences are on file — **then** returns `needs_user`
-   with only the questions the form asks about *you* (label → options → "I'll remember this for
-   <scope>"). The host relays them in one message; the user answers; `--answers` fills the rest. If
-   nothing else is left to ask and `p.auto_submit` resolves true (company override, else global), the
-   runner clicks Submit itself, waits for the ATS's own confirmation, and returns `submitted`; otherwise
-   it returns `ready_to_submit` with the 20-line summary (§2.6).
+   everything it can — including EEO/demographic rows from `p.eeo` and restrictive-agreements
+   rows from `p.legal.restrictive_agreements` whenever those preferences are on file. If
+   `p.auto_draft` is on, a configured writer drafts new prose from the posting and saved
+   material; with no writer configured, `needs_user` carries `kind:"draft"` items that the host
+   agent writes and feeds back through `--answers` **without asking the person to write them**.
+   The host relays only unresolved questions about the person's facts, choices, and attestations
+   in one message. If nothing else is left to ask and `p.auto_submit` resolves true (company
+   override, else global), the runner clicks Submit itself, waits for the ATS's confirmation,
+   and returns `submitted`; otherwise it returns `ready_to_submit` with the summary (§2.6).
 3. **"Use that answer next time" / corrections** → `scripts/remember.mjs` with an inferred scope
    (`global` / `company:<slug>` / `role_family:<name>`); asks only when scope is ambiguous. Summary lines
    carry handles (`d1`, `c2`) so "keep d1, but shorter" is a one-liner.
@@ -65,7 +67,7 @@ flowchart LR
   R --> S[Schema fetch<br/>Greenhouse API / Ashby GraphQL]
   S --> P[Planner - Decision records]
   P -->|1-2 batch requests per posting| J[Jev<br/>api.typesafe.ai/v1/systemone]
-  P -->|why_us + expand only| W[Writer<br/>OpenAI Responses]
+  P -->|grounded prose only| W[Writer<br/>OpenAI / compatible API / host agent]
   P --> E[Executor<br/>Playwright over CDP, dedicated Chrome profile, one tab per posting]
   E -->|readback| P
   E -->|fill resolved first| H
@@ -80,7 +82,7 @@ flowchart LR
 | "Which canonical question is this field?" | Jev Choice over canonical ids (core + family + narrative + company template) + `none_of_these`; answer comes from `answers.yaml` | full answer text in criteria; stories in the hot path |
 | "Which form option matches?" | Jev Choice over the form's options + `none_of_these`; multi-select = one Noul per option | a first-option (`options[0]`) fallback, any default value |
 | Numbers, dates, years-since, notice period | code from `facts` (`since: YYYY-MM`, rules) | Jev (cannot count) |
-| `why_us` text | user gives one sentence → writer expands with 1–2 matched stories | drafting from bullets alone |
+| `why_us` / essay text | optional OpenAI or compatible writer, else host CLI agent, from the posting and saved material, only when `p.auto_draft` is on | new personal facts or ungrounded claims |
 | `company_specific` questions (need first-hand product experience) | user | writer |
 | Optional textareas / cover letter with no curated answer | left blank, listed under NOT FILLED | speculative drafts |
 | Setting values, uploads, verification | Playwright adapters, per-field isolation | asking the host per field |
@@ -109,11 +111,13 @@ Everything before step 8 is HTTP + Jev; no browser is touched until the plan exi
    `circumstance`/`core` class they already carry — they resolve from a preference, not from `ask`.
 4. **Resolve deterministically** into `Decision` records (§2.3): identity/links/résumé from `facts` +
    `preferences`; `sensitive` → `fill` from `p.eeo` when it is on file, else `ask` once (never `skip`);
-   `policy_gate` → `ask` (stored company-scoped afterwards) — restrictive-agreements-class rows are the
-   one exception: `fill` from `p.legal.restrictive_agreements` when it is on file, else `ask` once;
-   `applied_before` → derived from `pipeline.yaml`; "how did you hear" → derived from pipeline
-   provenance; numeric/date questions → computed from `since:` facts and rules; `why_us` → `ask` (one
-   sentence) unless a `company` answer for this company exists; `company_specific` → `ask`.
+   `policy_gate` → `fill` only from the user's explicit `p.legal.<slug>` preference for that
+   exact attestation, else `ask` — never from a canonical answer or neighbouring policy;
+   restrictive-agreements-class rows use `p.legal.restrictive_agreements` when on file;
+   `applied_before` → derived from `pipeline.yaml`; "how did you hear" → pipeline provenance;
+   numeric/date questions → computed from `since:` facts and rules; `why_us` → stored company
+   answer or `draft` when `p.auto_draft` has grounded material, else `ask`; `company_specific`
+   → `ask` when no supported answer exists.
 5. **Jev request 1** (keep-alive client; `JEV_MODEL = "jev-1.13.0"`): one Choice per still-open question
    asking **"which canonical question is this field an instance of?"** (§2.7) over the candidate canon
    ids + `none_of_these`. Candidates per form = universal core (~45) + the posting's job family
@@ -148,16 +152,20 @@ Everything before step 8 is HTTP + Jev; no browser is touched until the plan exi
     one (`demographic_<id>` vs. the DOM's `<id>`, plus label) against the plan's `p.eeo`-sourced
     Decisions and fills them the same way as any other `fill` row — same read-back, same trace. Inert
     for Ashby/generic, whose schemas already carry the demographic questions.
-9. **Ask once**: if any `ask` rows remain, snapshot-diff the page for conditional follow-ups that appeared
-   after filling (delta re-plan, max 2 rounds), then return `needs_user{questions:[{qid,label,options,
-   remember_as:{kind,scope}}]}` and **disconnect without closing**. `Decision`s are frozen to
-   `applications/<slug>/decisions.json`. `--answers answers.json` re-attaches, stores answers as scoped
-   `answers.yaml` entries (`source:user`, scoped), re-plans only the `ask` rows (idempotent), and executes them.
-10. **Write** (OpenAI, `OPENAI_MODEL` constant) — at fill time only for `company` answers and unmatched essays: `expand` mode turns a matched bullet-length story into a
-    200-word answer within the parsed limit; `why_us` mode takes the user's one sentence + the 1–2
-    stories Jev ranked highest and writes the paragraph. Post-checks: every number/org name appears in
-    the grounding set; **no other company's name from the pipeline appears** (substitution check).
-    Drafts are `drafted[]`, never memory, until promoted with company scope (§2.4).
+9. **Ask once**: after the fill pass, snapshot-diff for conditional follow-ups (delta re-plan,
+   max 2 rounds), then return `needs_user{questions:[{qid,label,options,remember_as?}]}` and
+   **disconnect without closing**. `kind:"draft"` rows go to the host CLI agent; only genuinely
+   unresolved personal facts, choices and attestations go to the person. Decisions are frozen
+   to `applications/<slug>/decisions.json`. `--answers` re-attaches and re-plans open rows
+   idempotently; host drafts remain per-application text, while user-stated answers may enter
+   scoped memory.
+10. **Write** (optional OpenAI Responses, OpenAI-compatible endpoint or host CLI model): for
+    `p.auto_draft` rows, use the posting and saved facts/stories; a host `draft` item includes
+    prompt, grounding and limit in `needs_user`, and the agent returns its paragraph with
+    `--answers` rather than relaying it to the user. Every candidate number/org name must appear
+    in the grounding; no other company from the pipeline may appear. The stated word/char limit
+    applies to both API and host drafts. Drafts are `drafted[]`, never memory, until promoted
+    with company scope (§2.4).
 11. **Verify**: re-snapshot; every `required` control non-empty; no new required controls; write
     `applications/<slug>/{decisions.json, trace.jsonl}`. Stop rules: 2 set/readback attempts per field;
     3 consecutive no-change actions → `blocked`; Jev requests > 40 or wall time > 120 s per posting →
@@ -259,14 +267,16 @@ acceptable locations); (7) EEO self-identification (`p.eeo`: gender, hispanic/la
 status, disability status, pronouns), each field its own "decline to answer" option — reused, filled, on
 every future form's demographic block instead of skipped; (8) auto-submit preference (`p.auto_submit`):
 should the runner click Submit itself once nothing else needs asking, or always stop at ready-to-submit.
-The runner also asks once whether it may draft prose and accept standard application
-acknowledgements; both preferences remain unset until the user answers.
+The runner asks once whether it may draft prose (`p.auto_draft`), independently of
+submission preference. There is no blanket approval for attestations: each policy gate
+requires the user's explicit preference for that exact statement.
 
-**Lazy at first sight, then remembered at the right scope:** relocation / in-office per city, security
-clearance, references, arbitration/consent/AI-usage attestations (company scope, always asked —
-`policy_gate` is never answered from memory), restrictive-agreements / non-compete attestations (one
-global ask, stored as `p.legal.restrictive_agreements`, answered from memory on every form after),
-`why_us` (one sentence per company). **Cut:** story prompts at onboarding (stories come from résumé
+**Lazy at first sight, then remembered at the right scope:** relocation / in-office per city,
+security clearance, references, arbitration/consent/AI-usage attestations (the user's
+explicit `p.legal.<slug>` preference for each exact attestation, otherwise ask),
+restrictive-agreements / non-compete attestations (one global ask, stored as
+`p.legal.restrictive_agreements`, answered from memory afterwards), `why_us` (a company answer
+or grounded opt-in draft). **Cut:** story prompts at onboarding (stories come from résumé
 bullets and accepted drafts), "how did you hear" (derived).
 
 ### 2.5 Discovery & pipeline (`scripts/scan.mjs`, `scripts/pipeline.mjs`, D5)

@@ -39,9 +39,8 @@ export const PRICING = {
   openai: {
     "gpt-5.4": { input_per_mtok: 2.5, output_per_mtok: 15.0 },
     "gpt-5.4-mini": { input_per_mtok: 0.75, output_per_mtok: 4.5 },
-    // `PRICING.openai` is keyed by the writer's own by_model keys, and a model the user hosts
-    // themselves (Ollama, llama.cpp, LM Studio) is one of them. Its tokens are real and are
-    // counted; its rate is genuinely zero, which is why this row is a number and not `null`.
+    // An unkeyed loopback server has no provider bill. Keyed or remote compatible
+    // endpoints are recorded under `compatible:<model>` with unknown cost.
     local: { input_per_mtok: 0, output_per_mtok: 0 },
   },
 };
@@ -95,36 +94,42 @@ export const SIGNUP = {
 export const REQUIRED_KEYS = ["TYPESAFE_API_KEY"];
 
 /**
- * Everything else is optional, and each one names a way to write the few sentences that are not
- * on file: an OpenAI key, an OpenAI-compatible server you run yourself, or neither — in which
- * case the host agent writes them and the runner checks them (src/writer/backend.mjs).
+ * Optional writer settings. OpenAI uses its own key and accepts a model override; another
+ * OpenAI-compatible endpoint needs a URL and model, and may need its own bearer key.
  */
-export const OPTIONAL_KEYS = ["OPENAI_API_KEY"];
 export const WRITER_URL_VAR = "JEV_APPLY_WRITER_URL";
 export const WRITER_MODEL_VAR = "JEV_APPLY_WRITER_MODEL";
+export const WRITER_KEY_VAR = "JEV_APPLY_WRITER_KEY";
+export const OPTIONAL_KEYS = ["OPENAI_API_KEY", WRITER_KEY_VAR];
 
 /**
- * Which backend writes. Configuration order is OpenAI key → local server → nobody; no writer at
- * all is a supported configuration, not an error.
- *
- * Two things override that order, and both are a choice the user made for *this* run:
- *   * `preferLocal` — `JEV_APPLY_WRITER_URL` set in the process environment rather than read out
- *     of the env file. Pointing a run at a local server is meant to be enough; having to unset a
- *     stored key as well would be a trap.
- *   * an empty value means "explicitly off", never "unset": `OPENAI_API_KEY= node scripts/apply.mjs`
- *     is how a user with a key on file runs a posting the host agent drafts, and `loadEnv`
- *     honours the same rule by not filling a variable that is already present but blank.
- * @param {Record<string,string|undefined>} [env]
- * @param {{preferLocal?: boolean}} [opts]
- * @returns {{kind:"openai"|"local"|"host", model:string|null, baseURL:string|null}}
+ * An explicit process-level URL selects its endpoint even when an OpenAI key is on file.
+ * Otherwise an OpenAI key wins, unless the endpoint has its own key. No configured writer
+ * means the host agent drafts; it never means a guessed answer.
  */
 export function writerFromEnv(env = process.env, { preferLocal = false } = {}) {
   const has = (name) => String(env[name] ?? "").trim();
-  const url = has(WRITER_URL_VAR);
-  const local = () => ({ kind: "local", model: has(WRITER_MODEL_VAR) || null, baseURL: url.replace(/\/+$/, "") });
-  if (url && preferLocal) return local();
-  if (has("OPENAI_API_KEY")) return { kind: "openai", model: OPENAI_MODEL, baseURL: null };
-  if (url) return local();
+  const endpoint = has(WRITER_URL_VAR);
+  const named = has(WRITER_MODEL_VAR);
+  const key = has(WRITER_KEY_VAR);
+  if (key && !endpoint) throw new Error(`${WRITER_KEY_VAR} requires ${WRITER_URL_VAR}`);
+  const server = () => {
+    let url;
+    try {
+      url = new URL(endpoint);
+    } catch {
+      throw new Error(`${WRITER_URL_VAR} must be a valid HTTPS URL or a loopback HTTP URL`);
+    }
+    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if ((url.protocol !== "https:" && !(loopback && url.protocol === "http:")) ||
+        url.username || url.password || url.search || url.hash) {
+      throw new Error(`${WRITER_URL_VAR} must use HTTPS (HTTP only on loopback), with no credentials or query`);
+    }
+    return { kind: loopback && !key ? "local" : "compatible", model: named || null, baseURL: url.href.replace(/\/+$/, "") };
+  };
+  if (endpoint && (preferLocal || key)) return server();
+  if (has("OPENAI_API_KEY")) return { kind: "openai", model: named || OPENAI_MODEL, modelOverride: Boolean(named), baseURL: null };
+  if (endpoint) return server();
   return { kind: "host", model: null, baseURL: null };
 }
 

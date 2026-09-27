@@ -27,9 +27,9 @@ export function loadEnv();                   // reads CONFIG_DIR/env (KEY=VALUE)
                                              // run"), returns { TYPESAFE_API_KEY, OPENAI_API_KEY }; throws a
                                              // fail-fast Error naming the missing var + signup URL
 export const REQUIRED_KEYS = ["TYPESAFE_API_KEY"];   // the only credential jev-apply needs
-export const OPTIONAL_KEYS = ["OPENAI_API_KEY"];     // one of three ways to have a writer
-export const WRITER_URL_VAR, WRITER_MODEL_VAR;       // JEV_APPLY_WRITER_URL / JEV_APPLY_WRITER_MODEL
-export function writerFromEnv(env, { preferLocal }); // → {kind:"openai"|"local"|"host", model, baseURL}
+export const OPTIONAL_KEYS = ["OPENAI_API_KEY", "JEV_APPLY_WRITER_KEY"];
+export const WRITER_URL_VAR, WRITER_MODEL_VAR, WRITER_KEY_VAR;
+export function writerFromEnv(env, { preferLocal }); // → {kind:"openai"|"local"|"compatible"|"host", model, baseURL, modelOverride?}
 export function slugify(s);                  // "acme-123" style
 ```
 
@@ -100,19 +100,21 @@ Seed import: `scripts/learn.mjs --seed private/profile/memory-seed` copies the s
 
 ## src/writer/backend.mjs (which model writes, and whether there is one)
 ```js
-export function detectWriter({ refresh });   // → {kind:"openai"|"local"|"host", model, baseURL}; memoised.
-// OPENAI_API_KEY → openai · JEV_APPLY_WRITER_URL (+ _MODEL) → local · neither → host.
-// A writer URL set in the process environment (not the env file) wins over a stored key.
+export function detectWriter({ refresh });   // → {kind:"openai"|"local"|"compatible"|"host", model, baseURL}; memoised.
+// OPENAI_API_KEY (+ optional model) → Responses API; compatible URL + model (+ optional
+// key) → chat completions; neither → host. A process-level URL or URL+key overrides
+// a stored OpenAI key. Remote URLs require HTTPS; HTTP is allowed only on loopback.
 export function describeWriter(cfg);         // one printable line; never key material
 export async function complete({ system, input, schema, name, model, effort, maxTokens, signal });
-// → the parsed JSON object. openai: Responses API, strict json_schema. local: chat completions at
-//   baseURL with the schema stated in the prompt (json_object when the server takes it) and one
-//   re-ask on a reply that is not JSON. host: throws HostWriterRequired.
+// → parsed JSON object. OpenAI: Responses API, strict json_schema. Local/compatible:
+//   chat completions with the schema stated in the prompt (json_object when supported),
+//   one re-ask on a non-JSON reply. Host: throws HostWriterRequired.
 export class WriterError extends Error {}
-export class HostWriterRequired extends WriterError {}   // `what` = which answer needed writing
+export class HostWriterRequired extends WriterError {}
 export function usageTotals();               // {calls, input_tokens, output_tokens, by_model}
 export function resetUsage(); export function resetWriter();
-// Local calls are counted under the by_model key "local", which PRICING.openai rates at $0.
+// Unkeyed loopback calls use "local" ($0 provider bill). Keyed or remote compatible
+// calls use "compatible:<model>" and report unknown cost rather than a false $0.
 ```
 
 ## src/writer/openai.mjs (the prompts, the post-checks — any backend)

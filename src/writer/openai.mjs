@@ -1,7 +1,7 @@
 // The module that generates text (PLAN §2.1, §2.2 step 10). Which model does the generating is
-// `src/writer/backend.mjs`'s business — OpenAI, a local OpenAI-compatible server, or nobody at
-// all, in which case `complete()` throws `HostWriterRequired` and the runner asks the host agent
-// for the paragraph instead. Everything below is the same either way.
+// `src/writer/backend.mjs`'s business — OpenAI, an OpenAI-compatible endpoint, or the host
+// CLI agent, in which case `complete()` throws `HostWriterRequired` and the runner hands it
+// a `draft` item to answer through `--answers`. Everything below is the same either way.
 //
 // It writes nothing that is not grounded in the facts/stories it is handed, and every draft is
 // checked before it is returned: word/char caps, first person, no marketing vocabulary, every

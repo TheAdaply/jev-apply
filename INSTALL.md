@@ -40,21 +40,31 @@ Re-run `node scripts/install.mjs` to check for a nonempty value; it does not aut
 `node scripts/jev-smoke.mjs` makes a live Jev request to verify the key. Never put a key in
 the repo, a script argument, a prompt, or a tool output.
 
-## 4. Choose how the few drafted sentences get written
+## 4. Choose who writes grounded new prose
 
-Optional — jev-apply runs without any of this. Add at most one to the same `env` file:
+Optional — Jev still needs its TypeSafe key, but the writer needs no second key when your CLI
+agent handles drafts. Three choices, in priority order when configured:
 
+```text
+OPENAI_API_KEY=…                        # OpenAI Responses API; JEV_APPLY_WRITER_MODEL is optional
+JEV_APPLY_WRITER_URL=https://api.example.com/v1
+JEV_APPLY_WRITER_MODEL=<model name>     # an OpenAI-compatible chat-completions endpoint
+JEV_APPLY_WRITER_KEY=…                  # only if that endpoint requires a bearer key
 ```
-OPENAI_API_KEY=sk-…                          # OpenAI writes the paragraph
-JEV_APPLY_WRITER_URL=http://127.0.0.1:11434/v1   # a server you run (Ollama/llama.cpp/LM Studio) writes it
-JEV_APPLY_WRITER_MODEL=<model name>              # required alongside JEV_APPLY_WRITER_URL
-```
 
-With neither set, `apply.mjs` detects that no writer model is configured and, running inside
-Claude Code or Codex, hands the paragraph's prompt, grounding, and word limit back to the host
-agent as a `needs_user` item of kind `draft` — see `SKILL.md` for exactly how to answer one.
-`node scripts/writer-smoke.mjs --detect` prints which backend a given environment resolves to
-without making a call.
+An unkeyed loopback server such as `http://127.0.0.1:11434/v1` also works with URL + model.
+Remote endpoints require HTTPS; only loopback may use HTTP. Put keys only in the private `env`
+file, not in a prompt or command line. A URL set for this run (or paired with its own key) wins
+over a stored OpenAI key. A model name with `OPENAI_API_KEY` selects that OpenAI model for all
+writer calls. A compatible endpoint must support OpenAI-style chat completions; its cost is
+reported as unknown, not free.
+
+With no writer configured, `apply.mjs` hands a `kind:"draft"` item to the **CLI agent** in its
+`needs_user` payload. The agent writes it from the supplied grounding and passes it back through
+`--answers`; the user is not asked to author it. Personal facts, EEO choices and policy
+attestations still come from the user, never from any model. See [SKILL.md](SKILL.md) for the
+handoff. `node scripts/writer-smoke.mjs --detect` reports the selected backend without making a
+call or showing credentials.
 
 ## 5. Register the skill with the host agent
 

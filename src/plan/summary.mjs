@@ -274,13 +274,13 @@ export function money(usd) {
   return `$${usd.toFixed(6)}`;
 }
 
-/** `Jev 2 req / 4530 tok / $0.000190 · OpenAI 0 tok / $0 · wall 7.8s` (PLAN §2.6 line budget). */
+/** A short cost line; the writer may be OpenAI, another endpoint, or the host agent. */
 export function costLine(usage) {
   const jevTok = usage.jev.input_tokens + usage.jev.output_tokens;
   const openaiTok = usage.openai.input_tokens + usage.openai.output_tokens;
   return [
     `Jev ${usage.jev.requests} req / ${jevTok} tok / ${money(usage.jev.usd)}`,
-    `OpenAI ${openaiTok} tok / ${money(usage.openai.usd)}`,
+    `Writer ${openaiTok} tok / ${money(usage.openai.usd)}`,
     `wall ${(usage.ms_total / 1000).toFixed(1)}s`,
   ].join(" · ");
 }

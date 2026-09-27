@@ -11,6 +11,7 @@ import {
   PRIVATE_DIRS,
   REQUIRED_KEYS,
   SIGNUP,
+  WRITER_KEY_VAR,
   WRITER_MODEL_VAR,
   WRITER_URL_VAR,
   loadEnv,
@@ -70,14 +71,13 @@ const present = Object.fromEntries(keys.map((k) => [k, Boolean(process.env[k]?.t
 const missing = REQUIRED_KEYS.filter((k) => !present[k]);
 tree.push(`${label(paths.env)}  ${envPresent ? mode(paths.env) : "----"}  ${envPresent ? "existed (not modified)" : "MISSING"}`);
 
-/** The three ways to have a writer, in the order a new user should consider them. */
+/** Three ways to write from saved material; the agent handles drafts with no key. */
 const WRITER_HELP = [
-  "Writing (optional — jev-apply only writes the few answers nothing on file covers):",
-  `  OPENAI_API_KEY=…                     # ${SIGNUP.OPENAI_API_KEY}`,
-  `  ${WRITER_URL_VAR}=http://127.0.0.1:11434/v1 and ${WRITER_MODEL_VAR}=…`,
-  "                                       # any OpenAI-compatible server you run (Ollama, llama.cpp, LM Studio)",
-  "  neither                              # inside Claude Code or Codex: those few paragraphs come back",
-  "                                       # to your agent to write, and jev-apply checks them like its own",
+  "Writing (optional — only grounded new prose, never missing personal facts):",
+  `  OPENAI_API_KEY=… and optional ${WRITER_MODEL_VAR}=…  # ${SIGNUP.OPENAI_API_KEY}`,
+  `  ${WRITER_URL_VAR}=https://provider.example/v1 and ${WRITER_MODEL_VAR}=…`,
+  `  ${WRITER_KEY_VAR}=…                  # if that OpenAI-compatible endpoint needs a key`,
+  "  Or use a loopback URL (no key), or neither: your CLI agent drafts and jev-apply checks it.",
 ];
 
 const out = {

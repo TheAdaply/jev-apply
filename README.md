@@ -57,7 +57,7 @@ Replace the example URL with a hosted posting you choose:
 
 ```bash
 JOB_URL='https://job-boards.greenhouse.io/<board>/jobs/<id>'
-node scripts/apply.mjs --url "$JOB_URL" --no-submit
+node scripts/apply.mjs --no-submit --url "$JOB_URL"
 ```
 
 ### 3. Answer what is missing
@@ -65,7 +65,8 @@ node scripts/apply.mjs --url "$JOB_URL" --no-submit
 If you get `needs_user`, write `{"<qid>":{"value":"your answer"}}` to `~/.config/jev-apply/application-answers.json`, using the printed `qid`. Then run:
 
 ```bash
-node scripts/apply.mjs --url "$JOB_URL" --answers ~/.config/jev-apply/application-answers.json --no-submit
+node scripts/apply.mjs --no-submit --url "$JOB_URL" \
+  --answers ~/.config/jev-apply/application-answers.json
 ```
 
 `--no-submit` is per run: keep it on every answer or queue rerun. `ready_to_submit` leaves the tab open for review; `node scripts/apply.mjs --resume <slug>` lists any unfilled fields. `blocked` gives a reason and keeps any opened tab available. A run only reports `submitted` after the ATS confirms a click, and auto-submit is opt-in.
@@ -80,12 +81,12 @@ Missed     1  ▏
 Wrong      0
 ```
 
-Bars are approximate (about 18 fields per full block); the counts are exact. The 12 Greenhouse/Ashby
-pages were new before the **first** pass. These numbers come from a **third pass over the
-same pages**, after fixes, with every field graded from screenshots by an independent
-reviewer. "Open" means no answer was on file, a policy gate refused to sign, or the control
-could not be filled. No application was submitted. This is one evaluated set, not a
-promise for other forms. [Method and per-page results](bench/results/fresh-pages.md).
+These 12 Greenhouse/Ashby pages were new before testing; the figures are the
+**third pass over those same pages**, after fixes, graded independently from screenshots.
+"Open" covers missing answers, unsigned policy gates and controls the runner could not
+fill. No application was submitted. Bars are approximate (about 18 fields per block);
+counts are exact. This is one evaluated set, not a general accuracy claim.
+[Method and per-page results](bench/results/fresh-pages.md).
 
 ## More than one form
 
@@ -94,7 +95,7 @@ node scripts/remember.mjs "never apply to contract roles"
 node scripts/scan.mjs
 node scripts/pipeline.mjs list
 node scripts/pipeline.mjs queue 12 15  # replace with IDs from your list
-node scripts/apply.mjs --queue 2 --no-submit
+node scripts/apply.mjs --no-submit --queue 2
 ```
 
 Queue mode groups repeated questions into one batch. Add `--answers ~/.config/jev-apply/application-answers.json` on a rerun, keeping `--no-submit`. Or [install the agent skill](SKILL.md) with `npx skills add theadaply/jev-apply` and say "learn my background" or "complete this application".

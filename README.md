@@ -2,89 +2,114 @@
 
 Fill job applications from your saved answers, without inventing personal details.
 
-jev-apply reuses your résumé and answers across hosted Greenhouse, Ashby and Lever forms. Jev matches saved answers, Playwright fills and reads them back, and unknown facts come back to you.
+jev-apply remembers what you tell it, matches saved answers to hosted job forms with Jev, and uses Playwright to fill and read back each field. If a personal detail is missing, it asks you.
 
-**Status:** experimental; hosted forms only. Lever leaves the final Submit click to you. LinkedIn Easy Apply is not supported.
+> [!NOTE]
+> Experimental. Supports hosted Greenhouse, Ashby and Lever forms. Lever always leaves the final Submit click to you; LinkedIn Easy Apply is not supported.
 
 ## How it works
 
 ```mermaid
-flowchart LR
-    you["Your résumé + answers"] --> memory[(Private memory)]
-    form["Hosted job form"] --> plan["Resolve each field"]
-    memory --> plan
-    plan -->|known fact| browser["Playwright fills + reads back"]
-    plan -->|uncertain match| jev["Jev selects or refuses"]
-    jev -->|selected answer| browser
-    jev -->|none of these| ask["Ask you"]
+flowchart TB
+    facts[("Your saved answers")] --> decide["Resolve each field"]
+    form["Job form field"] --> decide
+    decide -->|supported| fill["Fill + read back"]
+    decide -->|missing| ask["Ask you"]
 ```
 
-New writing is optional: OpenAI, a local model, or your host agent can draft a paragraph. A draft is checked against your material and is not saved as a fact unless you keep it.
+Jev chooses which saved answer fits. A writer (OpenAI, a local model, or your host agent) can draft new prose if you opt in; drafts do not become saved facts unless you keep them. Files live under `~/.config/jev-apply/`, outside this repo. Jev makes API calls, so this is not an offline tool.
 
 ## Get started
 
-You need Node 20+, Google Chrome, and a [TypeSafe Jev key](https://console.typesafe.ai/keys). OpenAI is optional. The installer creates `~/.config/jev-apply/`; put your real key only in its private `env` file, not in this repo or a shell command.
+You need Node 20+, Google Chrome and a [TypeSafe Jev key](https://console.typesafe.ai/keys). OpenAI is optional.
 
 ```bash
 git clone https://github.com/TheAdaply/jev-apply.git
 cd jev-apply
 npm ci
 node scripts/install.mjs
-umask 077; touch ~/.config/jev-apply/env; chmod 600 ~/.config/jev-apply/env
+umask 077
+touch ~/.config/jev-apply/env
+chmod 600 ~/.config/jev-apply/env
 ${EDITOR:-vi} ~/.config/jev-apply/env
 node scripts/install.mjs
 ```
 
-In the editor add `TYPESAFE_API_KEY=your-key`. The second install checks that the value is nonempty, not that the key is valid. [Writer and agent setup](INSTALL.md) has the optional choices.
+In the editor, add `TYPESAFE_API_KEY=your-key`. Keep the real key out of the repo and your shell history. The second install checks for a nonempty value, not whether the key works; see [installation and writer options](INSTALL.md).
 
-## Use it
+## Your first application
 
-1. Import your résumé: `node scripts/learn.mjs --resume /path/to/resume.pdf`.
-2. Answer the returned `gaps` in `~/.config/jev-apply/onboarding-answers.json`, keyed by `remember_as.id`. For example, `g.email` asks for `f.identity.email`, **not** `g.email`; gaps without `remember_as` name their fact IDs in the question. Save only your own answers.
-3. Store them: `node scripts/learn.mjs --answers ~/.config/jev-apply/onboarding-answers.json`.
+### 1. Learn your background
 
-Then fill a hosted posting. Replace the URL with the one you are applying to:
+```bash
+node scripts/learn.mjs --resume /path/to/resume.pdf
+```
+
+If it returns `needs_user`, put your responses in `~/.config/jev-apply/onboarding-answers.json`. Use each question's `remember_as.id` as the JSON key: `g.email`, for example, is answered under `f.identity.email`, not `g.email`. A gap without `remember_as` names the fact IDs to use. Then run:
+
+```bash
+node scripts/learn.mjs --answers ~/.config/jev-apply/onboarding-answers.json
+```
+
+### 2. Fill the form
+
+Replace the example URL with a hosted posting you choose:
 
 ```bash
 JOB_URL='https://job-boards.greenhouse.io/<board>/jobs/<id>'
-node scripts/apply.mjs --url "$JOB_URL" --no-submit
+node scripts/apply.mjs \
+  --no-submit \
+  --url "$JOB_URL"
 ```
 
-If the result is `needs_user`, save `{"<qid>":{"value":"your answer"}}` to `~/.config/jev-apply/application-answers.json` using the printed `qid`, then run:
+### 3. Answer what is missing
+
+If you get `needs_user`, write `{"<qid>":{"value":"your answer"}}` to `~/.config/jev-apply/application-answers.json`, using the printed `qid`. Then run:
 
 ```bash
-node scripts/apply.mjs --url "$JOB_URL" --answers ~/.config/jev-apply/application-answers.json --no-submit
+node scripts/apply.mjs \
+  --no-submit \
+  --url "$JOB_URL" \
+  --answers ~/.config/jev-apply/application-answers.json
 ```
 
-Keep `--no-submit` on every demo run, including answer reruns. `ready_to_submit` leaves the filled tab open for review; `node scripts/apply.mjs --resume <slug>` lists anything still missing. `submitted` means the ATS confirmed a click; `blocked` gives a reason and keeps any opened tab available for manual completion. Auto-submit is opt-in, and Lever always requires your click.
+`--no-submit` is per run: keep it on every answer or queue rerun. `ready_to_submit` leaves the tab open for review; `node scripts/apply.mjs --resume <slug>` lists any unfilled fields. `blocked` gives a reason and keeps any opened tab available. A run only reports `submitted` after the ATS confirms a click, and auto-submit is opt-in.
 
-## Evidence from real forms
+## Measured on real forms
 
-```mermaid
-pie showData
-    title Final rerun: 12 pages, 229 fields
-    "Correct fills" : 178
-    "Unanswered or unsupported" : 50
-    "Answerable but missed" : 1
+```text
+Final pass: 229 fields
+Correct  178  ██████████
+Open      50  ███
+Missed     1  ▏
+Wrong      0
 ```
 
-The 12 Greenhouse/Ashby pages were new before the first of **three passes**. After fixes informed by earlier passes, an independent screenshot review of the final rerun found **178 correct fills, 0 wrong fills, 50 unanswered or unsupported fields, and 1 missed field**. No application was submitted. This is one evaluated set, not a guarantee on other forms. [Method and per-page results](bench/results/fresh-pages.md).
+These 12 Greenhouse/Ashby pages were new before testing; the figures are the
+**third pass over those same pages**, after fixes, graded independently from screenshots.
+"Open" covers missing answers, unsigned policy gates and controls the runner could not
+fill. No application was submitted. Bars are approximate (about 18 fields per block);
+counts are exact. This is one evaluated set, not a general accuracy claim.
+[Method and per-page results](bench/results/fresh-pages.md).
 
-## Other ways to use it
+## More than one form
 
 ```bash
 node scripts/remember.mjs "never apply to contract roles"
 node scripts/scan.mjs
 node scripts/pipeline.mjs list
-node scripts/pipeline.mjs queue 12 15  # use IDs from your list
-node scripts/apply.mjs --queue 2 --no-submit
+node scripts/pipeline.mjs queue 12 15  # replace with IDs from your list
+node scripts/apply.mjs \
+  --no-submit --queue 2
 ```
 
-The queue batches repeated questions. On a `needs_user` rerun, add `--answers ~/.config/jev-apply/application-answers.json` **and keep `--no-submit`**. Or install the [agent skill](SKILL.md) with `npx skills add theadaply/jev-apply` and ask it to learn your background, find roles, or complete an application.
+Queue mode groups repeated questions into one batch. Add `--answers ~/.config/jev-apply/application-answers.json` on a rerun, keeping `--no-submit`. Or [install the agent skill](SKILL.md) with `npx skills add theadaply/jev-apply` and say "learn my background" or "complete this application".
 
-## Contributing
+## For contributors
 
-`npm run check:syntax` parses tracked JavaScript and is the credential-free CI gate; it does not test behavior. `node eval/plan.test.mjs` uses private memory and live paid Jev calls. Browser fixture checks live in `scripts/controls-smoke.mjs` and `scripts/submit-smoke.mjs`; never run `eeo-smoke.mjs` on a real posting for a demo. Read [agent instructions](AGENTS.md), [design decisions](docs/PLAN.md), and [module contracts](docs/CONTRACTS.md) before editing. [Issues and PRs](https://github.com/TheAdaply/jev-apply/issues) welcome.
+- `npm run check:syntax` checks parsing only; the credential-free [CI workflow](.github/workflows/ci.yml) runs it after `npm ci`.
+- `node eval/plan.test.mjs` makes live, paid Jev calls against recorded form schemas and private memory. Browser fixtures: `scripts/controls-smoke.mjs` and `scripts/submit-smoke.mjs`.
+- [Agent instructions](AGENTS.md) · [Design decisions](docs/PLAN.md) · [Module contracts](docs/CONTRACTS.md) · [Issues](https://github.com/TheAdaply/jev-apply/issues). Never run `eeo-smoke.mjs` on a real posting for a demo.
 
 ## License
 

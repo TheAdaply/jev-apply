@@ -92,76 +92,31 @@ The agent follows [SKILL.md](SKILL.md) for the workflow and [INSTALL.md](INSTALL
 
 ```mermaid
 flowchart TD
-  subgraph CLI["CLI Agent Environment"]
-    HostAgent["Host Agent (Claude Code / Codex)"]
-  end
+  classDef agent fill:#161b22,stroke:#1f6feb,stroke-width:1.5px,color:#c9d1d9
+  classDef runner fill:#161b22,stroke:#8957e5,stroke-width:1.5px,color:#c9d1d9
+  classDef storage fill:#161b22,stroke:#238636,stroke-width:1.5px,color:#c9d1d9
+  classDef service fill:#161b22,stroke:#388bfd,stroke-width:1.5px,color:#c9d1d9
 
-  subgraph LocalStorage["Private Storage (~/.config/jev-apply/)"]
-    MemoryDir["memory/ (facts, preferences, stories)"]
-    EnvFile["env (TYPESAFE_API_KEY, credentials)"]
-    AppDir["applications/ (decisions, trace.jsonl)"]
-    ChromeProfile["profile/ (Chrome CDP session)"]
-  end
-
-  subgraph CoreRunner["Runner Subsystem (scripts/apply.mjs)"]
-    SchemaFetcher["Schema Fetcher (REST / GraphQL)"]
-    Planner["Planner & Normalizer"]
-    ExecEngine["Playwright CDP Executor"]
-  end
-
-  subgraph ExternalAPIs["Remote Services & Browser"]
-    JevAPI["TypeSafe Jev Decider (jev-1.13.0 API)"]
-    WriterAPI["Writer Engine (OpenAI / Host Model)"]
-    ATSBoard["ATS Target Board (Greenhouse / Ashby / Lever)"]
-    LocalChrome["Dedicated Google Chrome Instance"]
-  end
+  HostAgent["Host Agent<br/>(Claude Code / Codex)"]:::agent
+  CoreRunner["Runner Subsystem<br/>(scripts/apply.mjs)"]:::runner
+  SchemaFetcher["Schema Fetcher<br/>(REST / GraphQL)"]:::service
+  Planner["Planner & Normalizer<br/>(FormPlan)"]:::service
+  JevAPI["TypeSafe Jev Decider<br/>(jev-1.13.0 API)"]:::service
+  WriterAPI["Writer Engine<br/>(OpenAI / Host Model)"]:::service
+  ExecEngine["Playwright CDP Executor<br/>(DOM Readback)"]:::service
+  LocalStorage["Private Local Storage<br/>(~/.config/jev-apply/)"]:::storage
+  LocalChrome["Dedicated Google Chrome<br/>(CDP Session)"]:::service
+  ATSBoard["ATS Target Form<br/>(Greenhouse / Ashby / Lever)"]:::service
 
   HostAgent -->|Execute scripts/*.mjs| CoreRunner
   CoreRunner <-->|Read / Write State| LocalStorage
-  SchemaFetcher -->|Fetch Form Schema| ATSBoard
+  CoreRunner --> SchemaFetcher
+  CoreRunner --> Planner
   Planner -->|Canonical Choice Matching| JevAPI
   Planner -->|Grounded Essay Generation| WriterAPI
+  CoreRunner --> ExecEngine
   ExecEngine -->|Attach via CDP| LocalChrome
   LocalChrome -->|Fill & Read Back DOM| ATSBoard
-```
-
-### End-to-End Application Execution Sequence
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant Host as Host Agent
-  participant Runner as apply.mjs Runner
-  participant ATS as ATS Server
-  participant Jev as TypeSafe Jev Decider
-  participant Writer as Writer Engine
-  participant Chrome as Playwright CDP Chrome
-
-  Host->>Runner: Execute scripts/apply.mjs --url <posting>
-  Runner->>ATS: Fetch ATS Schema (Greenhouse REST / Ashby GraphQL)
-  ATS-->>Runner: Return raw form schema JSON
-  Runner->>Runner: Normalize to FormPlan & resolve deterministic facts
-  Runner->>Jev: Choice Request 1: Match fields to canonical question IDs
-  Jev-->>Runner: Return canonical ID selections & confidence scores
-  Runner->>Jev: Choice Request 2: Match form options for select/radio controls
-  Jev-->>Runner: Return option selections
-  alt Grounded Prose Enabled (p.auto_draft)
-    Runner->>Writer: Draft essay from grounded candidate history + posting text
-    Writer-->>Runner: Return tailored prose draft
-  end
-  Runner->>Chrome: Connect via CDP & open posting tab
-  loop For each resolved control
-    Runner->>Chrome: Execute fill action (text input, select option, file upload)
-    Chrome-->>Runner: DOM Readback verification (chip text, input value, trace.jsonl)
-  end
-  alt p.auto_submit == true and ATS != Lever
-    Runner->>Chrome: Click Submit control
-    Chrome->>ATS: Submit form payload
-    ATS-->>Chrome: Display confirmation page / URL redirect
-    Runner-->>Host: Exit 0 with JSON status: "submitted"
-  else Needs user input or auto_submit == false
-    Runner-->>Host: Exit 0 with JSON status: "ready_to_submit" or "needs_user"
-  end
 ```
 
 ---
@@ -172,18 +127,20 @@ No candidate data, personal history, or credentials belong in this repository. A
 
 ```mermaid
 flowchart LR
+  classDef repo fill:#161b22,stroke:#1f6feb,stroke-width:1.5px,color:#c9d1d9
+  classDef private fill:#161b22,stroke:#238636,stroke-width:1.5px,color:#c9d1d9
+
   subgraph Repository["Git Workspace (Public / Open Source)"]
-    RepoFiles["Codebase (scripts/, src/, eval/, SKILL.md)"]
-    ZeroData["Zero Personal Data / Secrets"]
+    RepoFiles["Codebase & Scripts<br/>(Zero Personal Data / Secrets)"]:::repo
   end
 
   subgraph HomeConfig["~/.config/jev-apply/ (0700 Private Directory)"]
-    Env["env (API Keys & Endpoint Credentials)"]
-    Memory["memory/ (facts.yaml, preferences.yaml, stories.yaml)"]
-    Docs["documents/ (Résumé PDFs & structured text)"]
-    Apps["applications/ (<slug>/decisions.json, trace.jsonl)"]
-    Pipe["pipeline/ (pipeline.yaml, company watchlist)"]
-    Profile["profile/ (Isolated Chrome CDP profile directory)"]
+    Env["env<br/>(API Keys & Credentials)"]:::private
+    Memory["memory/<br/>(facts, preferences, answers)"]:::private
+    Docs["documents/<br/>(Résumé PDFs & links)"]:::private
+    Apps["applications/<br/>(decisions.json, trace.jsonl)"]:::private
+    Pipe["pipeline/<br/>(pipeline.yaml queue)"]:::private
+    Profile["profile/<br/>(Chrome CDP session)"]:::private
   end
 
   RepoFiles -->|Reads configuration from| HomeConfig

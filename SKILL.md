@@ -47,6 +47,12 @@ LLM — onboarding needs no OpenAI key. Relay `echo` (≤6 lines) to the user, t
 `gaps[].ask` in one message. A gap with one memory home carries `remember_as: {kind,id}`;
 use **`remember_as.id`**, not the `g.*` prompt ID, as the key in the private
 `~/.config/jev-apply/answers.json`.
+
+If `g.auto_draft` appears and the user has **already explicitly asked you to draft grounded
+application prose**, record `{"p.auto_draft":true}` in the private onboarding answers file
+instead of asking the same opt-in again. Otherwise ask once. An unset preference is
+never permission to draft.
+
 For example, `g.email` with `remember_as.id: f.identity.email` is answered as
 `{"f.identity.email":"robin@example.invalid"}`. `p.*` ids become preferences and `f.*` ids
 become facts; other answers may include `{"p.auto_submit":true,"p.salary":{"min":150000,

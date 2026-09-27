@@ -6,10 +6,10 @@
 prompt and shows an illustrated, grounded form answer instead of the old field-count chart
 and manual answer-file walkthrough. `SKILL.md` handles `kind:"draft"` items in the current
 CLI model when no writer API is configured; personal facts, EEO choices and exact policy
-attestations still go to the person. A configured OpenAI model name or keyed
-OpenAI-compatible HTTPS endpoint can write opt-in grounded prose. Keyed and remote
-endpoint costs are unknown rather than reported as free; auth failures do not silently
-fall back to another model.
+attestations still go to the person. A configured OpenAI model name, keyed HTTPS
+OpenAI-compatible endpoint, or unkeyed loopback model can write opt-in grounded prose.
+Keyed and remote endpoint costs are unknown rather than reported as free; auth failures
+do not silently fall back to another model.
 
 **Browser and smoke safety.** CDP connections now verify Chrome's profile before using a port,
 and tab reuse no longer mistakes a posting page or sibling job for its application. The bench

@@ -2,7 +2,9 @@
 
 **Fill job applications from what you've already told your agent.**
 
-![An application answer grounded in a saved story.](assets/application-sheet.svg)
+[![Watch the 72-second walkthrough: saved answers, grounded prose, and a real local browser fill.](assets/jev-apply-demo-poster.png)](https://github.com/user-attachments/assets/53641047-2f50-42d1-bf18-0e3cf44d5b31)
+
+*72 seconds · silent walkthrough · synthetic data · no application sent*
 
 Give it your résumé and a posting. It reuses saved answers, drafts grounded prose
 when you allow it, and fills the form for you to review. Missing personal details
@@ -14,14 +16,15 @@ In Codex, Claude Code, or another CLI agent:
 
 ```text
 Set up TheAdaply/jev-apply.
-Follow SKILL.md and INSTALL.md.
-Learn my résumé. Fill the job
-URL I give you. Use --no-submit
-on every run and rerun.
-Draft from my saved material
-with this CLI model unless I
-configure another writer.
-Show me the form; ask only for
+Follow SKILL.md.
+Use INSTALL.md for setup.
+Learn my résumé. Fill a URL
+I give you, --no-submit on
+every run and rerun.
+Draft from saved material
+with this CLI model unless
+I configure another writer.
+Show me the form; ask for
 missing facts and choices.
 ```
 

@@ -73,14 +73,14 @@ node scripts/apply.mjs --url "$JOB_URL" --answers ~/.config/jev-apply/applicatio
 ## Measured on real forms
 
 ```text
-Final rerun: 12 pages, 229 fields
-Correct  178  ██████████████████
-Open      50  █████
+Final pass: 229 fields
+Correct  178  ██████████
+Open      50  ███
 Missed     1  ▏
 Wrong      0
 ```
 
-Each full block represents about 10 fields; the counts are exact. The 12 Greenhouse/Ashby
+Bars are approximate (about 18 fields per full block); the counts are exact. The 12 Greenhouse/Ashby
 pages were new before the **first** pass. These numbers come from a **third pass over the
 same pages**, after fixes, with every field graded from screenshots by an independent
 reviewer. "Open" means no answer was on file, a policy gate refused to sign, or the control

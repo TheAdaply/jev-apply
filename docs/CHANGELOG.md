@@ -2,14 +2,22 @@
 
 ## Unreleased
 
+**Agent-first README and writer routing.** The README now gives a CLI agent a short setup
+prompt and shows an illustrated, grounded form answer instead of the old field-count chart
+and manual answer-file walkthrough. `SKILL.md` handles `kind:"draft"` items in the current
+CLI model when no writer API is configured; personal facts, EEO choices and exact policy
+attestations still go to the person. A configured OpenAI model name or keyed
+OpenAI-compatible HTTPS endpoint can write opt-in grounded prose. Keyed and remote
+endpoint costs are unknown rather than reported as free; auth failures do not silently
+fall back to another model.
+
 **Browser and smoke safety.** CDP connections now verify Chrome's profile before using a port,
 and tab reuse no longer mistakes a posting page or sibling job for its application. The bench
 uses that same ownership check, including platforms without a POSIX lock. `eeo-smoke.mjs`
 requires `--live` and uses a separate browser profile for synthetic demographic writes.
 
-**Shorter onboarding and agent guidance.** The README now leads with the workflow and a sourced
-benchmark chart, followed by install and usage. Package metadata links to the repository and
-issues, and npm package contents include `INSTALL.md`. The new `npm run check:syntax` and
+**Shorter onboarding and agent guidance.** Package metadata links to the repository and
+issues, and npm package contents include `INSTALL.md`. The `npm run check:syntax` and
 GitHub Actions workflow check installation and parsing only, without Jev calls; the live
 acceptance eval stays separate. `AGENTS.md` names both checks explicitly.
 

@@ -53,7 +53,7 @@ The agent follows [SKILL.md](SKILL.md) for the workflow and [INSTALL.md](INSTALL
 
 ![TypeSafe AI Jev System One Decision Pipeline](assets/typesafe-jev-animation.svg)
 
-`jev-apply` uses [TypeSafe AI's Jev model (`jev-1.13.0`)](https://typesafe.ai/blog/introducing-system-one-models-and-jev)—a System One AI model optimized for **parallel sampling**, **zero type errors**, and **70ms–500ms calibrated decision latency**. Unstructured candidate state enters the decider, and structured probabilistic decisions return without hallucination risk.
+`jev-apply` uses [TypeSafe AI's Jev model (`jev-1.13.0`)](https://typesafe.ai/blog/introducing-system-one-models-and-jev) to **choose among explicit candidates**, with a `none_of_these` exit. The runner validates the returned choice and probabilities before applying its confidence gates. A valid choice can still be wrong: type safety is not a guarantee of factual accuracy.
 
 ---
 
@@ -102,7 +102,7 @@ flowchart TD
   SchemaFetcher["Schema Fetcher<br/>(REST / GraphQL)"]:::service
   Planner["Planner & Normalizer<br/>(FormPlan)"]:::service
   JevAPI["TypeSafe Jev Decider<br/>(jev-1.13.0 API)"]:::service
-  WriterAPI["Writer Engine<br/>(OpenAI / Host Model)"]:::service
+  WriterAPI["Writer Engine<br/>(OpenAI / Compatible API / Host Model)"]:::service
   ExecEngine["Playwright CDP Executor<br/>(DOM Readback)"]:::service
   LocalStorage["Private Local Storage<br/>(~/.config/jev-apply/)"]:::storage
   LocalChrome["Dedicated Google Chrome<br/>(CDP Session)"]:::service
@@ -111,9 +111,10 @@ flowchart TD
   HostAgent -->|Execute scripts/*.mjs| CoreRunner
   CoreRunner <-->|Read / Write State| LocalStorage
   CoreRunner --> SchemaFetcher
+  SchemaFetcher --> Planner
   CoreRunner --> Planner
   Planner -->|Canonical Choice Matching| JevAPI
-  Planner -->|Grounded Essay Generation| WriterAPI
+  Planner -->|Opt-in Grounded Prose| WriterAPI
   CoreRunner --> ExecEngine
   ExecEngine -->|Attach via CDP| LocalChrome
   LocalChrome -->|Fill & Read Back DOM| ATSBoard
@@ -123,7 +124,7 @@ flowchart TD
 
 ## Data Isolation & Privacy Storage Architecture
 
-No candidate data, personal history, or credentials belong in this repository. All sensitive state is stored strictly under `~/.config/jev-apply/` with `0700` permissions.
+No candidate data, personal history, or credentials belong in this repository. The default private home is `~/.config/jev-apply/` (overridable with `JEV_APPLY_HOME`). The installer creates private directories with `0700` permissions; memory files are written with `0600`. Local storage does not mean offline processing: configured model APIs receive the material needed for their requests.
 
 ```mermaid
 flowchart LR
@@ -163,21 +164,21 @@ Unknown personal facts, EEO choices, and policy attestations are **not model que
 | :--- | :---: | :--- | :--- | :--- |
 | **Greenhouse** | <img src="https://img.shields.io/badge/Supported-238636?style=flat-square" alt="Supported"> | REST API / DOM | Auto / Manual (`p.auto_submit`) | Direct field resolution |
 | **Ashby** | <img src="https://img.shields.io/badge/Supported-238636?style=flat-square" alt="Supported"> | GraphQL API | Auto / Manual (`p.auto_submit`) | Native component support |
-| **Lever** | <img src="https://img.shields.io/badge/Supported-238636?style=flat-square" alt="Supported"> | DOM Parsing | Manual Only | Always stops before hCaptcha challenge |
+| **Lever** | <img src="https://img.shields.io/badge/Supported-238636?style=flat-square" alt="Supported"> | DOM Parsing | Manual Only | Runner never clicks Submit |
 | **LinkedIn Easy Apply** | <img src="https://img.shields.io/badge/Excluded-DA3633?style=flat-square" alt="Excluded"> | N/A | N/A | Excluded per LinkedIn ToS §8.2 |
 
 ---
 
 ## The Four-Status Return Contract
 
-`scripts/apply.mjs` outputs exactly one JSON object on `stdout` and exits `0` across all four operational outcomes:
+`scripts/apply.mjs` outputs exactly one JSON object on `stdout` and exits `0` across all four operational outcomes. The payload column lists selected fields, not complete JSON schemas; queue runs aggregate per-application results.
 
 | Status | Trigger Condition | Output Payload Summary |
 | :--- | :--- | :--- |
-| <img src="https://img.shields.io/badge/submitted-238636?style=flat-square" alt="submitted"> | Form filled, `p.auto_submit` resolved true, and ATS confirmation detected. | `{ slug, confirmation: { detected, text, url, screenshot }, filled, usage }` |
-| <img src="https://img.shields.io/badge/ready__to__submit-1F6FEB?style=flat-square" alt="ready_to_submit"> | All fields resolved, `p.auto_submit` off/unset or ATS is Lever. | `{ slug, filled, summary: "ready for user review", usage }` |
-| <img src="https://img.shields.io/badge/needs__user-D97706?style=flat-square" alt="needs_user"> | Unresolved facts, attestations, or agent draft items remaining. | `{ questions: [ { qid, label, options, remember_as, why } ] }` |
-| <img src="https://img.shields.io/badge/blocked-DA3633?style=flat-square" alt="blocked"> | Unsupported ATS, captcha boundary, or unconfirmed submit. | `{ reason, detail, screenshot }` |
+| <img src="https://img.shields.io/badge/submitted-238636?style=flat-square" alt="submitted"> | ATS confirmation detected after an authorized submit, or observed when resuming a manually submitted form. | `slug`, `confirmation`, `usage` |
+| <img src="https://img.shields.io/badge/ready__to__submit-1F6FEB?style=flat-square" alt="ready_to_submit"> | No questions remain and no submit is attempted: `--no-submit`, auto-submit off/unset, or Lever. | `slug`, `filled`, `summary`, `usage` |
+| <img src="https://img.shields.io/badge/needs__user-D97706?style=flat-square" alt="needs_user"> | Unresolved facts, attestations, or agent draft items remain. | `asks` for a single application; `questions` for a queue; drafts are handled by the host agent |
+| <img src="https://img.shields.io/badge/blocked-DA3633?style=flat-square" alt="blocked"> | Unsupported ATS, preflight refusal, browser/API failure, or unconfirmed submit. | `reason`, `detail`, optional `screenshot` |
 
 ---
 
@@ -191,7 +192,7 @@ Unknown personal facts, EEO choices, and policy attestations are **not model que
 | **2. Apply** | `node scripts/apply.mjs --url <posting-url> --no-submit` | Fetches schema, plans decisions with Jev, drafts prose, and fills form via CDP. |
 | **3. Remember** | `node scripts/remember.mjs "<verbatim-user-instruction>"` | Classifies and persists standing preferences or corrections into memory. |
 | **4. Scan** | `node scripts/scan.mjs` / `node scripts/pipeline.mjs list` | Scans tracked company job boards, scores candidate fit, and updates pipeline. |
-| **5. Queue** | `node scripts/apply.mjs --queue 5` | Plans N applications in parallel, fills tabs, and returns deduplicated questions. |
+| **5. Queue** | `node scripts/apply.mjs --queue 5 --no-submit` | Plans N applications in parallel, fills tabs, and returns deduplicated questions without submitting. |
 
 ---
 

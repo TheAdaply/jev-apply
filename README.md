@@ -28,11 +28,12 @@
 In Codex, Claude Code, or another CLI agent:
 
 ```text
-Set up TheAdaply/jev-apply. Read SKILL.md and INSTALL.md; install it.
-Show me where to enter my Jev key privately, not in chat. Learn my résumé.
-Fill the job URL I give you with --no-submit on every run and rerun.
-Use this CLI model for drafts grounded in my record unless I set a writer.
-Show me the filled form; ask only for missing facts, choices or attestations.
+Set up TheAdaply/jev-apply. Read SKILL.md and INSTALL.md.
+Install and configure it. Show me where to enter my Jev key privately,
+not in chat. Learn my résumé. Fill a URL I give you, with --no-submit
+on every run and rerun. Use this CLI model for drafts grounded in my
+record unless I set a writer. Show me the filled form. Ask only for
+missing facts, choices or attestations.
 ```
 
 The agent handles setup. You provide a [TypeSafe Jev key](https://console.typesafe.ai/keys)

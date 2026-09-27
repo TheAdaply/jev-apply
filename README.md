@@ -6,8 +6,6 @@
 
 <p align="center">
   <a href="https://github.com/theadaply/jev-apply/stargazers"><img src="https://img.shields.io/github/stars/theadaply/jev-apply?style=flat-square&logo=github" alt="GitHub stars"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
-  <a href="https://google.com/chrome"><img src="https://img.shields.io/badge/chrome-CDP%20Required-4285F4.svg?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome CDP"></a>
   <a href="https://typesafe.ai"><img src="https://img.shields.io/badge/TypeSafe%20AI-System%20One-000000.svg?style=flat-square" alt="TypeSafe AI"></a>
   <a href="https://console.typesafe.ai/keys"><img src="https://img.shields.io/badge/decider-Jev%201.13.0-ff69b4.svg?style=flat-square" alt="TypeSafe Jev"></a>
   <a href="AGENTS.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome"></a>

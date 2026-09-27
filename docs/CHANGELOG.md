@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-**Minimal README with a video walkthrough.** Removed badge strips, technical tables, and
-architecture sections from the human entry point; agent setup and behavior remain in
+**Minimal README with a video walkthrough.** Trimmed the badge row and removed technical
+tables and architecture sections from the human entry point; agent setup and behavior remain in
 `SKILL.md` and `INSTALL.md`. The hero links to a 72-second, silent GitHub-hosted video:
 clearly labeled illustrated steps plus a real local browser-adapter fill and readback.
 All candidate details are synthetic; no application is submitted.

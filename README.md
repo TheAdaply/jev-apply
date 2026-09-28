@@ -13,7 +13,7 @@
 
 <br/>
 
-[![Watch jev-apply fill and submit two real job applications in 16 seconds.](assets/jev-apply-demo-poster.png)](https://github.com/user-attachments/assets/1cd2deb1-9158-4f81-9012-a768cc8c40ac)
+[![Watch jev-apply fill and submit two real job applications in 16 seconds.](assets/jev-apply-demo-poster.png)](https://github.com/user-attachments/assets/31ee821d-52bb-4f8f-a5fe-36df69b47fb2)
 
 *16 seconds · a real run · two applications filled and submitted · fills shown at 2×*
 

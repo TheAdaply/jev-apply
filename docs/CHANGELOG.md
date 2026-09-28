@@ -2,11 +2,14 @@
 
 ## Unreleased
 
-**Minimal README with a video walkthrough.** Trimmed the badge row and removed technical
-tables and architecture sections from the human entry point; agent setup and behavior remain in
-`SKILL.md` and `INSTALL.md`. The hero links to a 72-second, silent GitHub-hosted video:
-clearly labeled illustrated steps plus a real local browser-adapter fill and readback.
-All candidate details are synthetic; no application is submitted.
+**README demo of a real run.** The hero video is now a 16-second recording of jev-apply
+filling and submitting two live Ashby applications from the owner's saved profile, each
+through the ATS's own confirmation, with fills shown at 2×. Phone, email and demographic
+answers are blurred.
+
+**Minimal README.** Trimmed the badge row and removed technical tables and architecture
+sections from the human entry point; agent setup and behavior remain in `SKILL.md` and
+`INSTALL.md`.
 
 **Agent-first README and writer routing.** The README gives a CLI agent a short setup
 prompt instead of a manual answer-file walkthrough. `SKILL.md` handles `kind:"draft"` items in the current

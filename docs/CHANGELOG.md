@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+**README demo of a real run.** The hero video is now a 16-second recording of jev-apply
+filling and submitting two live Ashby applications from the owner's saved profile, each
+through the ATS's own confirmation, with fills shown at 2×. Phone, email and demographic
+answers are blurred.
+
 **Minimal README with a video walkthrough.** Trimmed the badge row and removed technical
 tables and architecture sections from the human entry point; agent setup and behavior remain in
 `SKILL.md` and `INSTALL.md`. The hero links to a 72-second, silent GitHub-hosted video:

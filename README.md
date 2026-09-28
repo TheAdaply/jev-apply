@@ -13,9 +13,9 @@
 
 <br/>
 
-[![Watch the 72-second walkthrough: saved answers, grounded prose, and a real local browser fill.](assets/jev-apply-demo-poster.png)](https://github.com/user-attachments/assets/53641047-2f50-42d1-bf18-0e3cf44d5b31)
+[![Watch jev-apply fill and submit two real job applications in 16 seconds.](assets/jev-apply-demo-poster.png)](https://github.com/user-attachments/assets/1cd2deb1-9158-4f81-9012-a768cc8c40ac)
 
-*72 seconds · silent walkthrough · synthetic data · no application sent*
+*16 seconds · a real run · two applications filled and submitted · fills shown at 2×*
 
 </div>
 

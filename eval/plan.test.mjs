@@ -2812,6 +2812,21 @@ const DEMOGRAPHIC_RE = /how would you describe|do you identify as|veteran or act
   );
 }
 
+// The scan's fit pass picks its reason from the same stories the form filler does. learn.mjs writes
+// story rows with no `kind`, and a pool that demanded `kind: story` came back empty for a real
+// profile of 31 stories: every posting in the pipeline read "no matching story".
+{
+  const { storyPool: fitStoryPool } = await import("../src/discover/fit.mjs");
+  const stories = [
+    { id: "b.story.learned", title: "What production systems did you ship?", text: "…", source: "resume:cv.pdf#p1" },
+    { id: "b.story.seeded", kind: "story", title: "Rewrote a cache layer", text: "…", tags: ["caching"] },
+    { id: "b.story.answer", kind: "answer", title: "Why this team?", text: "…" },
+    { id: "b.story.hidden", title: "Work the user does not want mentioned", text: "…", use: "never" },
+  ];
+  const ids = fitStoryPool({ stories }).map((s) => s.id).join();
+  check("fit: a learned story row with no kind is in the pool; kind: answer and use: never rows are not", ids === "b.story.learned,b.story.seeded");
+}
+
 if (failures > 0) {
   console.log(`\n${failures} assertion(s) failed`);
   process.exit(1);

@@ -52,14 +52,15 @@ const clip = (text, n) => {
 const jobKey = (i) => `j${i}`;
 
 /**
- * The selector pool: `kind: story` rows the user has not hidden (`use: never`). Titles are the
- * labels, so duplicates are dropped — a Choice label must map back to exactly one story.
+ * The selector pool: `kind: story` rows the user has not hidden (`use: never`); a row with no
+ * `kind` is a story, as in `src/jev/plan.mjs` (learn.mjs writes none). Titles are the labels,
+ * so duplicates are dropped — a Choice label must map back to exactly one story.
  */
 export function storyPool(mem) {
   const seen = new Set();
   const pool = [];
   for (const row of usableStories(mem)) {
-    if (row?.kind !== "story") continue;
+    if ((row?.kind ?? "story") !== "story") continue;
     const title = typeof row.title === "string" ? row.title.trim() : "";
     if (!title || seen.has(title)) continue;
     seen.add(title);
